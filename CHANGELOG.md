@@ -2,6 +2,9 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.0.4] - 2026-07-16
+- Enhance editor group locking for Pi terminals
+
 ## [1.0.3] - 2026-06-24
 
 - Added `pi-agent-studio.commitModel` setting to pick the model used for AI commit message generation (`provider/model` format).

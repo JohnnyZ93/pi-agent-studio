@@ -59,7 +59,7 @@ export function lockPiEditorGroup(): void {
     return true;
   };
 
-  if(vscode.window.tabGroups.activeTabGroup.tabs.length==0 && lock()) return;
+  if (vscode.window.tabGroups.activeTabGroup.tabs.length == 0 && lock()) return;
 
   const sub = vscode.window.tabGroups.onDidChangeTabGroups((e) => {
     const relevant = [...e.opened, ...e.changed];
