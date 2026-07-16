@@ -45,8 +45,27 @@ export async function createNewTerminal(options: {
     },
   });
 
-  void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
   return terminal;
+}
+
+export function lockPiEditorGroup(): void {
+  const isPiGroup = (group: vscode.TabGroup): boolean =>
+    group.tabs.some(
+      (t) => t.input instanceof vscode.TabInputTerminal && t.label === TERMINAL_TITLE,
+    );
+
+  const lock = (): boolean => {
+    void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+    return true;
+  };
+
+  if(vscode.window.tabGroups.activeTabGroup.tabs.length==0 && lock()) return;
+
+  const sub = vscode.window.tabGroups.onDidChangeTabGroups((e) => {
+    const relevant = [...e.opened, ...e.changed];
+    if (relevant.some(isPiGroup) && lock()) sub.dispose();
+  });
+  setTimeout(() => sub.dispose(), 5000);
 }
 
 function findPiColumn(): vscode.ViewColumn | undefined {

@@ -11,7 +11,7 @@ import { ensureModelsJsonExists } from "./models/models-config.ts";
 import { createSettingsViewProvider } from "./settings/settings-sidebar.ts";
 import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
-import { createNewTerminal } from "./terminal.ts";
+import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
 import { abortCommitGeneration, generateCommitMsg } from "./gitCommit/commitMessageGenerator.ts";
 
 let extensionUri: vscode.Uri;
@@ -75,6 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
       const terminal = await openTerminal();
       terminal?.show();
+      lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
       const terminal = await openTerminal();
@@ -92,6 +93,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       const terminal = await openTerminalInCwd(cwd);
       terminal?.show();
+      lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.upgrade", upgradePiBinary),
     vscode.commands.registerCommand("pi-agent-studio.openSettingsJson", async () => {

@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
-import { createNewTerminal } from "../terminal.ts";
+import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
 import type { SessionTracker } from "../sessions.ts";
 import { filterAndSortSessions } from "./session-search.ts";
 import { getSessionsHtml } from "./sessions-sidebar-html.ts";
@@ -310,6 +310,7 @@ async function openNewSessionInDir(
   if (terminal) {
     sessionTracker.track(terminal, terminalId);
     terminal.show();
+    lockPiEditorGroup();
   }
 }
 
@@ -335,6 +336,7 @@ async function openSession(
     sessionTracker.track(terminal, terminalId);
     sessionTracker.update(terminalId, sessionFile);
     terminal.show();
+    lockPiEditorGroup();
   }
 }
 

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import * as vscode from "vscode";
 import { TERMINAL_TITLE } from "./constants.ts";
-import { createNewTerminal } from "./terminal.ts";
+import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
 
 const SESSIONS_KEY = "pi-agent-studio.terminalSessions";
 
@@ -72,7 +72,8 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
         if (terminal) {
           terminalIds.set(terminal, terminalId);
           terminalsById.set(terminalId, terminal);
-          terminal.show(true);
+          terminal.show();
+          lockPiEditorGroup();
         }
       }
     },
