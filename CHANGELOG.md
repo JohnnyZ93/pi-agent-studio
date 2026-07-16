@@ -3,6 +3,7 @@
 All notable changes to **Pi Agent Studio** are documented in this file.
 
 ## [1.0.4] - 2026-07-16
+
 - Enhance editor group locking for Pi terminals
 
 ## [1.0.3] - 2026-06-24
