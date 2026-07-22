@@ -210,6 +210,9 @@ export default function (pi) {
 
   pi.on("agent_end", async (_event, ctx) => {
     void refreshStatus(ctx);
+    try {
+      callBridge("showNotification", { message: "Pi: Task Completed!", type: "info" });
+    } catch {}
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
