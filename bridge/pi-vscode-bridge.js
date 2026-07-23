@@ -279,20 +279,20 @@ export default function (pi) {
   const looksLikePath = (s) => s && (s.includes("/") || s.includes("\\") || s.includes("."));
 
   pi.registerCommand("vscode-selection", {
-    description: "获取当前 VS Code 编辑器选区文本和坐标",
+    description: "Get the current VS Code Editor selection text and coordinates",
     handler: async (args, _ctx) => {
       const result = await callBridge("getCurrentSelection");
       const json = JSON.stringify(result);
       const intent = args?.trim();
       const prefix = intent
-        ? `${intent}\n\n/vscode-selection 结果:\n`
-        : `/vscode-selection 结果:\n`;
+        ? `${intent}\n\n/vscode-selection result:\n`
+        : `/vscode-selection result:\n`;
       pi.sendUserMessage(`${prefix}\`\`\`json\n${json}\n\`\`\``);
     },
   });
 
   pi.registerCommand("vscode-diagnostics", {
-    description: "获取 VS Code 诊断信息（可选文件路径参数）",
+    description: "Get VS Code diagnostic information (optional file path parameters)",
     handler: async (args, _ctx) => {
       const parts = args?.trim().split(/\s+/) ?? [];
       let filePath;
@@ -310,8 +310,8 @@ export default function (pi) {
       const result = await callBridge("getDiagnostics", filePath ? { filePath } : {});
       const json = JSON.stringify(result);
       const prefix = intent
-        ? `${intent}\n\n/vscode-diagnostics 结果:\n`
-        : `/vscode-diagnostics 结果:\n`;
+        ? `${intent}\n\n/vscode-diagnostics result:\n`
+        : `/vscode-diagnostics result:\n`;
       pi.sendUserMessage(`${prefix}\`\`\`json\n${json}\n\`\`\``);
     },
   });
