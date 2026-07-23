@@ -2,6 +2,10 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.0.6] - 2026-07-23
+
+- Fix(bridge): avoid the terminal being killed while waiting for notification.
+
 ## [1.0.5] - 2026-07-23
 
 - Added `pi-agent-studio.statusBar` setting to toggle live VS Code context in pi TUI footer.
