@@ -88,8 +88,8 @@ The **Pi** activity bar icon opens a sidebar with three webviews:
 
 Each pi terminal launched by the extension loads a bundled pi extension that opens a local HTTP bridge to VS Code. The bridge powers three things:
 
-1. **Live footer status** — Refreshed every ~1.5s in pi's TUI status area: active file, cursor / selection, language id, dirty marker, and diagnostic counts.
-2. **One LLM tool** — The agent can autonomously read VS Code diagnostics. Other actions are intentionally **not** exposed to the model.
+1. **Live footer status** - Refreshed every ~1.5s in pi's TUI status area: active file, cursor / selection, language id, dirty marker, and diagnostic counts. Disable with `pi-agent-studio.statusBar`.
+2. **One LLM tool** - The agent can autonomously read VS Code diagnostics. Other actions are intentionally **not** exposed to the model. Disable individual tools via `pi-agent-studio.disabledTools`.
 3. **Slash commands** — User-triggered commands that pull live editor context and inject it into the conversation as a user message.
 
 > **Design note.** Earlier versions exposed 25 tools to the model. They were cut down to one: tool-spam pollutes context and tempts the model into making file edits behind the editor's back. The remaining live-editor surface is now driven by **explicit slash commands** so the human stays in control of when context flows in.
@@ -128,14 +128,16 @@ Example:
 
 ## Configuration
 
-| Setting                               | Type     | Default     | Description                                                                               |
-| ------------------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------------- |
-| `pi-agent-studio.path`                | `string` | `""`        | Absolute path to the pi binary (auto-detected if empty)                                   |
-| `pi-agent-studio.env`                 | `object` | `{}`        | Environment variables merged into the pi terminal (bridge vars win on key collision)      |
-| `pi-agent-studio.args`                | `array`  | `[]`        | Extra CLI args appended after `--extension` and before any caller-supplied extra args     |
-| `pi-agent-studio.commitLanguage`      | `string` | `"English"` | Language for generated Git commit messages (14 languages supported)                       |
-| `pi-agent-studio.commitMessagePrompt` | `string` | `""`        | Custom system prompt for commit message generation                                        |
-| `pi-agent-studio.commitModel`         | `string` | `""`        | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`) |
+| Setting                               | Type      | Default     | Description                                                                               |
+| ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                | `string`  | `""`        | Absolute path to the pi binary (auto-detected if empty)                                   |
+| `pi-agent-studio.env`                 | `object`  | `{}`        | Environment variables merged into the pi terminal (bridge vars win on key collision)      |
+| `pi-agent-studio.args`                | `array`   | `[]`        | Extra CLI args appended after `--extension` and before any caller-supplied extra args     |
+| `pi-agent-studio.commitLanguage`      | `string`  | `"English"` | Language for generated Git commit messages (14 languages supported)                       |
+| `pi-agent-studio.commitMessagePrompt` | `string`  | `""`        | Custom system prompt for commit message generation                                        |
+| `pi-agent-studio.commitModel`         | `string`  | `""`        | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`) |
+| `pi-agent-studio.statusBar`           | `boolean` | `true`      | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer           |
+| `pi-agent-studio.disabledTools`       | `array`   | `[]`        | LLM tools to disable (blocklist, e.g. `["vscode_get_diagnostics"]`)                       |
 
 ## Building from source
 

@@ -109,8 +109,13 @@ export function createPiEnvironment(
   bridgeConfig: { url: string; token: string } | undefined,
 ): Record<string, string> | undefined {
   if (!bridgeConfig) return undefined;
+  const config = vscode.workspace.getConfiguration("pi-agent-studio");
+  const statusBar = config.get<boolean>("statusBar") ?? true;
+  const disabledTools = config.get<string[]>("disabledTools") ?? [];
   return {
     PI_VSCODE_BRIDGE_URL: bridgeConfig.url,
     PI_VSCODE_BRIDGE_TOKEN: bridgeConfig.token,
+    PI_VSCODE_STATUS_BAR: statusBar ? "1" : "0",
+    PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
   };
 }

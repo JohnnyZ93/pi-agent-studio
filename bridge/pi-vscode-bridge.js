@@ -6,6 +6,16 @@ export default function (pi) {
 
   if (!bridgeUrl || !bridgeToken) return;
 
+  const statusBarEnabled = process.env.PI_VSCODE_STATUS_BAR !== "0";
+  const disabledTools = (() => {
+    try {
+      const parsed = JSON.parse(process.env.PI_VSCODE_DISABLED_TOOLS ?? "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
   const MAX_RESULT_BYTES = 50 * 1024;
   const MAX_RESULT_LINES = 2000;
   const STATUS_ID = "pi-vscode";
@@ -142,14 +152,20 @@ export default function (pi) {
   };
 
   const setStatus = (ctx, statusKey, statusText) => {
-    if (!ctx?.hasUI) return;
+    if (!statusBarEnabled || !ctx?.hasUI) return;
     if (statusKey === lastStatusKey) return;
     lastStatusKey = statusKey;
     ctx.ui.setStatus(STATUS_ID, statusText);
   };
 
   const refreshStatus = async (ctx, generation = statusGeneration) => {
-    if (!ctx?.hasUI || generation !== statusGeneration || statusRefreshInFlight) return;
+    if (
+      !statusBarEnabled ||
+      !ctx?.hasUI ||
+      generation !== statusGeneration ||
+      statusRefreshInFlight
+    )
+      return;
     statusRefreshInFlight = true;
     try {
       const status = await callBridge("getStatus");
@@ -170,6 +186,7 @@ export default function (pi) {
   };
 
   const stopStatusUpdates = (ctx) => {
+    if (!statusBarEnabled) return;
     if (statusTimer) {
       clearInterval(statusTimer);
       statusTimer = undefined;
@@ -180,7 +197,7 @@ export default function (pi) {
   };
 
   const startStatusUpdates = (ctx) => {
-    if (!ctx?.hasUI) return;
+    if (!statusBarEnabled || !ctx?.hasUI) return;
     stopStatusUpdates(ctx);
     const generation = statusGeneration;
     void refreshStatus(ctx, generation);
@@ -219,9 +236,14 @@ export default function (pi) {
     stopStatusUpdates(ctx);
   });
 
-  // ── LLM tool: only vscode_get_diagnostics ──
+  // ── LLM tools (gated by PI_VSCODE_DISABLED_TOOLS blocklist) ──
 
-  pi.registerTool({
+  const registerToolIfEnabled = (definition) => {
+    if (disabledTools.includes(definition.name)) return;
+    pi.registerTool(definition);
+  };
+
+  registerToolIfEnabled({
     name: "vscode_get_diagnostics",
     label: "VS Code Diagnostics",
     description:

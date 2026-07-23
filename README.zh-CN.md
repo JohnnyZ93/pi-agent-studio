@@ -88,8 +88,8 @@ ovsx get johnny-zhao/pi-agent-studio
 
 每个由本扩展启动的 pi 终端都会加载一个内置 pi 扩展，该扩展仅通过本地 HTTP 桥接访问 VS Code。桥接服务于三件事：
 
-1. **实时状态栏** —— 每 ~1.5 秒刷新 pi TUI 底部状态条：活动文件、光标 / 选区、语言、脏状态、诊断数量
-2. **1 个 LLM 工具** —— Agent 可自主读取诊断；其他操作刻意**不**对模型开放
+1. **实时状态栏** -- 每 ~1.5 秒刷新 pi TUI 底部状态条：活动文件、光标 / 选区、语言、脏状态、诊断数量。可通过 `pi-agent-studio.statusBar` 关闭
+2. **1 个 LLM 工具** -- Agent 可自主读取诊断；其他操作刻意**不**对模型开放。可通过 `pi-agent-studio.disabledTools` 按工具禁用
 3. **Slash 命令** —— 由用户手动触发，读取实时编辑器上下文后以用户消息注入对话
 
 > **设计考量。** 早期版本一口气暴露 25 个工具给模型。工具过多会污染上下文，也会诱导模型绕过编辑器直改文件。现在的设计是：**带入实时编辑器上下文这件事由人明示触发的 Slash 命令控制**，模型不能额外索取。
@@ -128,14 +128,16 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 配置项
 
-| 设置项                                | 类型     | 默认值      | 说明                                                                   |
-| ------------------------------------- | -------- | ----------- | ---------------------------------------------------------------------- |
-| `pi-agent-studio.path`                | `string` | `""`        | pi 二进制的绝对路径（留空则自动检测）                                  |
-| `pi-agent-studio.env`                 | `object` | `{}`        | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）               |
-| `pi-agent-studio.args`                | `array`  | `[]`        | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数               |
-| `pi-agent-studio.commitLanguage`      | `string` | `"English"` | 生成 Git commit message 的语言（支持 14 种语言）                       |
-| `pi-agent-studio.commitMessagePrompt` | `string` | `""`        | commit message 生成的自定义系统提示                                    |
-| `pi-agent-studio.commitModel`         | `string` | `""`        | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`） |
+| 设置项                                | 类型      | 默认值      | 说明                                                                   |
+| ------------------------------------- | --------- | ----------- | ---------------------------------------------------------------------- |
+| `pi-agent-studio.path`                | `string`  | `""`        | pi 二进制的绝对路径（留空则自动检测）                                  |
+| `pi-agent-studio.env`                 | `object`  | `{}`        | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）               |
+| `pi-agent-studio.args`                | `array`   | `[]`        | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数               |
+| `pi-agent-studio.commitLanguage`      | `string`  | `"English"` | 生成 Git commit message 的语言（支持 14 种语言）                       |
+| `pi-agent-studio.commitMessagePrompt` | `string`  | `""`        | commit message 生成的自定义系统提示                                    |
+| `pi-agent-studio.commitModel`         | `string`  | `""`        | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`） |
+| `pi-agent-studio.statusBar`           | `boolean` | `true`      | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）            |
+| `pi-agent-studio.disabledTools`       | `array`   | `[]`        | 要禁用的 LLM 工具黑名单（如 `["vscode_get_diagnostics"]`）             |
 
 ## 从源码构建
 

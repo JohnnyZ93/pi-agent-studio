@@ -240,6 +240,22 @@
           "pattern": "^$|^[^/]+/.+$",
           "patternErrorMessage": "Format must be \"provider/model\", e.g. \"Zai/glm-5.2\".",
           "description": "Model used to generate Git commit messages, in \"provider/model\" format (e.g. \"Zai/glm-5.2\")."
+        },
+        "pi-agent-studio.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show live VS Code context (active editor, selection, diagnostics) in the pi TUI footer. Disable to stop the bundled bridge from updating the footer."
+        },
+        "pi-agent-studio.disabledTools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "vscode_get_diagnostics"
+            ]
+          },
+          "default": [],
+          "description": "LLM tools registered by the bundled VS Code bridge to disable (blocklist). Defaults to none (all enabled). Example: [\"vscode_get_diagnostics\"]."
         }
       }
     },
