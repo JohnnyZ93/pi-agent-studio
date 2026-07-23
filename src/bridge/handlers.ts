@@ -476,13 +476,16 @@ async function showNotification(params: Record<string, unknown>) {
 
   switch (type) {
     case "info":
-      await vscode.window.showInformationMessage(message, { modal });
+      if (modal) await vscode.window.showInformationMessage(message, { modal });
+      else void vscode.window.showInformationMessage(message, { modal });
       break;
     case "warning":
-      await vscode.window.showWarningMessage(message, { modal });
+      if (modal) await vscode.window.showWarningMessage(message, { modal });
+      else void vscode.window.showWarningMessage(message, { modal });
       break;
     case "error":
-      await vscode.window.showErrorMessage(message, { modal });
+      if (modal) await vscode.window.showErrorMessage(message, { modal });
+      else void vscode.window.showErrorMessage(message, { modal });
       break;
     default:
       throw new Error(`Invalid notification type: ${type}`);
