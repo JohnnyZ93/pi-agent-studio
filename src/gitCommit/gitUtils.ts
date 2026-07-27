@@ -314,3 +314,16 @@ function truncateOutput(content: string): string {
 export async function isGitRepository(dirPath: string): Promise<boolean> {
   return await checkGitRepo(dirPath);
 }
+
+export async function getGitBranch(cwd: string): Promise<string | undefined> {
+  try {
+    if (!(await checkGitInstalled())) return undefined;
+    if (!(await checkGitRepo(cwd))) return undefined;
+    if (!(await checkGitRepoHasCommits(cwd))) return undefined;
+    const { stdout } = await execAsync("git rev-parse --abbrev-ref HEAD", { cwd });
+    const branch = stdout.trim();
+    return branch && branch !== "HEAD" ? branch : undefined;
+  } catch {
+    return undefined;
+  }
+}

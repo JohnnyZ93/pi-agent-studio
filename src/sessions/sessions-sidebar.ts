@@ -6,6 +6,8 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
 import type { SessionTracker } from "../sessions.ts";
+import { openChatPanel } from "../chat/chat-panel.ts";
+import type { ChatTracker } from "../chat/chat-tracker.ts";
 import { filterAndSortSessions } from "./session-search.ts";
 import { getSessionsHtml } from "./sessions-sidebar-html.ts";
 
@@ -28,6 +30,7 @@ export function createSessionsViewProvider(
   extensionUri: vscode.Uri,
   bridgeConfig: { url: string; token: string } | undefined,
   sessionTracker: SessionTracker,
+  chatTracker: ChatTracker,
 ): vscode.WebviewViewProvider {
   let sessionDirs: SessionDir[] = [];
   let selectedDirPath: string | undefined;
@@ -169,10 +172,22 @@ export function createSessionsViewProvider(
             postFiltered(lastSearchQuery);
             break;
           case "new":
-            await openNewSessionInDir(selectedDirPath, extensionUri, bridgeConfig, sessionTracker);
+            await openNewSessionInDir(
+              selectedDirPath,
+              extensionUri,
+              bridgeConfig,
+              sessionTracker,
+              chatTracker,
+            );
             break;
           case "open":
-            await openSession(msg.sessionFile, extensionUri, bridgeConfig, sessionTracker);
+            await openSession(
+              msg.sessionFile,
+              extensionUri,
+              bridgeConfig,
+              sessionTracker,
+              chatTracker,
+            );
             break;
           case "rename":
             await renameSession(msg.sessionFile, msg.name);
@@ -294,10 +309,15 @@ async function openNewSessionInDir(
   extensionUri: vscode.Uri,
   bridgeConfig: { url: string; token: string } | undefined,
   sessionTracker: SessionTracker,
+  chatTracker: ChatTracker,
 ): Promise<void> {
   const effectiveCwd = cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!effectiveCwd) {
     void vscode.window.showErrorMessage("No workspace folder available");
+    return;
+  }
+  if (useWebviewUi()) {
+    await openChatPanel({ extensionUri, tracker: chatTracker, cwd: effectiveCwd });
     return;
   }
   const terminalId = randomUUID();
@@ -319,7 +339,12 @@ async function openSession(
   extensionUri: vscode.Uri,
   bridgeConfig: { url: string; token: string } | undefined,
   sessionTracker: SessionTracker,
+  chatTracker: ChatTracker,
 ): Promise<void> {
+  if (useWebviewUi()) {
+    await openChatPanel({ extensionUri, tracker: chatTracker, sessionFile });
+    return;
+  }
   const existing = sessionTracker.findTerminalBySessionFile(sessionFile);
   if (existing) {
     existing.show();
@@ -338,6 +363,10 @@ async function openSession(
     terminal.show();
     lockPiEditorGroup();
   }
+}
+
+function useWebviewUi(): boolean {
+  return vscode.workspace.getConfiguration("pi-agent-studio").get<string>("ui") === "webview";
 }
 
 async function renameSession(sessionFile: string, name: string): Promise<void> {

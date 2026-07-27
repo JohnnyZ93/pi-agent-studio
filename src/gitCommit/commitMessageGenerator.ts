@@ -1,9 +1,8 @@
 import {
-  AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
   getAgentDir,
-  ModelRegistry,
+  ModelRuntime,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import * as path from "path";
@@ -216,11 +215,10 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
     });
     await loader.reload();
 
-    const authStorage = AuthStorage.create();
-    const modelRegistry = ModelRegistry.create(authStorage);
+    const modelRuntime = await ModelRuntime.create();
 
     const commitModelRaw = config.get<string>("pi-agent-studio.commitModel", "");
-    let model: ReturnType<typeof modelRegistry.find> | undefined;
+    let model: ReturnType<typeof modelRuntime.getModel> | undefined;
     if (commitModelRaw.trim()) {
       const parsed = parseProviderModel(commitModelRaw);
       if (!parsed) {
@@ -228,13 +226,13 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
           `Invalid "pi-agent-studio.commitModel": "${commitModelRaw}". Expected format "provider/model".`,
         );
       }
-      model = modelRegistry.find(parsed.provider, parsed.modelId);
+      model = modelRuntime.getModel(parsed.provider, parsed.modelId);
       if (!model) {
         throw new Error(
           `Commit model "${parsed.provider}/${parsed.modelId}" not found in ~/.pi/agent/models.json.`,
         );
       }
-      if (!modelRegistry.hasConfiguredAuth(model)) {
+      if (!modelRuntime.hasConfiguredAuth(model.provider)) {
         throw new Error(
           `Commit model "${parsed.provider}/${parsed.modelId}" has no configured auth (API key or OAuth).`,
         );
@@ -247,8 +245,7 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
       noTools: "all",
       resourceLoader: loader,
       sessionManager: SessionManager.inMemory(),
-      authStorage,
-      modelRegistry,
+      modelRuntime,
       model,
     });
     session = created.session;

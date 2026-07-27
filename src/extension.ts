@@ -13,6 +13,8 @@ import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
 import { abortCommitGeneration, generateCommitMsg } from "./gitCommit/commitMessageGenerator.ts";
+import { createChatTracker } from "./chat/chat-tracker.ts";
+import { disposeAllChatPanels, openChatPanel } from "./chat/chat-panel.ts";
 
 let extensionUri: vscode.Uri;
 let bridgeConfig: { url: string; token: string } | undefined;
@@ -22,6 +24,7 @@ export async function activate(context: vscode.ExtensionContext) {
   extensionUri = context.extensionUri;
 
   const sessions = createSessionTracker(context);
+  const chatTracker = createChatTracker(context);
   const bridge = await createBridge(context, (terminalId, sessionFile) => {
     sessions.update(terminalId, sessionFile);
   });
@@ -73,11 +76,24 @@ export async function activate(context: vscode.ExtensionContext) {
       if (event.affectsConfiguration("pi-agent-studio.path")) invalidatePiBinaryCache();
     }),
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
+      if (useWebviewUi()) {
+        await openChatPanel({ extensionUri, tracker: chatTracker });
+        return;
+      }
       const terminal = await openTerminal();
       terminal?.show();
       lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
+      if (useWebviewUi()) {
+        await openChatPanel({ extensionUri, tracker: chatTracker });
+        try {
+          await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
+        } catch {
+          // ignore
+        }
+        return;
+      }
       const terminal = await openTerminal();
       if (!terminal) return;
       terminal.show();
@@ -89,6 +105,10 @@ export async function activate(context: vscode.ExtensionContext) {
         void vscode.window.showErrorMessage(
           "Pi: Unable to resolve a folder from the selected item.",
         );
+        return;
+      }
+      if (useWebviewUi()) {
+        await openChatPanel({ extensionUri, tracker: chatTracker, cwd });
         return;
       }
       const terminal = await openTerminalInCwd(cwd);
@@ -114,7 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.sessions",
-      createSessionsViewProvider(extensionUri, bridgeConfig, sessions),
+      createSessionsViewProvider(extensionUri, bridgeConfig, sessions, chatTracker),
     ),
     vscode.window.registerWebviewViewProvider("pi-agent-studio.models", createModelsViewProvider()),
     vscode.window.registerWebviewViewProvider(
@@ -124,9 +144,19 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
+  if (useWebviewUi()) {
+    void chatTracker.restore(async (sessionFile, panelId) => {
+      await openChatPanel({ extensionUri, tracker: chatTracker, sessionFile, panelId });
+    });
+  }
+}
+
+function useWebviewUi(): boolean {
+  return vscode.workspace.getConfiguration("pi-agent-studio").get<string>("ui") === "webview";
 }
 
 export async function deactivate() {
+  disposeAllChatPanels();
   for (const terminal of vscode.window.terminals) {
     if (terminal.name === TERMINAL_TITLE) terminal.dispose();
   }

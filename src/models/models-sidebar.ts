@@ -21,6 +21,8 @@ import {
   saveApiKey,
   removeApiKey,
   logout,
+  invalidateModelRuntime,
+  refreshModelRegistry,
 } from "./auth-config.ts";
 
 interface ProviderInfo {
@@ -49,9 +51,9 @@ export function createModelsViewProvider(): vscode.WebviewViewProvider {
 
       let activeOAuthFlow: OAuthFlowController | undefined;
 
-      const postData = () => {
+      const postData = async () => {
         try {
-          const data = buildModelsViewData();
+          const data = await buildModelsViewData();
           console.log(
             "[pi-agent-studio] Models view: posting data with",
             data.providers.length,
@@ -138,6 +140,9 @@ export function createModelsViewProvider(): vscode.WebviewViewProvider {
                   event.type === "cancelled"
                 ) {
                   activeOAuthFlow = undefined;
+                  // oauth-flow logs in via its own ModelRuntime; drop the cached
+                  // view runtime so the recreated one picks up the new credential.
+                  if (event.type === "success") invalidateModelRuntime();
                   postData();
                 }
               });
@@ -206,8 +211,11 @@ function sanitizeModelUpdates<T extends Record<string, unknown>>(updates: T | un
   return result as T;
 }
 
-function buildModelsViewData(): ModelsViewData {
+async function buildModelsViewData(): Promise<ModelsViewData> {
   try {
+    // Reload models.json into the cached runtime so custom-provider edits
+    // (Providers tab) are reflected in the API Keys tab without a full rebuild.
+    await refreshModelRegistry();
     const modelsJson = readModelsJson();
     console.log(
       "[pi-agent-studio] Models view: read models config, providers:",
@@ -225,12 +233,12 @@ function buildModelsViewData(): ModelsViewData {
     );
 
     // OAuth providers
-    const oauthStatuses = getOAuthProviderStatuses();
+    const oauthStatuses = await getOAuthProviderStatuses();
     console.log("[pi-agent-studio] Models view: OAuth providers:", oauthStatuses.length);
 
     // API key providers - modelCount already returned by getApiKeyProviderStatuses
     // (computed from the SDK registry, same as pi-web).
-    const apikeyStatuses = getApiKeyProviderStatuses();
+    const apikeyStatuses = await getApiKeyProviderStatuses();
 
     console.log("[pi-agent-studio] Models view: API key providers:", apikeyStatuses.length);
 

@@ -1,14 +1,8 @@
-/**
- * Pure Node.js implementation of auth storage.
- * Bypasses pi SDK's AuthStorage file-locking (heavy on Windows), but reuses the
- * SDK to enumerate built-in providers so the list stays in sync with the SDK —
- * same approach as pi-web (see app/api/auth/all-providers/route.ts).
- */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { AuthStorage, ModelRegistry, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { ModelRuntime, ModelRegistry, getAgentDir } from "@earendil-works/pi-coding-agent";
 
-// Providers that authenticate via OAuth — excluded from the API Keys tab.
+// Providers that authenticate via OAuth - excluded from the API Keys tab.
 // Mirrors pi-web's app/api/auth/all-providers/route.ts.
 const OAUTH_PROVIDER_IDS = new Set(["anthropic", "github-copilot", "openai-codex"]);
 
@@ -72,15 +66,49 @@ function writeAuthJson(data: AuthJson): void {
   writeFileSync(path, JSON.stringify(data, null, 2), "utf8");
 }
 
-/**
- * Build a ModelRegistry backed by our pure-Node auth reader, so the provider
- * list reflects both built-in models and user models.json overrides. The
- * registry is constructed per call (cheap) so changes are always fresh.
- */
-function buildRegistry(): ModelRegistry {
-  // AuthStorage.create() only reads auth.json + env vars lazily; it does not
-  // spawn a shell, so it is safe on Windows.
-  return ModelRegistry.create(AuthStorage.create());
+// ----------------------------------------------------------------------------
+// ModelRuntime / ModelRegistry cache.
+//
+// 0.80.8 replaced the SDK's synchronous `ModelRegistry.create(authStorage)`
+// with an async `ModelRuntime.create()` + `new ModelRuntime(runtime)` facade.
+// `AuthStorage` is no longer exported, and its `read()/list()` cache auth.json
+// in memory (only `reload()`/`modify()`/`delete()` refresh it). We therefore
+// cache one ModelRuntime for view status reads and invalidate it after any
+// direct auth.json write so the next read rebuilds with fresh credentials.
+// ----------------------------------------------------------------------------
+
+let runtimePromise: Promise<ModelRuntime> | undefined;
+let registryCache: ModelRegistry | undefined;
+
+async function createRuntime(): Promise<ModelRuntime> {
+  const runtime = await ModelRuntime.create();
+  registryCache = new ModelRegistry(runtime);
+  return runtime;
+}
+
+export async function getModelRuntime(): Promise<ModelRuntime> {
+  if (!runtimePromise) runtimePromise = createRuntime();
+  return runtimePromise;
+}
+
+export async function getModelRegistry(): Promise<ModelRegistry> {
+  await getModelRuntime();
+  return registryCache!;
+}
+
+/** Drop the cached runtime/registry so the next read rebuilds from auth.json. */
+export function invalidateModelRuntime(): void {
+  runtimePromise = undefined;
+  registryCache = undefined;
+}
+
+/** Reload models.json into the cached runtime (after models.json writes). */
+export async function refreshModelRegistry(): Promise<void> {
+  try {
+    await (await getModelRegistry()).refresh();
+  } catch (err) {
+    console.error("[pi-agent-studio] refreshModelRegistry failed:", err);
+  }
 }
 
 // Check if provider has auth
@@ -102,6 +130,7 @@ export function logout(providerId: string): void {
   const auth = readAuthJson();
   delete auth[providerId];
   writeAuthJson(auth);
+  invalidateModelRuntime();
 }
 
 // Save OAuth credentials
@@ -117,6 +146,7 @@ export function saveOAuthCredentials(
     expires_at: credentials.expires_at,
   };
   writeAuthJson(auth);
+  invalidateModelRuntime();
 }
 
 // Get OAuth credentials
@@ -145,6 +175,7 @@ export function saveApiKey(providerId: string, key: string): void {
     key: key.trim(),
   };
   writeAuthJson(auth);
+  invalidateModelRuntime();
 }
 
 // Get API key
@@ -160,34 +191,38 @@ export function removeApiKey(providerId: string): void {
   const auth = readAuthJson();
   delete auth[providerId];
   writeAuthJson(auth);
+  invalidateModelRuntime();
 }
 
 /**
- * OAuth providers, sourced from the SDK. Mirrors pi-web's
+ * OAuth-capable providers, sourced from the cached ModelRuntime. A provider
+ * supports OAuth when its `auth.oauth` handler is present. Mirrors pi-web's
  * /api/auth/providers list (same exclusions + display name overrides).
  */
-export function getOAuthProviders(): Array<{ id: string; name: string }> {
-  const authStorage = AuthStorage.create();
-  return authStorage
-    .getOAuthProviders()
-    .filter((p) => !OAUTH_HIDDEN.has(p.id))
+export async function getOAuthProviders(): Promise<Array<{ id: string; name: string }>> {
+  const runtime = await getModelRuntime();
+  return runtime
+    .getProviders()
+    .filter((p) => p.auth?.oauth && !OAUTH_HIDDEN.has(p.id))
     .map((p) => ({ id: p.id, name: OAUTH_DISPLAY_NAMES[p.id] ?? p.name }));
 }
 
 // Get OAuth provider statuses
-export function getOAuthProviderStatuses(): Array<{
-  id: string;
-  name: string;
-  connected: boolean;
-}> {
-  const authStorage = AuthStorage.create();
-  return authStorage
-    .getOAuthProviders()
-    .filter((p) => !OAUTH_HIDDEN.has(p.id))
+export async function getOAuthProviderStatuses(): Promise<
+  Array<{
+    id: string;
+    name: string;
+    connected: boolean;
+  }>
+> {
+  const runtime = await getModelRuntime();
+  return runtime
+    .getProviders()
+    .filter((p) => p.auth?.oauth && !OAUTH_HIDDEN.has(p.id))
     .map((p) => ({
       id: p.id,
       name: OAUTH_DISPLAY_NAMES[p.id] ?? p.name,
-      connected: authStorage.has(p.id),
+      connected: runtime.hasConfiguredAuth(p.id),
     }));
 }
 
@@ -196,14 +231,16 @@ export function getOAuthProviderStatuses(): Array<{
  * /api/auth/all-providers: iterate all models, dedupe by provider, skip
  * OAuth-only providers and custom (models.json_key) providers.
  */
-export function getApiKeyProviderStatuses(): Array<{
-  id: string;
-  name: string;
-  configured: boolean;
-  modelCount: number;
-}> {
+export async function getApiKeyProviderStatuses(): Promise<
+  Array<{
+    id: string;
+    name: string;
+    configured: boolean;
+    modelCount: number;
+  }>
+> {
   try {
-    const registry = buildRegistry();
+    const registry = await getModelRegistry();
     const all = registry.getAll();
     const seen = new Set<string>();
     const result: Array<{
@@ -237,22 +274,22 @@ export function getApiKeyProviderStatuses(): Array<{
 }
 
 // Get display name for a provider
-export function getProviderDisplayName(providerId: string): string {
-  const oauth = getOAuthProviders().find((p) => p.id === providerId);
+export async function getProviderDisplayName(providerId: string): Promise<string> {
+  const oauth = (await getOAuthProviders()).find((p) => p.id === providerId);
   if (oauth) return oauth.name;
   try {
-    return buildRegistry().getProviderDisplayName(providerId);
+    return (await getModelRegistry()).getProviderDisplayName(providerId);
   } catch {
     return providerId;
   }
 }
 
 // Check if provider is an OAuth provider
-export function isOAuthProvider(providerId: string): boolean {
-  return getOAuthProviders().some((p) => p.id === providerId);
+export async function isOAuthProvider(providerId: string): Promise<boolean> {
+  return (await getOAuthProviders()).some((p) => p.id === providerId);
 }
 
 // Check if provider is an API key provider
-export function isApiKeyProvider(providerId: string): boolean {
-  return getApiKeyProviderStatuses().some((p) => p.id === providerId);
+export async function isApiKeyProvider(providerId: string): Promise<boolean> {
+  return (await getApiKeyProviderStatuses()).some((p) => p.id === providerId);
 }

@@ -119,3 +119,22 @@ export function createPiEnvironment(
     PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
   };
 }
+
+/** Build pi CLI args for a `pi --mode rpc` subprocess (chat webview). */
+export function createRpcShellArgs(options: {
+  sessionFile?: string;
+  extraArgs?: string[];
+}): string[] {
+  const userArgs = vscode.workspace.getConfiguration("pi-agent-studio").get<string[]>("args") ?? [];
+  const base = ["--mode", "rpc"];
+  return options.sessionFile
+    ? ["--session", options.sessionFile, ...base, ...userArgs, ...(options.extraArgs ?? [])]
+    : [...base, ...userArgs, ...(options.extraArgs ?? [])];
+}
+
+/** User-provided env overrides (merged over process.env by the spawner). */
+export function createRpcEnvironment(): Record<string, string> {
+  return (
+    vscode.workspace.getConfiguration("pi-agent-studio").get<Record<string, string>>("env") ?? {}
+  );
+}

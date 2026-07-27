@@ -47,7 +47,7 @@
     "test": "pnpm lint && pnpm typecheck"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "^0.79.0"
+    "@earendil-works/pi-coding-agent": "^0.82.1"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
@@ -245,6 +245,24 @@
           "type": "boolean",
           "default": true,
           "description": "Show live VS Code context (active editor, selection, diagnostics) in the pi TUI footer. Disable to stop the bundled bridge from updating the footer."
+        },
+        "pi-agent-studio.ui": {
+          "type": "string",
+          "enum": [
+            "terminal",
+            "webview"
+          ],
+          "default": "terminal",
+          "enumDescriptions": [
+            "Launch the pi TUI in an integrated terminal (default).",
+            "Open a webview chat panel backed by a `pi --mode rpc` subprocess."
+          ],
+          "description": "Interface for the Pi: Open command. \"webview\" uses a chat panel instead of a terminal."
+        },
+        "pi-agent-studio.autoApproveTools": {
+          "type": "boolean",
+          "default": false,
+          "description": "In webview chat mode, automatically approve all agent tool calls (bash, edit, ...) without prompting. Dangerous: the agent can run arbitrary commands."
         },
         "pi-agent-studio.disabledTools": {
           "type": "array",
