@@ -161,8 +161,35 @@ body {
   flex-shrink: 0;
 }
 
+.messages-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
+.scroll-bottom-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground, #2d2d30));
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity .18s, transform .18s, visibility .18s;
+}
+.scroll-bottom-btn.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+.scroll-bottom-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+.scroll-bottom-btn svg { width: 16px; height: 16px; display: block; }
 .messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px;
   display: flex;
@@ -369,8 +396,14 @@ body {
 .send-btn.is-stop {
   background: var(--vscode-button-secondaryBackground, var(--vscode-toolbar-hoverBackground));
   color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  animation: stop-breath 2.2s ease-in-out infinite;
+}
+@keyframes stop-breath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,135,113,0); filter: brightness(1); }
+  50% { box-shadow: 0 0 0 4px rgba(244,135,113,0.30), 0 0 10px 2px rgba(244,135,113,0.35); filter: brightness(1.06); }
 }
 .send-btn.is-stop:hover {
+  animation: none;
   background: var(--vscode-errorForeground, #f48771);
   color: var(--vscode-editor-background, #1e1e1e);
   filter: brightness(1.12);
@@ -402,6 +435,48 @@ body {
 }
 .dialog h3 { margin: 0; font-size: 14px; }
 .dialog p { margin: 0; opacity: 0.85; white-space: pre-wrap; word-break: break-word; }
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: 360px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, #2d2d30);
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-widget-border, transparent);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 120;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .15s, transform .15s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-color: var(--vscode-errorForeground, #f48771); }
+.toast.success { border-color: var(--vscode-testing-runPassed, #3fb950); }
+@keyframes toast-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.toast.persistent { animation: toast-pulse 1.4s ease-in-out infinite; }
+.info-panel {
+  width: min(720px, 92vw);
+  max-height: 82vh;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.info-panel h3 { margin: 0; font-size: 14px; }
+.info-panel-body { overflow-y: auto; flex: 1; }
+.info-panel-body table { border-collapse: collapse; font-size: 12px; }
+.info-panel-body th, .info-panel-body td { border: 1px solid var(--vscode-widget-border, #444); padding: 2px 8px; }
+.info-panel-actions { display: flex; justify-content: flex-end; }
 .dialog .dialog-input, .dialog textarea.dialog-input {
   width: 100%;
   padding: 6px 8px;
@@ -439,7 +514,20 @@ body {
 .dialog .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
 .dialog .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .dialog .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
-.empty { text-align: center; opacity: 0.4; padding: 40px 20px; font-size: 13px; }
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+}
+.empty-logo { width: 56px; height: 56px; opacity: 0.7; }
+.empty-logo svg { width: 100%; height: 100%; display: block; }
+.empty-line { font-size: 15px; font-weight: 600; color: var(--vscode-foreground); }
+.empty-accent { color: var(--vscode-button-background, var(--vscode-textLink-foreground, #0e639c)); }
 .widget { flex-shrink: 0; padding: 6px 8px 0; }
 .widget-card {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -509,8 +597,9 @@ body {
     <span class="session-info" id="session-info"></span>
     <span class="status" id="status"></span>
   </div>
-  <div class="messages" id="messages">
-    <div class="empty">Start chatting with Pi\u2026</div>
+  <div class="messages-wrap">
+    <div class="messages" id="messages"></div>
+    <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
   </div>
   <div id="widget" class="widget" style="display:none"></div>
   <div class="composer">
@@ -530,6 +619,7 @@ body {
   </div>
 </div>
 <div class="overlay" id="overlay" style="display:none"></div>
+<div class="toast" id="toast"></div>
 <div class="ctx-menu" id="ctx-menu" style="display:none"><button class="ctx-item" id="ctx-copy" type="button">Copy</button></div>
 <script>
 ${mditSrc}
@@ -541,11 +631,17 @@ var md = window.markdownit({ html: false, breaks: true, linkify: true });
 var models = [];
 var thinkingLevels = [];
 var commands = [];
+var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
 var state = { model: null, thinkingLevel: 'medium', isStreaming: false, sessionFile: null };
 
 var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
 var ICON_STOP = '<svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.4" fill="currentColor"/></svg>';
+var EMPTY_HTML = '<div class="empty">'
+  + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
+  + '<div class="empty-line">There are many agent harnesses</div>'
+  + '<div class="empty-line">but this one is <span class="empty-accent">yours</span></div>'
+  + '</div>';
 var messagesEl = document.getElementById('messages');
 var widgetEl = document.getElementById('widget');
 var inputEl = document.getElementById('input');
@@ -562,6 +658,7 @@ var sessionInfoEl = document.getElementById('session-info');
 var hintEl = document.getElementById('hint');
 var acEl = document.getElementById('autocomplete');
 var overlayEl = document.getElementById('overlay');
+var toastEl = document.getElementById('toast');
 
 var acItems = [];
 var acIndex = -1;
@@ -571,9 +668,16 @@ var PI_SEP = ${JSON.stringify(sep || "/")};
 // ---- helpers ----
 function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
 var autoScroll = true;
+var scrollBottomBtn = document.getElementById('scroll-bottom-btn');
+function updateScrollBtn() {
+  if (autoScroll) scrollBottomBtn.classList.remove('show');
+  else scrollBottomBtn.classList.add('show');
+}
 messagesEl.addEventListener('scroll', function() {
   autoScroll = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
+  updateScrollBtn();
 });
+scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
 function scheduleScroll() {
   if (scrollRAF) return;
@@ -586,6 +690,7 @@ function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
@@ -631,7 +736,7 @@ function applyContextUsage(usage) {
 }
 
 function clearMessages() {
-  messagesEl.innerHTML = '<div class="empty">Start chatting with Pi\u2026</div>';
+  messagesEl.innerHTML = EMPTY_HTML;
 }
 
 function applyWidget(key, lines) {
@@ -1073,8 +1178,8 @@ function handleEvent(event) {
     case 'tool_execution_start': startToolExecution(event); break;
     case 'tool_execution_update': updateToolExecution(event); break;
     case 'tool_execution_end': endToolExecution(event); break;
-    case 'compaction_start': setStatus('Compacting\u2026'); break;
-    case 'compaction_end': setStatus(''); break;
+    case 'compaction_start': setStatus('Compacting\u2026'); showToast('Compacting session\u2026', 'info', true); break;
+    case 'compaction_end': hideToast(); setStatus(''); break;
     case 'auto_retry_start': setStatus('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026'); break;
     case 'auto_retry_end': setStatus(''); break;
     default: break;
@@ -1184,13 +1289,14 @@ function completeAutocomplete(c) {
 }
 
 // ---- send ----
-function isExtensionCommand(msg) {
+function isLocalCommand(msg) {
   var s = msg.trim();
   if (s.charAt(0) !== '/') return false;
   var name = s.slice(1);
   var sp = name.indexOf(' ');
   if (sp >= 0) name = name.slice(0, sp);
   if (!name) return false;
+  if (BUILTIN_CMDS[name]) return true;
   for (var i = 0; i < commands.length; i++) {
     var c = commands[i];
     if (c.name === name && c.source === 'extension') return true;
@@ -1205,7 +1311,7 @@ function sendPrompt() {
   autoGrow();
   hideAutocomplete();
   addUserMessage(msg);
-  if (!isExtensionCommand(msg)) {
+  if (!isLocalCommand(msg)) {
     setStreaming(true);
   } else {
     updateSendButton();
@@ -1334,6 +1440,45 @@ function respond(id, payload) {
   overlayEl.innerHTML = '';
 }
 
+var toastTimer = null;
+function showToast(text, kind, persistent) {
+  if (!text) return;
+  toastEl.textContent = text;
+  toastEl.className = 'toast show' + (kind ? ' ' + kind : '') + (persistent ? ' persistent' : '');
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!persistent) {
+    toastTimer = setTimeout(function() { toastEl.className = 'toast'; }, 3500);
+  }
+}
+function hideToast() {
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  toastEl.className = 'toast';
+}
+
+var infoBackdropFn = null;
+function showInfoPanel(title, markdown) {
+  overlayEl.innerHTML = '';
+  var box = el('div', 'info-panel');
+  var h = el('h3'); h.textContent = title || ''; box.appendChild(h);
+  var body = el('div', 'info-panel-body');
+  box.appendChild(body);
+  renderMarkdown(body, markdown || '');
+  var actions = el('div', 'info-panel-actions');
+  var closeBtn = el('button', 'btn btn-primary'); closeBtn.textContent = 'Close';
+  closeBtn.addEventListener('click', closeInfoPanel);
+  actions.appendChild(closeBtn);
+  box.appendChild(actions);
+  overlayEl.appendChild(box);
+  infoBackdropFn = function(ev) { if (ev.target === overlayEl) closeInfoPanel(); };
+  overlayEl.addEventListener('click', infoBackdropFn);
+  overlayEl.style.display = 'flex';
+}
+function closeInfoPanel() {
+  if (infoBackdropFn) { overlayEl.removeEventListener('click', infoBackdropFn); infoBackdropFn = null; }
+  overlayEl.style.display = 'none';
+  overlayEl.innerHTML = '';
+}
+
 // ---- wire up ----
 modelSelect.addEventListener('change', function() {
   var idx = Number(modelSelect.value);
@@ -1394,6 +1539,8 @@ window.addEventListener('message', function(e) {
     case 'pickedResources': insertPickedResources(d.paths); break;
     case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
     case 'contextUsage': applyContextUsage(d.usage); break;
+    case 'toast': showToast(d.text, d.kind); break;
+    case 'infoPanel': showInfoPanel(d.title, d.markdown); break;
     case 'dialog': showDialog(d.request); break;
     case 'error':
       setStreaming(false);
@@ -1425,6 +1572,7 @@ ctxRing.addEventListener('mouseleave', hideCtxTooltip);
 autoGrow();
 updateSendButton();
 applyContextUsage(null);
+clearMessages();
 </script>
 </body></html>`;
 }

@@ -6,8 +6,10 @@ import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
 import { getChatHtml } from "./chat-html.ts";
 import type { ChatTracker } from "./chat-tracker.ts";
-import type { ExtensionUiRequest, RpcClient } from "./chat-types.ts";
+import type { ExtensionUiRequest, RpcClient, RpcEvent, RpcSessionStats } from "./chat-types.ts";
 import { createRpcClient } from "./rpc-client.ts";
+import { mergeBuiltinCommands, parseBuiltin } from "./builtin-commands.ts";
+import { readPiChangelog } from "./pi-changelog.ts";
 
 export interface ChatPanelHandle {
   panel: vscode.WebviewPanel;
@@ -105,8 +107,10 @@ export async function openChatPanel(
               .catch(() => {});
           }
           void sendContextUsage();
-        } else if (event.type === "compaction_end") {
+        } else if (event.type === "message_end") {
           void sendContextUsage();
+        } else if (event.type === "compaction_end") {
+          void refreshContextAfterCompaction(event);
         }
       },
       onExtensionUiRequest: (req) => handleExtUiRequest(req),
@@ -134,7 +138,7 @@ export async function openChatPanel(
   if (opts.sessionFile) sessionToPanel.set(opts.sessionFile, panelId);
 
   function applySessionFile(sessionFile: string | undefined, name?: string): void {
-    if (name) sessionName = name;
+    sessionName = name;
     if (!sessionFile) {
       needsSessionFile = true;
       void sendSessionInfo();
@@ -191,6 +195,147 @@ export async function openChatPanel(
     }
   }
 
+  async function refreshContextAfterCompaction(event: RpcEvent): Promise<void> {
+    if (disposed) return;
+    const result = event.result as { estimatedTokensAfter?: number } | undefined;
+    const after = result?.estimatedTokensAfter;
+    if (typeof after === "number") {
+      try {
+        const st = await rpc.getState();
+        const cw = st.model?.contextWindow ?? null;
+        if (!disposed && cw != null && cw > 0) {
+          panel.webview.postMessage({
+            type: "contextUsage",
+            usage: { tokens: after, contextWindow: cw, percent: (after / cw) * 100 },
+          });
+          return;
+        }
+      } catch {
+        // fall through to best-effort refresh
+      }
+    }
+    void sendContextUsage();
+  }
+
+  function toast(text: string, kind?: "info" | "success" | "error"): void {
+    if (disposed) return;
+    panel.webview.postMessage({ type: "toast", text, ...(kind ? { kind } : {}) });
+  }
+
+  function showInfoPanel(title: string, markdown: string): void {
+    if (disposed) return;
+    panel.webview.postMessage({ type: "infoPanel", title, markdown });
+  }
+
+  function formatSessionStats(s: RpcSessionStats): string {
+    const lines: string[] = ["| Field | Value |", "|---|---|"];
+    if (s.sessionId) lines.push(`| Session ID | \`${s.sessionId}\` |`);
+    if (s.sessionFile) lines.push(`| Session file | \`${s.sessionFile}\` |`);
+    const um = s.userMessages ?? 0;
+    const am = s.assistantMessages ?? 0;
+    lines.push(`| Messages | ${s.totalMessages ?? 0} (user ${um}, assistant ${am}) |`);
+    if (s.toolCalls != null || s.toolResults != null) {
+      lines.push(`| Tool calls | ${s.toolCalls ?? 0} (${s.toolResults ?? 0} results) |`);
+    }
+    if (s.cost != null) lines.push(`| Cost | $${s.cost.toFixed(4)} |`);
+    const t = s.tokens;
+    if (t) {
+      lines.push(
+        `| Tokens | in ${t.input ?? 0}, out ${t.output ?? 0}, cache read ${t.cacheRead ?? 0}, cache write ${t.cacheWrite ?? 0}, **total ${t.total ?? 0}** |`,
+      );
+    }
+    return lines.join("\n");
+  }
+
+  async function handleBuiltin(message: string): Promise<boolean> {
+    const parsed = parseBuiltin(message);
+    if (!parsed) return false;
+    const { name, args } = parsed;
+    try {
+      switch (name) {
+        case "compact": {
+          const result = await rpc.compact(args || undefined);
+          const parts: string[] = [
+            "**Compaction completed.**" + (args ? " _(custom instructions applied)_" : ""),
+          ];
+          if (result.tokensBefore != null) {
+            parts.push(`Tokens before: **${result.tokensBefore}**`);
+          }
+          if (result.summary) parts.push("", result.summary);
+          showInfoPanel("Compaction", parts.join("\n\n"));
+          break;
+        }
+        case "autocompact": {
+          const a = (args || "toggle").toLowerCase();
+          let enabled: boolean;
+          if (a === "on") enabled = true;
+          else if (a === "off") enabled = false;
+          else {
+            const st = await rpc.getState();
+            enabled = !st.autoCompactionEnabled;
+          }
+          await rpc.setAutoCompaction(enabled);
+          toast(enabled ? "Auto-compaction enabled." : "Auto-compaction disabled.");
+          break;
+        }
+        case "session": {
+          const stats = await rpc.getSessionStatsFull();
+          showInfoPanel("Session stats", formatSessionStats(stats));
+          break;
+        }
+        case "name": {
+          if (!args) {
+            toast("Usage: /name <name>");
+            break;
+          }
+          try {
+            await rpc.setSessionName(args);
+          } catch (e) {
+            if (String(e instanceof Error ? e.message : e).includes("set_session_name")) {
+              toast("Setting the session name requires a newer pi. Please upgrade.", "error");
+              break;
+            }
+            throw e;
+          }
+          const st = await rpc.getState();
+          applySessionFile(st.sessionFile, args);
+          panel.webview.postMessage({ type: "state", state: st });
+          toast(`Session name set: ${args}`, "success");
+          break;
+        }
+        case "changelog": {
+          const md = await readPiChangelog(piPath);
+          if (md == null) {
+            toast("Changelog not found (couldn't locate pi installation).", "error");
+            break;
+          }
+          showInfoPanel("Pi changelog", md);
+          break;
+        }
+        case "clear":
+        case "new": {
+          await rpc.newSession();
+          const st = await rpc.getState();
+          applySessionFile(st.sessionFile, st.sessionName);
+          panel.webview.postMessage({ type: "state", state: st });
+          const messages = await rpc.getMessages();
+          panel.webview.postMessage({ type: "messages", messages });
+          void sendContextUsage();
+          toast("Started new session.", "success");
+          break;
+        }
+      }
+    } catch (e) {
+      if (!disposed) {
+        panel.webview.postMessage({
+          type: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+    return true;
+  }
+
   async function hydrate(): Promise<void> {
     try {
       if (opts.sessionFile) {
@@ -209,7 +354,7 @@ export async function openChatPanel(
       panel.webview.postMessage({ type: "state", state: st });
       panel.webview.postMessage({ type: "models", models });
       panel.webview.postMessage({ type: "thinkingLevels", levels });
-      panel.webview.postMessage({ type: "commands", commands: cmds });
+      panel.webview.postMessage({ type: "commands", commands: mergeBuiltinCommands(cmds) });
       applySessionFile(st.sessionFile, st.sessionName);
       const messages = await rpc.getMessages();
       panel.webview.postMessage({ type: "messages", messages });
@@ -260,6 +405,7 @@ export async function openChatPanel(
     switch (msg.type) {
       case "prompt":
         try {
+          if (await handleBuiltin(msg.message)) break;
           await rpc.prompt(msg.message, msg.streamingBehavior);
         } catch (e) {
           panel.webview.postMessage({

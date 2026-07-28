@@ -6,10 +6,12 @@ import type {
   ExtensionUiRequest,
   RpcClient,
   RpcCommand,
+  RpcCompactionResult,
   RpcContextUsage,
   RpcEvent,
   RpcModel,
   RpcResponse,
+  RpcSessionStats,
   RpcState,
 } from "./chat-types.ts";
 
@@ -213,6 +215,13 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
       request<{ contextUsage?: RpcContextUsage | null }>({ type: "get_session_stats" }).then(
         (d) => d.contextUsage ?? null,
       ),
+    getSessionStatsFull: () => request<RpcSessionStats>({ type: "get_session_stats" }),
+    compact: (customInstructions) =>
+      request<RpcCompactionResult>(
+        customInstructions ? { type: "compact", customInstructions } : { type: "compact" },
+      ),
+    setAutoCompaction: (enabled) => request<void>({ type: "set_auto_compaction", enabled }),
+    setSessionName: (name) => request<void>({ type: "set_session_name", name }),
     newSession: () => request<{ cancelled: boolean }>({ type: "new_session" }),
     switchSession: (sessionPath) =>
       request<{ cancelled: boolean }>({ type: "switch_session", sessionPath }),

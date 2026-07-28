@@ -19,6 +19,30 @@ export interface RpcContextUsage {
   percent: number | null;
 }
 
+export interface RpcSessionStats {
+  sessionFile?: string;
+  sessionId?: string;
+  userMessages?: number;
+  assistantMessages?: number;
+  toolCalls?: number;
+  toolResults?: number;
+  totalMessages?: number;
+  tokens?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
+  cost?: number;
+  contextUsage?: RpcContextUsage | null;
+}
+
+export interface RpcCompactionResult {
+  summary?: string;
+  tokensBefore?: number;
+}
+
 export interface RpcState {
   model: RpcModel | null;
   thinkingLevel: string;
@@ -29,12 +53,13 @@ export interface RpcState {
   sessionName?: string;
   messageCount?: number;
   pendingMessageCount?: number;
+  autoCompactionEnabled?: boolean;
 }
 
 export interface RpcCommand {
   name: string;
   description?: string;
-  source: "extension" | "prompt" | "skill";
+  source: "extension" | "prompt" | "skill" | "builtin";
   location?: string;
   path?: string;
 }
@@ -62,6 +87,10 @@ export interface RpcClient {
   getMessages(): Promise<unknown[]>;
   getState(): Promise<RpcState>;
   getSessionStats(): Promise<RpcContextUsage | null>;
+  getSessionStatsFull(): Promise<RpcSessionStats>;
+  compact(customInstructions?: string): Promise<RpcCompactionResult>;
+  setAutoCompaction(enabled: boolean): Promise<void>;
+  setSessionName(name: string): Promise<void>;
   newSession(): Promise<{ cancelled: boolean }>;
   switchSession(sessionPath: string): Promise<{ cancelled: boolean }>;
   respondExtensionUi(
@@ -102,6 +131,8 @@ export type ExtToWebview =
   | { type: "pickedResources"; paths: string[] }
   | { type: "contextUsage"; usage: RpcContextUsage | null }
   | { type: "widget"; widgetKey?: string; widgetLines?: string[] }
+  | { type: "toast"; text: string; kind?: "info" | "success" | "error" }
+  | { type: "infoPanel"; title: string; markdown: string }
   | { type: "error"; message: string };
 
 // ---- postMessage: webview -> extension ----
