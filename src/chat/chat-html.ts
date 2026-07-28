@@ -185,6 +185,30 @@ body {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
 }
+.user-bubble.is-collapsible { max-height: 220px; overflow: hidden; position: relative; }
+.user-bubble.is-collapsible.is-expanded { max-height: none; overflow: visible; }
+.user-bubble .expand-fade {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 44px;
+  background: linear-gradient(to bottom, transparent, var(--vscode-button-background));
+  pointer-events: none;
+}
+.user-bubble.is-expanded .expand-fade { display: none; }
+.expand-btn {
+  align-self: flex-end;
+  margin-top: 2px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.expand-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
 .assistant .text-block { line-height: 1.55; padding: 2px 0; font-size: 13px; }
 .text-block > :last-child { margin-bottom: 0; }
 .text-block p { margin: 0 0 8px; }
@@ -564,6 +588,21 @@ function addUserMessage(text) {
   bubble.textContent = text;
   row.appendChild(bubble);
   messagesEl.appendChild(row);
+
+  if (bubble.scrollHeight > 240) {
+    bubble.classList.add('is-collapsible');
+    bubble.appendChild(el('div', 'expand-fade'));
+    var btn = el('button', 'expand-btn');
+    btn.type = 'button';
+    btn.textContent = 'Show more';
+    btn.addEventListener('click', function() {
+      var expanded = bubble.classList.toggle('is-expanded');
+      btn.textContent = expanded ? 'Show less' : 'Show more';
+      scrollToBottom();
+    });
+    row.appendChild(btn);
+  }
+
   scrollToBottom();
 }
 

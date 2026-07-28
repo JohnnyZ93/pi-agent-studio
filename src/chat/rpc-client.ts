@@ -1,6 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
+import { rpcTrace, rpcTraceErr } from "./rpc-trace.ts";
 import type {
   ExtensionUiRequest,
   RpcClient,
@@ -24,6 +25,7 @@ export interface CreateRpcClientOptions {
   args: string[];
   env?: Record<string, string>;
   cwd?: string;
+  traceTag?: string;
   handlers: RpcClientHandlers;
 }
 
@@ -33,8 +35,9 @@ type Pending = {
 };
 
 export async function createRpcClient(options: CreateRpcClientOptions): Promise<RpcClient> {
+  const traceTag = options.traceTag ?? "rpc";
   const proc: ChildProcess = spawn(options.piPath, options.args, {
-    stdio: ["pipe", "pipe", "inherit"],
+    stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, ...options.env },
     cwd: options.cwd,
   });
@@ -76,6 +79,7 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
   };
 
   attachJsonlReader(proc.stdout, (line) => {
+    rpcTrace(traceTag, "in", line);
     let msg: unknown;
     try {
       msg = JSON.parse(line);
@@ -100,6 +104,10 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
     }
   });
 
+  attachJsonlReader(proc.stderr, (line) => {
+    rpcTraceErr(traceTag, line);
+  });
+
   proc.on("error", (err) => {
     options.handlers.onError(err);
     failAll(err.message);
@@ -113,7 +121,9 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
     if (disposed || !proc.stdin || proc.stdin.destroyed) {
       throw new Error("Pi RPC process is not running");
     }
-    proc.stdin.write(JSON.stringify(command) + "\n");
+    const json = JSON.stringify(command);
+    proc.stdin.write(json + "\n");
+    rpcTrace(traceTag, "out", json);
   };
 
   const request = <T>(command: Record<string, unknown>): Promise<T> => {

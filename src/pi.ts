@@ -122,19 +122,32 @@ export function createPiEnvironment(
 
 /** Build pi CLI args for a `pi --mode rpc` subprocess (chat webview). */
 export function createRpcShellArgs(options: {
+  extensionUri: vscode.Uri;
   sessionFile?: string;
   extraArgs?: string[];
 }): string[] {
   const userArgs = vscode.workspace.getConfiguration("pi-agent-studio").get<string[]>("args") ?? [];
+  const bridgeArgs = ["--extension", join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH)];
   const base = ["--mode", "rpc"];
   return options.sessionFile
-    ? ["--session", options.sessionFile, ...base, ...userArgs, ...(options.extraArgs ?? [])]
-    : [...base, ...userArgs, ...(options.extraArgs ?? [])];
+    ? [
+        "--session",
+        options.sessionFile,
+        ...bridgeArgs,
+        ...base,
+        ...userArgs,
+        ...(options.extraArgs ?? []),
+      ]
+    : [...bridgeArgs, ...base, ...userArgs, ...(options.extraArgs ?? [])];
 }
 
 /** User-provided env overrides (merged over process.env by the spawner). */
-export function createRpcEnvironment(): Record<string, string> {
-  return (
-    vscode.workspace.getConfiguration("pi-agent-studio").get<Record<string, string>>("env") ?? {}
-  );
+export function createRpcEnvironment(bridgeConfig?: {
+  url: string;
+  token: string;
+}): Record<string, string> {
+  const userEnv =
+    vscode.workspace.getConfiguration("pi-agent-studio").get<Record<string, string>>("env") ?? {};
+  const bridgeEnv = createPiEnvironment(bridgeConfig) ?? {};
+  return { ...userEnv, ...bridgeEnv };
 }

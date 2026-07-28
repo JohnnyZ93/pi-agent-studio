@@ -18,6 +18,7 @@ export interface ChatPanelHandle {
 
 export interface OpenChatPanelOptions {
   extensionUri: vscode.Uri;
+  bridgeConfig?: { url: string; token: string };
   tracker: ChatTracker;
   sessionFile?: string;
   panelId?: string;
@@ -70,8 +71,11 @@ export async function openChatPanel(
   panel.webview.html = getChatHtml(homedir(), sep);
   lockChatEditorGroup();
 
-  const args = createRpcShellArgs({ sessionFile: opts.sessionFile });
-  const env = createRpcEnvironment();
+  const args = createRpcShellArgs({
+    extensionUri: opts.extensionUri,
+    sessionFile: opts.sessionFile,
+  });
+  const env = createRpcEnvironment(opts.bridgeConfig);
   const cwd = opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
   let disposed = false;
@@ -85,6 +89,7 @@ export async function openChatPanel(
     args,
     env,
     cwd,
+    traceTag: panelId.slice(0, 8),
     handlers: {
       onEvent: (event) => {
         if (disposed) return;

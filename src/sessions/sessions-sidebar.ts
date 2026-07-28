@@ -317,7 +317,7 @@ async function openNewSessionInDir(
     return;
   }
   if (useWebviewUi()) {
-    await openChatPanel({ extensionUri, tracker: chatTracker, cwd: effectiveCwd });
+    await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, cwd: effectiveCwd });
     return;
   }
   const terminalId = randomUUID();
@@ -342,7 +342,7 @@ async function openSession(
   chatTracker: ChatTracker,
 ): Promise<void> {
   if (useWebviewUi()) {
-    await openChatPanel({ extensionUri, tracker: chatTracker, sessionFile });
+    await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, sessionFile });
     return;
   }
   const existing = sessionTracker.findTerminalBySessionFile(sessionFile);

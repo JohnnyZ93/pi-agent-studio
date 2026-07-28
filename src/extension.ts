@@ -15,6 +15,7 @@ import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
 import { abortCommitGeneration, generateCommitMsg } from "./gitCommit/commitMessageGenerator.ts";
 import { createChatTracker } from "./chat/chat-tracker.ts";
 import { disposeAllChatPanels, openChatPanel } from "./chat/chat-panel.ts";
+import { disposeRpcTrace } from "./chat/rpc-trace.ts";
 
 let extensionUri: vscode.Uri;
 let bridgeConfig: { url: string; token: string } | undefined;
@@ -77,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
       if (useWebviewUi()) {
-        await openChatPanel({ extensionUri, tracker: chatTracker });
+        await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         return;
       }
       const terminal = await openTerminal();
@@ -86,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
       if (useWebviewUi()) {
-        await openChatPanel({ extensionUri, tracker: chatTracker });
+        await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         try {
           await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
         } catch {
@@ -108,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
       if (useWebviewUi()) {
-        await openChatPanel({ extensionUri, tracker: chatTracker, cwd });
+        await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, cwd });
         return;
       }
       const terminal = await openTerminalInCwd(cwd);
@@ -146,7 +147,13 @@ export async function activate(context: vscode.ExtensionContext) {
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
   if (useWebviewUi()) {
     void chatTracker.restore(async (sessionFile, panelId) => {
-      await openChatPanel({ extensionUri, tracker: chatTracker, sessionFile, panelId });
+      await openChatPanel({
+        extensionUri,
+        bridgeConfig,
+        tracker: chatTracker,
+        sessionFile,
+        panelId,
+      });
     });
   }
 }
@@ -157,6 +164,7 @@ function useWebviewUi(): boolean {
 
 export async function deactivate() {
   disposeAllChatPanels();
+  disposeRpcTrace();
   for (const terminal of vscode.window.terminals) {
     if (terminal.name === TERMINAL_TITLE) terminal.dispose();
   }

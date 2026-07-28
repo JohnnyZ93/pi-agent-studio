@@ -274,6 +274,11 @@
           },
           "default": [],
           "description": "LLM tools registered by the bundled VS Code bridge to disable (blocklist). Defaults to none (all enabled). Example: [\"vscode_get_diagnostics\"]."
+        },
+        "pi-agent-studio.rpcTrace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log all RPC traffic (requests, responses, events) and pi stderr to the \"Pi Chat RPC\" Output channel for debugging. Each webview panel is tagged by its panel id prefix."
         }
       }
     },
