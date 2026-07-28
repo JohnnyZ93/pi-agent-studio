@@ -620,7 +620,7 @@ body {
 </div>
 <div class="overlay" id="overlay" style="display:none"></div>
 <div class="toast" id="toast"></div>
-<div class="ctx-menu" id="ctx-menu" style="display:none"><button class="ctx-item" id="ctx-copy" type="button">Copy</button></div>
+<div class="ctx-menu" id="ctx-menu" style="display:none"><button class="ctx-item" id="ctx-copy" type="button">Copy</button><button class="ctx-item" id="ctx-fork" type="button">Fork from here</button><button class="ctx-item" id="ctx-revert" type="button">Revert here</button></div>
 <script>
 ${mditSrc}
 </script>
@@ -773,6 +773,7 @@ function applyWidget(key, lines) {
 
 // ---- message DOM ----
 var currentAssistant = null; // { el, blocks: [] }
+var lastUserBubble = null;
 
 function addUserMessage(text) {
   var empty = messagesEl.querySelector('.empty');
@@ -782,6 +783,7 @@ function addUserMessage(text) {
   bubble.textContent = text;
   row.appendChild(bubble);
   messagesEl.appendChild(row);
+  lastUserBubble = bubble;
 
   if (bubble.scrollHeight > 240) {
     bubble.classList.add('is-collapsible');
@@ -798,6 +800,7 @@ function addUserMessage(text) {
   }
 
   scheduleScroll();
+  return bubble;
 }
 
 function startAssistantMessage() {
@@ -1109,7 +1112,8 @@ function hydrateOne(m) {
   if (!m || typeof m !== 'object') return;
   var role = m.role;
   if (role === 'user') {
-    addUserMessage(extractText(m.content));
+    var ub = addUserMessage(extractText(m.content));
+    if (m && m.timestamp != null) ub._piTs = m.timestamp;
   } else if (role === 'assistant') {
     startAssistantMessage();
     var content = m.content;
@@ -1170,6 +1174,7 @@ function handleEvent(event) {
     case 'agent_settled': setStreaming(false); break;
     case 'message_start':
       if (event.message && event.message.role === 'assistant') startAssistantMessage();
+      else if (event.message && event.message.role === 'user' && lastUserBubble && event.message.timestamp != null && lastUserBubble._piTs == null) lastUserBubble._piTs = event.message.timestamp;
       break;
     case 'message_end':
       if (event.message && event.message.role === 'assistant') endAssistantMessage();
@@ -1345,14 +1350,29 @@ function insertPickedResources(paths) {
   updateSendButton();
 }
 
-// ---- context menu (copy) ----
+// ---- context menu (copy / fork / revert) ----
 var ctxMenu = document.getElementById('ctx-menu');
 var ctxCopy = document.getElementById('ctx-copy');
+var ctxFork = document.getElementById('ctx-fork');
+var ctxRevert = document.getElementById('ctx-revert');
 var ctxText = '';
+var ctxUserTs = null;
 var COPYABLE = '.user-bubble, .text-block, .thinking-body';
-function showCtxMenu(x, y, text) {
+function showCtxMenu(x, y, text, userTs) {
   ctxText = text || '';
   ctxCopy.disabled = !ctxText;
+  ctxUserTs = userTs != null ? userTs : null;
+  if (ctxUserTs == null) {
+    ctxFork.disabled = true;
+    ctxFork.style.display = 'none';
+    ctxRevert.disabled = true;
+    ctxRevert.style.display = 'none';
+  } else {
+    ctxFork.disabled = state.isStreaming;
+    ctxFork.style.display = '';
+    ctxRevert.disabled = state.isStreaming;
+    ctxRevert.style.display = '';
+  }
   ctxMenu.style.display = 'block';
   ctxMenu.style.left = '0px';
   ctxMenu.style.top = '0px';
@@ -1366,20 +1386,39 @@ function hideCtxMenu() { ctxMenu.style.display = 'none'; }
 messagesEl.addEventListener('contextmenu', function(ev) {
   var sel = window.getSelection();
   var text = sel && sel.toString();
+  var userTs = null;
+  var node = ev.target;
+  while (node && node !== messagesEl && node !== document) {
+    if (node.classList && node.classList.contains('user-bubble')) { userTs = node._piTs != null ? node._piTs : null; break; }
+    if (node.classList && node.classList.contains('msg') && node.classList.contains('user')) break;
+    node = node.parentNode;
+  }
   if (!text) {
-    var node = ev.target;
-    while (node && node !== messagesEl && node !== document) {
-      if (node.matches && node.matches(COPYABLE)) { text = node._piMd || node.textContent || ''; break; }
-      node = node.parentNode;
+    var node2 = ev.target;
+    while (node2 && node2 !== messagesEl && node2 !== document) {
+      if (node2.matches && node2.matches(COPYABLE)) { text = node2._piMd || node2.textContent || ''; break; }
+      node2 = node2.parentNode;
     }
   }
-  if (!text) { hideCtxMenu(); return; }
+  if (!text && userTs == null) { hideCtxMenu(); return; }
   ev.preventDefault();
-  showCtxMenu(ev.clientX, ev.clientY, text);
+  showCtxMenu(ev.clientX, ev.clientY, text, userTs);
 });
 ctxCopy.addEventListener('click', function() {
   if (ctxText) vscode.postMessage({ type: 'copy', text: ctxText });
   hideCtxMenu();
+});
+ctxFork.addEventListener('click', function() {
+  if (ctxUserTs == null || state.isStreaming) return;
+  var ts = ctxUserTs;
+  hideCtxMenu();
+  vscode.postMessage({ type: 'fork', ts: ts });
+});
+ctxRevert.addEventListener('click', function() {
+  if (ctxUserTs == null || state.isStreaming) return;
+  var ts = ctxUserTs;
+  hideCtxMenu();
+  vscode.postMessage({ type: 'revert', ts: ts });
 });
 document.addEventListener('mousedown', function(ev) {
   if (ctxMenu.style.display === 'none') return;

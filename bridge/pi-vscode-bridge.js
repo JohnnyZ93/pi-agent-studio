@@ -315,4 +315,13 @@ export default function (pi) {
       pi.sendUserMessage(`${prefix}\`\`\`json\n${json}\n\`\`\``);
     },
   });
+
+  pi.registerCommand("pi-vscode-tree", {
+    description: "Navigate to a point in the session tree",
+    handler: async (args, ctx) => {
+      const targetId = args?.trim();
+      if (!targetId) return;
+      await ctx.navigateTree(targetId, { summarize: false });
+    },
+  });
 }

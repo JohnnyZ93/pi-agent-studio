@@ -490,6 +490,70 @@ export async function openChatPanel(
           });
         }
         break;
+      case "fork":
+        try {
+          if (streaming) {
+            toast("Stop the agent before forking.", "error");
+            break;
+          }
+          const entriesData = await rpc.getEntries();
+          const entry = entriesData.entries.find(
+            (e) =>
+              e.type === "message" && e.message?.role === "user" && e.message?.timestamp === msg.ts,
+          );
+          if (!entry) {
+            toast("Could not locate that message to fork from.", "error");
+            break;
+          }
+          const forkResult = await rpc.fork(entry.id);
+          if (forkResult.cancelled) {
+            toast("Fork cancelled.");
+            break;
+          }
+          const rSt = await rpc.getState();
+          applySessionFile(rSt.sessionFile, rSt.sessionName);
+          panel.webview.postMessage({ type: "state", state: rSt });
+          const rMsgs = await rpc.getMessages();
+          panel.webview.postMessage({ type: "messages", messages: rMsgs });
+          void sendContextUsage();
+          toast("Forked from selected message.", "success");
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
+        }
+        break;
+      case "revert":
+        try {
+          if (streaming) {
+            toast("Stop the agent before reverting.", "error");
+            break;
+          }
+          const revEntriesData = await rpc.getEntries();
+          const revEntry = revEntriesData.entries.find(
+            (e) =>
+              e.type === "message" && e.message?.role === "user" && e.message?.timestamp === msg.ts,
+          );
+          if (!revEntry) {
+            toast("Could not locate that message to revert to.", "error");
+            break;
+          }
+          await rpc.prompt(`/pi-vscode-tree ${revEntry.id}`);
+          const revSt = await rpc.getState();
+          applySessionFile(revSt.sessionFile, revSt.sessionName);
+          panel.webview.postMessage({ type: "state", state: revSt });
+          const revMsgs = await rpc.getMessages();
+          panel.webview.postMessage({ type: "messages", messages: revMsgs });
+          void sendContextUsage();
+          toast("Reverted to selected message.", "success");
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
+        }
+        break;
       case "dialogResponse":
         rpc.respondExtensionUi(msg.id, {
           value: msg.value,

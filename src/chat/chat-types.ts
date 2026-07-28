@@ -38,6 +38,19 @@ export interface RpcSessionStats {
   contextUsage?: RpcContextUsage | null;
 }
 
+export interface RpcSessionEntry {
+  type: string;
+  id: string;
+  parentId?: string | null;
+  timestamp?: number;
+  message?: { role?: string; timestamp?: number; content?: unknown } & Record<string, unknown>;
+}
+
+export interface RpcEntriesData {
+  entries: RpcSessionEntry[];
+  leafId: string | null;
+}
+
 export interface RpcCompactionResult {
   summary?: string;
   tokensBefore?: number;
@@ -93,6 +106,8 @@ export interface RpcClient {
   setSessionName(name: string): Promise<void>;
   newSession(): Promise<{ cancelled: boolean }>;
   switchSession(sessionPath: string): Promise<{ cancelled: boolean }>;
+  getEntries(): Promise<RpcEntriesData>;
+  fork(entryId: string): Promise<{ text: string; cancelled: boolean }>;
   respondExtensionUi(
     id: string,
     payload: { value?: string; confirmed?: boolean; cancelled?: boolean },
@@ -150,4 +165,6 @@ export type WebviewToExt =
       confirmed?: boolean;
       cancelled?: boolean;
     }
-  | { type: "todoClear" };
+  | { type: "todoClear" }
+  | { type: "fork"; ts: number }
+  | { type: "revert"; ts: number };

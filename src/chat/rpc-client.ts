@@ -8,6 +8,7 @@ import type {
   RpcCommand,
   RpcCompactionResult,
   RpcContextUsage,
+  RpcEntriesData,
   RpcEvent,
   RpcModel,
   RpcResponse,
@@ -225,6 +226,8 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
     newSession: () => request<{ cancelled: boolean }>({ type: "new_session" }),
     switchSession: (sessionPath) =>
       request<{ cancelled: boolean }>({ type: "switch_session", sessionPath }),
+    getEntries: () => request<RpcEntriesData>({ type: "get_entries" }),
+    fork: (entryId) => request<{ text: string; cancelled: boolean }>({ type: "fork", entryId }),
     respondExtensionUi,
     dispose,
   } satisfies RpcClient;
