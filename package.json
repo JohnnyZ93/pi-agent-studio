@@ -1,8 +1,8 @@
 {
   "name": "pi-agent-studio",
   "displayName": "Pi Agent Studio",
-  "version": "1.0.6",
-  "description": "Pi coding agent in VS Code — native terminal TUI with a visual sidebar to manage sessions, models, and settings. No GUI wrapper, full editor bridge.",
+  "version": "1.0.7",
+  "description": "Feature-rich Pi coding agent for VS Code - native terminal TUI or webview chat panel, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sidebar to manage sessions, models, agents, and settings.",
   "categories": [
     "AI",
     "Chat"

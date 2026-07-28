@@ -2,6 +2,14 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.0.7] - 2026-07-29
+
+- Added `pi-agent-studio.ui` setting (`terminal` / `webview`): open pi in a VS Code WebviewPanel backed by a per-panel `pi --mode rpc` subprocess, with streaming, prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands (`/compact`, `/autocompact`, `/session`, `/name`, `/changelog`, `/clear`, `/new`), and retry UI.
+- Added bundled bridge extensions: `todo` (LLM tool + live widget + `/todos` `/todo-clear`), `questionnaire` (structured questions, web form in RPC mode), `subagent` (delegation with `explore` / `general` built-ins), and `btw` (side questions without touching the main context).
+- Added **Agents** sidebar view for managing user/project-level subagent definitions.
+- Added `pi-agent-studio.rpcTrace` setting to log RPC traffic to an output channel.
+- Upgraded `@earendil-works/pi-coding-agent` from 0.79.0 to 0.82.1.
+
 ## [1.0.6] - 2026-07-23
 
 - Fix(bridge): avoid the terminal being killed while waiting for notification.
