@@ -1,6 +1,7 @@
 export const TERMINAL_TITLE = "PI Code";
 
 export const BRIDGE_EXTENSION_PATH = "bridge/pi-vscode-bridge.js";
+export const BTW_EXTENSION_PATH = "bridge/btw.ts";
 export const TODO_EXTENSION_PATH = "bridge/todo.ts";
 export const QUESTIONNAIRE_EXTENSION_PATH = "bridge/questionnaire.ts";
 export const SUBAGENT_EXTENSION_PATH = "bridge/subagent/index.ts";

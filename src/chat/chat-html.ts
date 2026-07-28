@@ -198,7 +198,7 @@ body {
 }
 .msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
 .msg.user { align-items: flex-end; }
-.msg.assistant { align-items: stretch; content-visibility: auto; contain-intrinsic-size: auto 240px; }
+.msg.assistant { align-items: stretch; }
 
 .bubble {
   max-width: 85%;
@@ -266,6 +266,8 @@ body {
 .text-block hr { border: none; border-top: 1px solid var(--vscode-widget-border, transparent); margin: 10px 0; }
 .text-block img { max-width: 100%; }
 .thinking-block {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--vscode-widget-border, transparent);
   border-radius: 6px;
   background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.08));
@@ -288,7 +290,10 @@ body {
   word-break: break-word;
   opacity: 0.85;
   line-height: 1.5;
+  position: relative;
 }
+.thinking-body.is-collapsible { max-height: 340px; overflow-y: auto; }
+.thinking-body.is-collapsible.is-expanded { max-height: none; overflow-y: visible; }
 
 .tool-block {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -494,7 +499,18 @@ body {
 .info-panel-body { overflow-y: auto; flex: 1; }
 .info-panel-body table { border-collapse: collapse; font-size: 12px; }
 .info-panel-body th, .info-panel-body td { border: 1px solid var(--vscode-widget-border, #444); padding: 2px 8px; }
-.info-panel-actions { display: flex; justify-content: flex-end; }
+.info-panel-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.info-panel .btn {
+  padding: 5px 14px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.info-panel .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+.info-panel .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
+.info-panel .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 .dialog .dialog-input, .dialog textarea.dialog-input {
   width: 100%;
   padding: 6px 8px;
@@ -743,9 +759,20 @@ function updateScrollBtn() {
   if (autoScroll) scrollBottomBtn.classList.remove('show');
   else scrollBottomBtn.classList.add('show');
 }
+var lastScrollTop = messagesEl.scrollTop;
+var scrollCheckRAF = null;
 messagesEl.addEventListener('scroll', function() {
-  autoScroll = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
-  updateScrollBtn();
+  var st = messagesEl.scrollTop;
+  if (st < lastScrollTop - 1) { autoScroll = false; updateScrollBtn(); }
+  lastScrollTop = st;
+  if (scrollCheckRAF) return;
+  scrollCheckRAF = requestAnimationFrame(function() {
+    scrollCheckRAF = null;
+    if (messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 2) {
+      autoScroll = true;
+      updateScrollBtn();
+    }
+  });
 });
 scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
@@ -753,13 +780,17 @@ function scheduleScroll() {
   if (scrollRAF) return;
   scrollRAF = requestAnimationFrame(function() {
     scrollRAF = null;
-    if (autoScroll) messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (autoScroll) {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      lastScrollTop = messagesEl.scrollTop;
+    }
   });
 }
 function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  lastScrollTop = messagesEl.scrollTop;
   updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
@@ -886,7 +917,6 @@ function addUserMessage(text) {
     btn.addEventListener('click', function() {
       var expanded = bubble.classList.toggle('is-expanded');
       btn.textContent = expanded ? 'Show less' : 'Show more';
-      scrollToBottom();
     });
     row.appendChild(btn);
   }
@@ -908,7 +938,10 @@ function collapseThinking() {
   if (!currentAssistant) return;
   for (var i = 0; i < currentAssistant.blocks.length; i++) {
     var b = currentAssistant.blocks[i];
-    if (b && b.type === 'thinking') b.el.removeAttribute('open');
+    if (b && b.type === 'thinking') {
+      applyThinkingCollapsible(b);
+      b.el.removeAttribute('open');
+    }
   }
 }
 function endAssistantMessage() {
@@ -1024,10 +1057,26 @@ function applyTextCollapsible(b) {
   btn.addEventListener('click', function() {
     var expanded = textEl.classList.toggle('is-expanded');
     btn.textContent = expanded ? 'Show less' : 'Show more';
-    scrollToBottom();
   });
   textEl.parentNode.insertBefore(btn, textEl.nextSibling);
   textEl._expandBtn = btn;
+}
+function applyThinkingCollapsible(b) {
+  var body = b.textEl;
+  if (!body || !body.parentNode) return;
+  if (body.classList.contains('is-collapsible')) return;
+  if (body.scrollHeight > 360) {
+    body.classList.add('is-collapsible');
+    var btn = el('button', 'expand-btn');
+    btn.type = 'button';
+    btn.textContent = 'Show more';
+    btn.addEventListener('click', function() {
+      var expanded = body.classList.toggle('is-expanded');
+      btn.textContent = expanded ? 'Show less' : 'Show more';
+    });
+    body.parentNode.insertBefore(btn, body.nextSibling);
+    body._expandBtn = btn;
+  }
 }
 
 var MAX_INLINE = 12000;
@@ -1044,7 +1093,6 @@ function setClamped(preEl, text) {
       preEl.textContent = full;
       if (preEl._fullBtn) { preEl._fullBtn.remove(); preEl._fullBtn = null; }
       preEl._full = null;
-      scheduleScroll();
     });
     if (preEl.parentNode) preEl.parentNode.insertBefore(btn, preEl.nextSibling);
     preEl._full = full;
@@ -1068,6 +1116,7 @@ function finalizeTextBlocks() {
     applyTextCollapsible(b);
   }
   pendingTexts = [];
+  if (autoScroll) scheduleScroll();
 }
 function appendTextDelta(ci, delta) {
   var b = ensureBlock(ci, 'text');
@@ -1086,8 +1135,19 @@ function appendTextDelta(ci, delta) {
 function appendThinkingDelta(ci, delta) {
   var b = ensureBlock(ci, 'thinking');
   b.text += delta;
-  if (!b._tnode) { b.textEl.textContent = ''; b._tnode = document.createTextNode(''); b.textEl.appendChild(b._tnode); }
+  if (!b._tnode) {
+    b.textEl.textContent = '';
+    b._tnode = document.createTextNode('');
+    b.textEl.appendChild(b._tnode);
+    b.textEl.addEventListener('scroll', function() {
+      b._userScrolledUp = b.textEl.scrollHeight - b.textEl.scrollTop - b.textEl.clientHeight > 24;
+    });
+  }
   b._tnode.appendData(delta);
+  applyThinkingCollapsible(b);
+  if (!b._userScrolledUp && b.textEl.classList.contains('is-collapsible') && !b.textEl.classList.contains('is-expanded')) {
+    b.textEl.scrollTop = b.textEl.scrollHeight;
+  }
   scheduleScroll();
 }
 function appendToolCallDelta(ci, delta) {
@@ -1217,6 +1277,16 @@ function aggregateUsageJs(results) {
     total.turns += r.usage.turns;
   }
   return total;
+}
+function subagentDetailsHasError(details) {
+  if (!details || !details.results) return false;
+  for (var i = 0; i < details.results.length; i++) {
+    var r = details.results[i];
+    if (!r) continue;
+    if (r.errorMessage) return true;
+    if (typeof r.exitCode === 'number' && r.exitCode !== -1 && r.exitCode !== 0) return true;
+  }
+  return false;
 }
 function renderSubagentResult(b, details) {
   if (!b || !b.resultEl) return;
@@ -1449,6 +1519,10 @@ function endToolExecution(ev) {
   var r = ev.result;
   if (b.name === 'subagent' && r && r.details) {
     renderSubagentResult(b, r.details);
+    if (!ev.isError && subagentDetailsHasError(r.details)) {
+      if (b.statusEl) b.statusEl.textContent = 'error';
+      b.el.classList.add('is-error');
+    }
     b.el.removeAttribute('open');
     scheduleScroll();
     return;
@@ -1514,6 +1588,7 @@ function hydrateOne(m) {
           var hb = ensureBlock(k, 'thinking');
           hb.text = blk.thinking || '';
           hb.textEl.textContent = hb.text;
+          applyThinkingCollapsible(hb);
         } else if (blk.type === 'toolCall') {
           finalizeToolCall(k, blk);
         }
@@ -1743,7 +1818,9 @@ function sendPrompt(behavior) {
   if (state.isStreaming) {
     vscode.postMessage({ type: 'prompt', message: msg, streamingBehavior: behavior || 'steer' });
   } else {
+    autoScroll = true;
     addUserMessage(msg);
+    scrollToBottom();
     if (!isLocalCommand(msg)) {
       setStreaming(true);
     } else {
@@ -2060,6 +2137,12 @@ function showInfoPanel(title, markdown) {
   box.appendChild(body);
   renderMarkdown(body, markdown || '');
   var actions = el('div', 'info-panel-actions');
+  var copyBtn = el('button', 'btn btn-secondary'); copyBtn.textContent = 'Copy';
+  copyBtn.addEventListener('click', function() {
+    vscode.postMessage({ type: 'copy', text: markdown || '' });
+    showToast('Copied', 'success');
+  });
+  actions.appendChild(copyBtn);
   var closeBtn = el('button', 'btn btn-primary'); closeBtn.textContent = 'Close';
   closeBtn.addEventListener('click', closeInfoPanel);
   actions.appendChild(closeBtn);
@@ -2145,6 +2228,10 @@ window.addEventListener('message', function(e) {
     case 'contextUsage': applyContextUsage(d.usage); break;
     case 'toast': showToast(d.text, d.kind); break;
     case 'infoPanel': showInfoPanel(d.title, d.markdown); break;
+    case 'btwLoading':
+      if (d.text) { showToast(d.text, 'info', true); setStatus(d.text); }
+      else { hideToast(); setStatus(''); }
+      break;
     case 'dialog': showDialog(d.request); break;
     case 'error':
       setStreaming(false);

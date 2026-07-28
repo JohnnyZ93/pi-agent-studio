@@ -3,6 +3,7 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 import {
   BRIDGE_EXTENSION_PATH,
+  BTW_EXTENSION_PATH,
   BUILTIN_AGENTS_DIR,
   QUESTIONNAIRE_EXTENSION_PATH,
   SUBAGENT_EXTENSION_PATH,
@@ -113,6 +114,8 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
   ];
   const args = options.sessionFile
     ? [
@@ -164,6 +167,8 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile
