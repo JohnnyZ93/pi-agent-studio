@@ -27,6 +27,9 @@ export interface OpenChatPanelOptions {
 const activePanels = new Map<string, ChatPanelHandle>();
 const sessionToPanel = new Map<string, string>();
 
+const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
+const CHAT_PANEL_TITLE = "Pi Chat";
+
 export async function openChatPanel(
   opts: OpenChatPanelOptions,
 ): Promise<ChatPanelHandle | undefined> {
@@ -37,7 +40,7 @@ export async function openChatPanel(
       const handle = activePanels.get(existingId);
       if (handle) {
         handle.panel.reveal(handle.panel.viewColumn ?? vscode.ViewColumn.Active, false);
-        void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+        lockChatEditorGroup();
         return handle;
       }
     }
@@ -51,9 +54,9 @@ export async function openChatPanel(
     vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("autoApproveTools") ?? false;
 
   const panel = vscode.window.createWebviewPanel(
-    "pi-agent-studio.chat",
-    "Pi Chat",
-    vscode.ViewColumn.Active,
+    CHAT_VIEW_TYPE,
+    CHAT_PANEL_TITLE,
+    findChatColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside,
     {
       enableScripts: true,
       retainContextWhenHidden: true,
@@ -64,8 +67,8 @@ export async function openChatPanel(
     light: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo-light.svg"),
     dark: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo.svg"),
   };
-  panel.webview.html = getChatHtml();
-  void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+  panel.webview.html = getChatHtml(homedir(), sep);
+  lockChatEditorGroup();
 
   const args = createRpcShellArgs({ sessionFile: opts.sessionFile });
   const env = createRpcEnvironment();
@@ -136,7 +139,7 @@ export async function openChatPanel(
     handle.sessionFile = sessionFile;
     sessionToPanel.set(sessionFile, panelId);
     opts.tracker.update(panelId, sessionFile);
-    panel.title = "Pi Chat" + (sessionName ? ` \u2014 ${sessionName}` : "");
+    panel.title = CHAT_PANEL_TITLE + (sessionName ? ` \u2014 ${sessionName}` : "");
     void sendSessionInfo();
   }
 
@@ -355,4 +358,45 @@ export function disposeAllChatPanels(): void {
   }
   activePanels.clear();
   sessionToPanel.clear();
+}
+
+function isChatTab(tab: vscode.Tab): boolean {
+  return tab.input instanceof vscode.TabInputWebview && tab.input.viewType.includes(CHAT_VIEW_TYPE);
+}
+
+function findChatColumn(): vscode.ViewColumn | undefined {
+  for (const group of vscode.window.tabGroups.all) {
+    console.log(group);
+    console.log(group.tabs);
+    if (group.tabs.some(isChatTab)) return group.viewColumn;
+  }
+  return undefined;
+}
+
+function findUnusedColumn(): vscode.ViewColumn | undefined {
+  const used = new Set<vscode.ViewColumn>();
+  for (const group of vscode.window.tabGroups.all) {
+    if (group.viewColumn !== undefined && group.tabs.length > 0) used.add(group.viewColumn);
+  }
+  for (let column = vscode.ViewColumn.One; column <= vscode.ViewColumn.Nine; column++) {
+    if (!used.has(column)) return column;
+  }
+  return undefined;
+}
+
+function lockChatEditorGroup(): void {
+  const isChatGroup = (group: vscode.TabGroup): boolean => group.tabs.some(isChatTab);
+
+  const lock = (): boolean => {
+    void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+    return true;
+  };
+
+  if (vscode.window.tabGroups.activeTabGroup.tabs.length === 0 && lock()) return;
+
+  const sub = vscode.window.tabGroups.onDidChangeTabGroups((e) => {
+    const relevant = [...e.opened, ...e.changed];
+    if (relevant.some(isChatGroup) && lock()) sub.dispose();
+  });
+  setTimeout(() => sub.dispose(), 5000);
 }

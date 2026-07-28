@@ -1,6 +1,6 @@
 import mditSrc from "./vendor/markdown-it.min.js?raw";
 
-export function getChatHtml(): string {
+export function getChatHtml(home?: string, sep?: string): string {
   return /* html */ `<!DOCTYPE html>
 <html lang="en" style="height:100%;margin:0;padding:0">
 <head>
@@ -252,6 +252,7 @@ body {
 .tool-head:before { content: "\\25BC"; font-size: 9px; opacity: 0.6; }
 .tool-block:not([open]) > .tool-head:before { content: "\\25B6"; }
 .tool-name { font-weight: 600; font-family: var(--vscode-editor-font-family); }
+.tool-summary { font-family: var(--vscode-editor-font-family); color: var(--vscode-foreground); opacity: 0.9; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-status { opacity: 0.6; font-size: 11px; margin-left: auto; }
 .tool-args, .tool-result {
   margin: 0;
@@ -452,7 +453,7 @@ body {
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>
     <div class="composer-box">
-      <textarea id="input" rows="1" placeholder="Send a message\u2026  (use / for commands, Shift+Enter for newline)"></textarea>
+      <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands)"></textarea>
       <div class="composer-controls-bar">
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
         <div class="composer-spacer"></div>
@@ -500,6 +501,8 @@ var overlayEl = document.getElementById('overlay');
 
 var acItems = [];
 var acIndex = -1;
+var PI_HOME = ${JSON.stringify(home || "")};
+var PI_SEP = ${JSON.stringify(sep || "/")};
 
 // ---- helpers ----
 function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
@@ -615,15 +618,17 @@ function createBlock(type) {
   var head = el('summary', 'tool-head');
   var name = el('span', 'tool-name');
   name.textContent = 'tool';
+  var summary = el('span', 'tool-summary');
   var st = el('span', 'tool-status');
   head.appendChild(name);
+  head.appendChild(summary);
   head.appendChild(st);
   var args = el('pre', 'tool-args');
   var result = el('pre', 'tool-result');
   wrap.appendChild(head);
   wrap.appendChild(args);
   wrap.appendChild(result);
-  return { type: 'toolcall', el: wrap, nameEl: name, statusEl: st, argsEl: args, resultEl: result, toolCallId: null, name: 'tool', argsText: '' };
+  return { type: 'toolcall', el: wrap, nameEl: name, summaryEl: summary, statusEl: st, argsEl: args, resultEl: result, toolCallId: null, name: 'tool', argsText: '' };
 }
 
 function renderMarkdown(target, text) {
@@ -648,6 +653,55 @@ function appendToolCallDelta(ci, delta) {
   b.argsEl.textContent = b.argsText;
   scrollToBottom();
 }
+function shortenToolPath(p) {
+  if (typeof p !== 'string' || !p) return '';
+  if (PI_HOME && (p === PI_HOME || p.indexOf(PI_HOME + PI_SEP) === 0)) return '~' + p.slice(PI_HOME.length);
+  return p;
+}
+function toolStr(v) { return typeof v === 'string' ? v : ''; }
+function toolPathArg(args) {
+  var p = args.file_path != null ? args.file_path : args.path;
+  return typeof p === 'string' ? p : '';
+}
+function formatReadRange(args) {
+  if (args.offset === undefined && args.limit === undefined) return '';
+  var startLine = args.offset != null ? args.offset : 1;
+  var endLine = args.limit != null ? (startLine + args.limit - 1) : '';
+  return ':' + startLine + (endLine !== '' ? '-' + endLine : '');
+}
+function formatToolSummary(name, args) {
+  if (!args || typeof args !== 'object') return '';
+  var s = '';
+  if (name === 'bash') {
+    var cmd = toolStr(args.command);
+    if (cmd.length > 80) cmd = cmd.slice(0, 80) + '…';
+    s = cmd || '...';
+    if (args.timeout) s += ' (timeout ' + args.timeout + 's)';
+  } else if (name === 'read') {
+    s = shortenToolPath(toolPathArg(args)) || '...';
+    var rng = formatReadRange(args);
+    if (rng) s += rng;
+  } else if (name === 'write' || name === 'edit') {
+    s = shortenToolPath(toolPathArg(args)) || '...';
+  } else if (name === 'ls') {
+    s = shortenToolPath(toolStr(args.path) || '.');
+    if (args.limit != null) s += ' (limit ' + args.limit + ')';
+  } else if (name === 'find') {
+    s = toolStr(args.pattern) + ' in ' + shortenToolPath(toolStr(args.path) || '.');
+    if (args.limit != null) s += ' (limit ' + args.limit + ')';
+  } else if (name === 'grep') {
+    s = '/' + toolStr(args.pattern) + '/ in ' + shortenToolPath(toolStr(args.path) || '.');
+    if (args.glob) s += ' (' + toolStr(args.glob) + ')';
+    if (args.limit != null) s += ' limit ' + args.limit;
+  }
+  return s;
+}
+function applyToolSummary(b, name, args) {
+  if (!b || !b.summaryEl) return;
+  var parsed = args;
+  if (typeof args === 'string') { try { parsed = JSON.parse(args); } catch (e) { parsed = null; } }
+  b.summaryEl.textContent = formatToolSummary(name || b.name || '', parsed);
+}
 function finalizeToolCall(ci, toolCall) {
   var b = ensureBlock(ci, 'toolcall');
   if (toolCall) {
@@ -658,6 +712,7 @@ function finalizeToolCall(ci, toolCall) {
       b.argsText = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
       b.argsEl.textContent = b.argsText;
     }
+    applyToolSummary(b, b.name, args);
   }
 }
 
@@ -668,7 +723,8 @@ function findToolBlock(toolCallId) {
       var c = children[i];
       if (c._block) return c._block;
       // reconstruct minimal ref
-      return { el: c, statusEl: c.querySelector('.tool-status'), argsEl: c.querySelector('.tool-args'), resultEl: c.querySelector('.tool-result') };
+      var nameElRef = c.querySelector('.tool-name');
+      return { el: c, nameEl: nameElRef, summaryEl: c.querySelector('.tool-summary'), statusEl: c.querySelector('.tool-status'), argsEl: c.querySelector('.tool-args'), resultEl: c.querySelector('.tool-result'), name: (nameElRef && nameElRef.textContent) || '' };
     }
   }
   // fall back to currentAssistant blocks
@@ -700,6 +756,7 @@ function startToolExecution(ev) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
     b.argsEl.textContent = b.argsText;
   }
+  applyToolSummary(b, b.name, ev.args);
   scrollToBottom();
 }
 function updateToolExecution(ev) {
