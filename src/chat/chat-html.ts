@@ -532,6 +532,18 @@ body {
 .dialog .btn-primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
 .dialog .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .dialog .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+.dialog .q-block { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--vscode-widget-border, transparent); }
+.dialog .q-block:last-of-type { border-bottom: none; }
+.dialog .q-header { display: flex; align-items: baseline; gap: 6px; }
+.dialog .q-num { font-weight: 600; font-size: 13px; }
+.dialog .q-label { font-weight: 600; font-size: 13px; }
+.dialog .q-prompt { color: var(--vscode-descriptionForeground); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+.dialog .q-options { display: flex; flex-direction: column; gap: 4px; }
+.dialog .opt-btn .opt-label { display: block; }
+.dialog .opt-btn .opt-desc { display: block; font-size: 11px; opacity: 0.7; margin-top: 2px; }
+.dialog .opt-btn.selected { border-color: var(--vscode-button-background); background: var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground)); }
+.dialog .q-textarea { width: 100%; min-height: 60px; resize: vertical; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent)); border-radius: 4px; padding: 6px; font-family: inherit; font-size: 13px; box-sizing: border-box; }
+.dialog .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .empty {
   flex: 1;
   display: flex;
@@ -1610,6 +1622,97 @@ messagesEl.addEventListener('scroll', hideCtxMenu, true);
 window.addEventListener('blur', hideCtxMenu);
 
 // ---- dialog (tool approval) ----
+function renderQuestionnaireForm(box, request) {
+  var data;
+  try { data = JSON.parse(request.prefill || '{}'); } catch (e) { data = { questions: [] }; }
+  var qs = data.questions || [];
+  var answers = {};
+  var submitBtn = null;
+  function updateTitle() {
+    var answered = 0;
+    for (var i = 0; i < qs.length; i++) { if (answers[qs[i].id]) answered++; }
+    h.textContent = answered + '/' + qs.length + ' questions';
+  }
+  function updateSubmit() {
+    updateTitle();
+    if (!submitBtn) return;
+    var allAnswered = qs.every(function(q) { return answers[q.id]; });
+    submitBtn.disabled = !allAnswered;
+  }
+  var h = el('h3');
+  box.appendChild(h);
+  for (var qi = 0; qi < qs.length; qi++) {
+    (function(q, idx) {
+      var block = el('div', 'q-block');
+      var hdr = el('div', 'q-header');
+      var num = el('span', 'q-num'); num.textContent = (idx + 1) + '.';
+      var lbl = el('span', 'q-label'); lbl.textContent = q.label || ('Q' + (idx + 1));
+      hdr.appendChild(num); hdr.appendChild(lbl);
+      block.appendChild(hdr);
+      var prompt = el('div', 'q-prompt'); prompt.textContent = q.prompt; block.appendChild(prompt);
+      var opts = (q.options || []).slice();
+      if (q.allowOther !== false) opts.push({ label: 'Type something.', isOther: true });
+      var optList = el('div', 'q-options');
+      var ta = el('textarea', 'q-textarea dialog-input');
+      ta.style.display = 'none';
+      ta.placeholder = 'Type your answer...';
+      for (var oi = 0; oi < opts.length; oi++) {
+        (function(opt, oIndex) {
+          var btn = el('button', 'opt-btn');
+          if (opt.description) {
+            var l = el('span', 'opt-label'); l.textContent = opt.label;
+            var d = el('span', 'opt-desc'); d.textContent = opt.description;
+            btn.appendChild(l); btn.appendChild(d);
+          } else {
+            btn.textContent = opt.label;
+          }
+          btn.addEventListener('click', function() {
+            var sibs = optList.querySelectorAll('.opt-btn');
+            for (var s = 0; s < sibs.length; s++) sibs[s].classList.remove('selected');
+            btn.classList.add('selected');
+            if (opt.isOther) {
+              ta.style.display = 'block';
+              ta.focus();
+              var v = ta.value.trim() || '(no response)';
+              answers[q.id] = { id: q.id, value: v, label: v, wasCustom: true };
+              updateSubmit();
+            } else {
+              ta.style.display = 'none';
+              ta.value = '';
+              answers[q.id] = { id: q.id, value: opt.label, label: opt.label, wasCustom: false, index: oIndex + 1 };
+              updateSubmit();
+            }
+          });
+          optList.appendChild(btn);
+        })(opts[oi], oi);
+      }
+      block.appendChild(optList);
+      block.appendChild(ta);
+      ta.addEventListener('input', function() {
+        if (answers[q.id] && answers[q.id].wasCustom) {
+          var v = ta.value.trim() || '(no response)';
+          answers[q.id] = { id: q.id, value: v, label: v, wasCustom: true };
+        }
+      });
+      box.appendChild(block);
+    })(qs[qi], qi);
+  }
+  var actions = el('div', 'dialog-actions');
+  var cancel = el('button', 'btn btn-secondary'); cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', function() { respond(request.id, { cancelled: true }); });
+  submitBtn = el('button', 'btn btn-primary'); submitBtn.textContent = 'Submit';
+  submitBtn.addEventListener('click', function() {
+    var arr = [];
+    for (var qi2 = 0; qi2 < qs.length; qi2++) {
+      var a = answers[qs[qi2].id];
+      if (a) arr.push(a);
+    }
+    respond(request.id, { value: JSON.stringify({ answers: arr }) });
+  });
+  actions.appendChild(cancel); actions.appendChild(submitBtn);
+  box.appendChild(actions);
+  updateSubmit();
+}
 function showDialog(request) {
   overlayEl.innerHTML = '';
   var box = el('div', 'dialog');
@@ -1619,6 +1722,12 @@ function showDialog(request) {
   if (request.message) { var p = el('p'); p.textContent = String(request.message); box.appendChild(p); }
 
   var inputField = null;
+  if (method === 'editor' && request.title === 'Pi Questionnaire Form') {
+    renderQuestionnaireForm(box, request);
+    overlayEl.appendChild(box);
+    overlayEl.style.display = 'flex';
+    return;
+  }
   if (method === 'select' && Array.isArray(request.options)) {
     var list = el('div', 'opt-list');
     for (var i = 0; i < request.options.length; i++) {

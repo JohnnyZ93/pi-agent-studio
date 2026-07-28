@@ -53,9 +53,6 @@ export async function openChatPanel(
   if (!piPath) return undefined;
 
   const panelId = opts.panelId ?? randomUUID();
-  const autoApprove =
-    vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("autoApproveTools") ?? false;
-
   const panel = vscode.window.createWebviewPanel(
     CHAT_VIEW_TYPE,
     CHAT_PANEL_TITLE,
@@ -376,20 +373,7 @@ export async function openChatPanel(
       req.method === "input" ||
       req.method === "editor"
     ) {
-      if (autoApprove) {
-        if (req.method === "confirm") {
-          rpc.respondExtensionUi(req.id, { confirmed: true });
-        } else if (req.method === "select") {
-          const options = (req.options as string[] | undefined) ?? [];
-          const allow = options.find((o) => /allow/i.test(String(o))) ?? options[0] ?? undefined;
-          rpc.respondExtensionUi(req.id, { value: allow != null ? String(allow) : undefined });
-        } else {
-          // input/editor cannot be auto-approved; surface to the user.
-          panel.webview.postMessage({ type: "dialog", request: req });
-        }
-      } else {
-        panel.webview.postMessage({ type: "dialog", request: req });
-      }
+      panel.webview.postMessage({ type: "dialog", request: req });
     } else if (req.method === "setWidget") {
       if (!disposed)
         panel.webview.postMessage({

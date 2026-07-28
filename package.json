@@ -259,22 +259,18 @@
           ],
           "description": "Interface for the Pi: Open command. \"webview\" uses a chat panel instead of a terminal."
         },
-        "pi-agent-studio.autoApproveTools": {
-          "type": "boolean",
-          "default": false,
-          "description": "In webview chat mode, automatically approve all agent tool calls (bash, edit, ...) without prompting. Dangerous: the agent can run arbitrary commands."
-        },
         "pi-agent-studio.disabledTools": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": [
               "vscode_get_diagnostics",
-              "todo"
+              "todo",
+              "questionnaire"
             ]
           },
           "default": [],
-          "description": "LLM tools registered by bundled extensions (VS Code bridge, todo) to disable (blocklist). Defaults to none (all enabled). Example: [\"vscode_get_diagnostics\", \"todo\"]."
+          "description": "LLM tools registered by bundled extensions to disable (blocklist). Defaults to none (all enabled)."
         },
         "pi-agent-studio.rpcTrace": {
           "type": "boolean",

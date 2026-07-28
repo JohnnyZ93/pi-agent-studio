@@ -1,7 +1,11 @@
 import { accessSync, constants, realpathSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { BRIDGE_EXTENSION_PATH, TODO_EXTENSION_PATH } from "./constants.ts";
+import {
+  BRIDGE_EXTENSION_PATH,
+  QUESTIONNAIRE_EXTENSION_PATH,
+  TODO_EXTENSION_PATH,
+} from "./constants.ts";
 import { resolvePiBinary } from "./_resolve.ts";
 import {
   createPiGlobalInstallCommand,
@@ -103,6 +107,8 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
   ];
   const args = options.sessionFile
     ? [
@@ -143,6 +149,8 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile
