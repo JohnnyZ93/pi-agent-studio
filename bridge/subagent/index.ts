@@ -230,9 +230,9 @@ async function mapWithConcurrencyLimit<TIn, TOut>(
 ): Promise<TOut[]> {
   if (items.length === 0) return [];
   const limit = Math.max(1, Math.min(concurrency, items.length));
-  const results: TOut[] = new Array(items.length);
+  const results: TOut[] = Array.from({ length: items.length });
   let nextIndex = 0;
-  const workers = new Array(limit).fill(null).map(async () => {
+  const workers = Array.from({ length: limit }, async () => {
     while (true) {
       const current = nextIndex++;
       if (current >= items.length) return;
@@ -540,7 +540,7 @@ export default function (pi: ExtensionAPI) {
           };
 
         // Track all results for streaming updates
-        const allResults: SingleResult[] = new Array(params.tasks.length);
+        const allResults: SingleResult[] = Array.from({ length: params.tasks.length });
 
         // Initialize placeholder results
         for (let i = 0; i < params.tasks.length; i++) {

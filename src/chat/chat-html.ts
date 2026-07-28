@@ -75,7 +75,7 @@ body {
   border-radius: 4px;
   font-size: 11px;
   font-family: var(--vscode-font-family);
-  white-space: nowrap;
+  white-space: pre;
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
@@ -799,7 +799,7 @@ function applyContextUsage(usage) {
   var tokens = (usage && typeof usage.tokens === 'number') ? usage.tokens : null;
   var cw = (usage && typeof usage.contextWindow === 'number') ? usage.contextWindow : null;
   if (tokens != null && cw != null) {
-    ctxRingText = formatTokens(tokens) + '/' + formatTokens(cw) + ' tokens';
+    ctxRingText = 'Usage:   ' + pct.toFixed(1) + '%\\nContext: ' + formatTokens(tokens) + ' / ' + formatTokens(cw);
   } else {
     ctxRingText = '';
   }
@@ -1610,6 +1610,9 @@ function handleEvent(event) {
 }
 
 // ---- controls ----
+function modelLabel(m) {
+  return (m.name || m.id) + (m.provider ? ' [' + m.provider + ']' : '');
+}
 function renderModels() {
   var prev = state.model ? (state.model.provider + '/' + state.model.id) : '';
   modelSelect.innerHTML = '';
@@ -1617,7 +1620,7 @@ function renderModels() {
     var m = models[i];
     var opt = document.createElement('option');
     opt.value = String(i);
-    opt.textContent = m.name || m.id;
+    opt.textContent = modelLabel(m);
     var key = m.provider + '/' + m.id;
     if (key === prev) opt.selected = true;
     modelSelect.appendChild(opt);
@@ -2158,17 +2161,23 @@ var ctxTooltip = document.createElement('div');
 ctxTooltip.className = 'ctx-tooltip';
 ctxTooltip.style.display = 'none';
 document.body.appendChild(ctxTooltip);
-function showCtxTooltip() {
-  if (!ctxRingText) return;
-  ctxTooltip.textContent = ctxRingText;
+function showTooltip(target, text) {
+  if (!text) return;
+  ctxTooltip.textContent = text;
   ctxTooltip.style.display = 'block';
-  var r = ctxRing.getBoundingClientRect();
+  var r = target.getBoundingClientRect();
   ctxTooltip.style.left = (r.left + r.width / 2 - ctxTooltip.offsetWidth / 2) + 'px';
   ctxTooltip.style.top = (r.top - ctxTooltip.offsetHeight - 6) + 'px';
 }
-function hideCtxTooltip() { ctxTooltip.style.display = 'none'; }
-ctxRing.addEventListener('mouseenter', showCtxTooltip);
-ctxRing.addEventListener('mouseleave', hideCtxTooltip);
+function hideTooltip() { ctxTooltip.style.display = 'none'; }
+ctxRing.addEventListener('mouseenter', function() { showTooltip(ctxRing, ctxRingText); });
+ctxRing.addEventListener('mouseleave', hideTooltip);
+modelSelect.addEventListener('mouseenter', function() {
+  var idx = Number(modelSelect.value);
+  var m = models[idx];
+  showTooltip(modelSelect, m ? modelLabel(m) : '');
+});
+modelSelect.addEventListener('mouseleave', hideTooltip);
 
 autoGrow();
 updateSendButton();
