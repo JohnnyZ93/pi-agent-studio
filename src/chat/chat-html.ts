@@ -236,6 +236,16 @@ body {
   cursor: pointer;
 }
 .expand-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
+.text-block.is-collapsible { max-height: 340px; overflow: hidden; position: relative; }
+.text-block.is-collapsible.is-expanded { max-height: none; overflow: visible; }
+.text-block .expand-fade {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 44px;
+  background: linear-gradient(to bottom, transparent, var(--vscode-editor-background));
+  pointer-events: none;
+}
+.text-block.is-expanded .expand-fade { display: none; }
 .assistant .text-block { line-height: 1.55; padding: 2px 0; font-size: 13px; }
 .text-block > :last-child { margin-bottom: 0; }
 .text-block p { margin: 0 0 8px; }
@@ -872,6 +882,29 @@ function renderMarkdown(target, text) {
   target._piMd = text;
   try { target.innerHTML = md.render(text); } catch (e) { target.textContent = text; }
 }
+function applyTextCollapsible(b) {
+  var textEl = b.textEl;
+  if (!textEl || !textEl.parentNode) return;
+  if (textEl._expandBtn) { textEl._expandBtn.remove(); textEl._expandBtn = null; }
+  if (textEl._fade) { textEl._fade.remove(); textEl._fade = null; }
+  textEl.classList.remove('is-collapsible');
+  textEl.classList.remove('is-expanded');
+  if (textEl.scrollHeight <= 360) return;
+  textEl.classList.add('is-collapsible');
+  var fade = el('div', 'expand-fade');
+  textEl.appendChild(fade);
+  textEl._fade = fade;
+  var btn = el('button', 'expand-btn');
+  btn.type = 'button';
+  btn.textContent = 'Show more';
+  btn.addEventListener('click', function() {
+    var expanded = textEl.classList.toggle('is-expanded');
+    btn.textContent = expanded ? 'Show less' : 'Show more';
+    scrollToBottom();
+  });
+  textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+  textEl._expandBtn = btn;
+}
 
 var MAX_INLINE = 12000;
 function setClamped(preEl, text) {
@@ -908,13 +941,14 @@ function finalizeTextBlocks() {
     if (b._tnode) b._tnode = null;
     if (b.textEl) b.textEl.classList.remove('is-streaming');
     renderMarkdown(b.textEl, b.text);
+    applyTextCollapsible(b);
   }
   pendingTexts = [];
 }
 function appendTextDelta(ci, delta) {
   var b = ensureBlock(ci, 'text');
   b.text += delta;
-  if (b.finalized) { renderMarkdown(b.textEl, b.text); scheduleScroll(); return; }
+  if (b.finalized) { renderMarkdown(b.textEl, b.text); applyTextCollapsible(b); scheduleScroll(); return; }
   if (!b._pending) { b._pending = true; pendingTexts.push(b); }
   if (!b._tnode) {
     b.textEl.textContent = '';
@@ -1126,6 +1160,7 @@ function hydrateOne(m) {
           tb.text = blk.text || '';
           renderMarkdown(tb.textEl, tb.text);
           tb.finalized = true;
+          applyTextCollapsible(tb);
         } else if (blk.type === 'thinking') {
           var hb = ensureBlock(k, 'thinking');
           hb.text = blk.thinking || '';
