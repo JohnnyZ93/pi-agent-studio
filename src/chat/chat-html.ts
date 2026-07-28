@@ -341,6 +341,14 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
 }
+.msg-error {
+  margin-top: 6px;
+  padding: 2px 0;
+  color: var(--vscode-errorForeground, #f48771);
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .composer {
   flex-shrink: 0;
@@ -643,6 +651,7 @@ var thinkingLevels = [];
 var commands = [];
 var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
 var state = { model: null, thinkingLevel: 'medium', isStreaming: false, sessionFile: null };
+var retryAttempt = 0;
 
 var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
@@ -833,6 +842,48 @@ function endAssistantMessage() {
   collapseThinking();
   finalizeTextBlocks();
   if (currentAssistant) { currentAssistant = null; }
+}
+
+function assistantHasToolCalls() {
+  if (!currentAssistant) return false;
+  for (var i = 0; i < currentAssistant.blocks.length; i++) {
+    var b = currentAssistant.blocks[i];
+    if (b && b.type === 'toolcall') return true;
+  }
+  return false;
+}
+function markAssistantToolErrors(text) {
+  if (!currentAssistant) return;
+  for (var i = 0; i < currentAssistant.blocks.length; i++) {
+    var b = currentAssistant.blocks[i];
+    if (b && b.type === 'toolcall') {
+      if (b.resultEl) setClamped(b.resultEl, text);
+      b.el.classList.add('is-error');
+      if (b.statusEl) b.statusEl.textContent = 'error';
+    }
+  }
+}
+function appendAssistantError(text) {
+  if (!currentAssistant) return;
+  var div = el('div', 'msg-error');
+  div.textContent = text;
+  currentAssistant.el.appendChild(div);
+  scheduleScroll();
+}
+function applyAssistantStopError(stopReason, errorMessage, retryCount) {
+  if (stopReason === 'length') {
+    appendAssistantError('Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.');
+  } else if (stopReason === 'error') {
+    var em = errorMessage || 'Unknown error';
+    if (assistantHasToolCalls()) markAssistantToolErrors(em);
+    else appendAssistantError('Error: ' + em);
+  } else if (stopReason === 'aborted') {
+    var am = retryCount > 0
+      ? 'Aborted after ' + retryCount + ' retry attempt' + (retryCount > 1 ? 's' : '')
+      : 'Operation aborted';
+    if (assistantHasToolCalls()) markAssistantToolErrors(am);
+    else appendAssistantError(am);
+  }
 }
 
 function ensureBlock(ci, type) {
@@ -1170,6 +1221,7 @@ function hydrateOne(m) {
         }
       }
     }
+    applyAssistantStopError(m.stopReason, m.errorMessage, 0);
     endAssistantMessage();
   } else if (role === 'toolResult') {
     var fakeEv = { toolCallId: m.toolCallId, result: { content: m.content }, isError: !!m.isError };
@@ -1206,13 +1258,19 @@ function handleEvent(event) {
   if (!event || typeof event !== 'object') return;
   switch (event.type) {
     case 'agent_start': setStreaming(true); break;
-    case 'agent_settled': setStreaming(false); break;
+    case 'agent_settled': setStreaming(false); retryAttempt = 0; break;
     case 'message_start':
       if (event.message && event.message.role === 'assistant') startAssistantMessage();
       else if (event.message && event.message.role === 'user' && lastUserBubble && event.message.timestamp != null && lastUserBubble._piTs == null) lastUserBubble._piTs = event.message.timestamp;
       break;
     case 'message_end':
-      if (event.message && event.message.role === 'assistant') endAssistantMessage();
+      if (event.message && event.message.role === 'assistant') {
+        var amsg = event.message;
+        var asr = amsg.stopReason;
+        applyAssistantStopError(asr, amsg.errorMessage, retryAttempt);
+        endAssistantMessage();
+        if (asr && asr !== 'error') retryAttempt = 0;
+      }
       break;
     case 'message_update': handleAssistantMessageEvent(event.assistantMessageEvent); break;
     case 'tool_execution_start': startToolExecution(event); break;
@@ -1220,8 +1278,21 @@ function handleEvent(event) {
     case 'tool_execution_end': endToolExecution(event); break;
     case 'compaction_start': setStatus('Compacting\u2026'); showToast('Compacting session\u2026', 'info', true); break;
     case 'compaction_end': hideToast(); setStatus(''); break;
-    case 'auto_retry_start': setStatus('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026'); break;
-    case 'auto_retry_end': setStatus(''); break;
+    case 'auto_retry_start':
+      retryAttempt = event.attempt;
+      setStatus('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026');
+      break;
+    case 'auto_retry_end':
+      setStatus('');
+      retryAttempt = 0;
+      if (event.success === false) {
+        var rfe = event.finalError || 'Unknown error';
+        var reb = el('div', 'error-banner');
+        reb.textContent = 'Error: Retry failed after ' + event.attempt + ' attempts: ' + rfe;
+        messagesEl.appendChild(reb);
+        scrollToBottom();
+      }
+      break;
     default: break;
   }
 }
