@@ -3,7 +3,7 @@
  *
  * This extension:
  * - Registers a `todo` tool for the LLM to manage todos (batch operations)
- * - Registers a `/todos` command for users to view the list
+ * - Registers a `/todo-clear` command to clear all todos
  * - Renders a live todo list widget above the input editor, kept in sync
  *   with the session state.
  *
@@ -14,7 +14,7 @@
 
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
+import { Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
 interface Todo {
@@ -307,87 +307,6 @@ function renderTodoResult(
   }
 }
 
-/**
- * UI component for the /todos command
- */
-class TodoListComponent {
-  private todos: Todo[];
-  private theme: Theme;
-  private onClose: () => void;
-  private onClear: () => void;
-  private cachedWidth?: number;
-  private cachedLines?: string[];
-
-  constructor(todos: Todo[], theme: Theme, onClose: () => void, onClear: () => void) {
-    this.todos = todos;
-    this.theme = theme;
-    this.onClose = onClose;
-    this.onClear = onClear;
-  }
-
-  handleInput(data: string): void {
-    if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) {
-      this.onClose();
-    } else if (matchesKey(data, Key.ctrl("x"))) {
-      this.onClear();
-    }
-  }
-
-  render(width: number): string[] {
-    if (this.cachedLines && this.cachedWidth === width) {
-      return this.cachedLines;
-    }
-
-    const lines: string[] = [];
-    const th = this.theme;
-
-    lines.push("");
-    const title = th.fg("accent", " Todos ");
-    const headerLine =
-      th.fg("borderMuted", "─".repeat(3)) +
-      title +
-      th.fg("borderMuted", "─".repeat(Math.max(0, width - 10)));
-    lines.push(truncateToWidth(headerLine, width));
-    lines.push("");
-
-    if (this.todos.length === 0) {
-      lines.push(
-        truncateToWidth(`  ${th.fg("dim", "No todos yet. Ask the agent to add some!")}`, width),
-      );
-    } else {
-      const done = this.todos.filter((t) => t.done).length;
-      const total = this.todos.length;
-      lines.push(truncateToWidth(`  ${th.fg("muted", `${done}/${total} completed`)}`, width));
-      lines.push("");
-
-      for (const todo of this.todos) {
-        const check = todo.done ? th.fg("success", "✓") : th.fg("dim", "○");
-        const id = th.fg("accent", `#${todo.id}`);
-        const text = todo.done ? th.fg("dim", todo.text) : th.fg("text", todo.text);
-        lines.push(truncateToWidth(`  ${check} ${id} ${text}`, width));
-      }
-    }
-
-    lines.push("");
-    lines.push(
-      truncateToWidth(
-        `  ${th.fg("dim", "Ctrl+X clear all")}  ${th.fg("dim", "•")}  ${th.fg("dim", "Esc close")}`,
-        width,
-      ),
-    );
-    lines.push("");
-
-    this.cachedWidth = width;
-    this.cachedLines = lines;
-    return lines;
-  }
-
-  invalidate(): void {
-    this.cachedWidth = undefined;
-    this.cachedLines = undefined;
-  }
-}
-
 export default function (pi: ExtensionAPI) {
   const state: TodoState = { todos: [], nextId: 1 };
 
@@ -494,23 +413,6 @@ export default function (pi: ExtensionAPI) {
         return renderTodoResult(result, expanded, theme);
       },
     });
-
-  // Register the /todos command for users
-  pi.registerCommand("todos", {
-    description: "Show all todos on the current branch",
-    handler: async (_args, ctx) => {
-      if (ctx.mode !== "tui") return;
-
-      await ctx.ui.custom<void>((_tui, theme, _kb, done) => {
-        const onClose = () => done();
-        const onClear = () => {
-          clearAllTodos(ctx);
-          done();
-        };
-        return new TodoListComponent(state.todos, theme, onClose, onClear);
-      });
-    },
-  });
 
   pi.registerCommand("todo-clear", {
     description: "Clear all todos",

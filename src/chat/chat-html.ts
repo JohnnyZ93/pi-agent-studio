@@ -171,7 +171,7 @@ body {
 }
 .msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
 .msg.user { align-items: flex-end; }
-.msg.assistant { align-items: stretch; }
+.msg.assistant { align-items: stretch; content-visibility: auto; contain-intrinsic-size: auto 240px; }
 
 .bubble {
   max-width: 85%;
@@ -293,6 +293,8 @@ body {
 .tool-result { border-top: 1px solid var(--vscode-widget-border, transparent); color: var(--vscode-terminal-ansiGreen, #4ec9b0); }
 .tool-block.is-error .tool-result { color: var(--vscode-errorForeground, #f48771); }
 .tool-args:empty, .tool-result:empty { display: none; }
+.tool-expand { margin: 4px 0; align-self: flex-start; font-size: 11px; padding: 2px 8px; cursor: pointer; border: 1px solid var(--vscode-button-border, transparent); background: var(--vscode-button-secondaryBackground, var(--vscode-toolbar-hoverBackground)); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); border-radius: 3px; }
+.text-block.is-streaming { white-space: pre-wrap; word-break: break-word; }
 
 .error-banner {
   padding: 6px 10px;
@@ -568,7 +570,23 @@ var PI_SEP = ${JSON.stringify(sep || "/")};
 
 // ---- helpers ----
 function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
-function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+var autoScroll = true;
+messagesEl.addEventListener('scroll', function() {
+  autoScroll = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
+});
+var scrollRAF = null;
+function scheduleScroll() {
+  if (scrollRAF) return;
+  scrollRAF = requestAnimationFrame(function() {
+    scrollRAF = null;
+    if (autoScroll) messagesEl.scrollTop = messagesEl.scrollHeight;
+  });
+}
+function scrollToBottom() {
+  autoScroll = true;
+  if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
   if (state.isStreaming) {
@@ -585,6 +603,7 @@ function updateSendButton() {
 }
 function setStreaming(b) {
   state.isStreaming = b;
+  if (!b) finalizeTextBlocks();
   updateSendButton();
   attachBtn.disabled = b;
   if (!b && !statusEl.textContent) setStatus('');
@@ -673,7 +692,7 @@ function addUserMessage(text) {
     row.appendChild(btn);
   }
 
-  scrollToBottom();
+  scheduleScroll();
 }
 
 function startAssistantMessage() {
@@ -682,7 +701,7 @@ function startAssistantMessage() {
   var row = el('div', 'msg assistant');
   messagesEl.appendChild(row);
   currentAssistant = { el: row, blocks: [] };
-  scrollToBottom();
+  scheduleScroll();
 }
 
 function collapseThinking() {
@@ -694,6 +713,7 @@ function collapseThinking() {
 }
 function endAssistantMessage() {
   collapseThinking();
+  finalizeTextBlocks();
   if (currentAssistant) { currentAssistant = null; }
 }
 
@@ -744,23 +764,72 @@ function renderMarkdown(target, text) {
   target._piMd = text;
   try { target.innerHTML = md.render(text); } catch (e) { target.textContent = text; }
 }
+
+var MAX_INLINE = 12000;
+function setClamped(preEl, text) {
+  text = typeof text === 'string' ? text : '';
+  if (text.length > MAX_INLINE) {
+    if (preEl._fullBtn) preEl._fullBtn.remove();
+    preEl.textContent = text.slice(0, MAX_INLINE) + ' ... (truncated, ' + (text.length - MAX_INLINE) + ' more chars)';
+    var full = text;
+    var btn = el('button', 'tool-expand');
+    btn.type = 'button';
+    btn.textContent = 'Expand';
+    btn.addEventListener('click', function() {
+      preEl.textContent = full;
+      if (preEl._fullBtn) { preEl._fullBtn.remove(); preEl._fullBtn = null; }
+      preEl._full = null;
+      scheduleScroll();
+    });
+    if (preEl.parentNode) preEl.parentNode.insertBefore(btn, preEl.nextSibling);
+    preEl._full = full;
+    preEl._fullBtn = btn;
+  } else {
+    preEl.textContent = text;
+    if (preEl._fullBtn) { preEl._fullBtn.remove(); preEl._fullBtn = null; }
+    preEl._full = null;
+  }
+}
+
+var pendingTexts = [];
+function finalizeTextBlocks() {
+  for (var i = 0; i < pendingTexts.length; i++) {
+    var b = pendingTexts[i];
+    b.finalized = true;
+    b._pending = false;
+    if (b._tnode) b._tnode = null;
+    if (b.textEl) b.textEl.classList.remove('is-streaming');
+    renderMarkdown(b.textEl, b.text);
+  }
+  pendingTexts = [];
+}
 function appendTextDelta(ci, delta) {
   var b = ensureBlock(ci, 'text');
   b.text += delta;
-  renderMarkdown(b.textEl, b.text);
-  scrollToBottom();
+  if (b.finalized) { renderMarkdown(b.textEl, b.text); scheduleScroll(); return; }
+  if (!b._pending) { b._pending = true; pendingTexts.push(b); }
+  if (!b._tnode) {
+    b.textEl.textContent = '';
+    b._tnode = document.createTextNode('');
+    b.textEl.appendChild(b._tnode);
+    b.textEl.classList.add('is-streaming');
+  }
+  b._tnode.appendData(delta);
+  scheduleScroll();
 }
 function appendThinkingDelta(ci, delta) {
   var b = ensureBlock(ci, 'thinking');
   b.text += delta;
-  b.textEl.textContent = b.text;
-  scrollToBottom();
+  if (!b._tnode) { b.textEl.textContent = ''; b._tnode = document.createTextNode(''); b.textEl.appendChild(b._tnode); }
+  b._tnode.appendData(delta);
+  scheduleScroll();
 }
 function appendToolCallDelta(ci, delta) {
   var b = ensureBlock(ci, 'toolcall');
   b.argsText += delta;
-  b.argsEl.textContent = b.argsText;
-  scrollToBottom();
+  if (!b._anode) { b.argsEl.textContent = ''; b._anode = document.createTextNode(''); b.argsEl.appendChild(b._anode); }
+  b._anode.appendData(delta);
+  scheduleScroll();
 }
 function shortenToolPath(p) {
   if (typeof p !== 'string' || !p) return '';
@@ -802,6 +871,8 @@ function formatToolSummary(name, args) {
     s = '/' + toolStr(args.pattern) + '/ in ' + shortenToolPath(toolStr(args.path) || '.');
     if (args.glob) s += ' (' + toolStr(args.glob) + ')';
     if (args.limit != null) s += ' limit ' + args.limit;
+  } else if (name === 'todo') {
+    s = toolStr(args.action) || '...';
   }
   return s;
 }
@@ -819,7 +890,8 @@ function finalizeToolCall(ci, toolCall) {
     var args = toolCall.arguments;
     if (args !== undefined && args !== null) {
       b.argsText = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
-      b.argsEl.textContent = b.argsText;
+      b._anode = null;
+      setClamped(b.argsEl, b.argsText);
     }
     applyToolSummary(b, b.name, args);
   }
@@ -863,10 +935,11 @@ function startToolExecution(ev) {
   if (b.statusEl) b.statusEl.textContent = 'running';
   if (ev.args !== undefined && ev.args !== null && b.argsEl && !b.argsText) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
-    b.argsEl.textContent = b.argsText;
+    b._anode = null;
+    setClamped(b.argsEl, b.argsText);
   }
   applyToolSummary(b, b.name, ev.args);
-  scrollToBottom();
+  scheduleScroll();
 }
 function updateToolExecution(ev) {
   var b = findToolBlock(ev.toolCallId);
@@ -882,7 +955,7 @@ function updateToolExecution(ev) {
     } else if (typeof pr.content === 'string') {
       txt = pr.content;
     }
-    if (txt) b.resultEl.textContent = txt;
+    if (txt) setClamped(b.resultEl, txt);
   }
 }
 function endToolExecution(ev) {
@@ -901,52 +974,63 @@ function endToolExecution(ev) {
     } else if (typeof r.content === 'string') {
       txt = r.content;
     }
-    if (txt) b.resultEl.textContent = txt;
+    if (txt) setClamped(b.resultEl, txt);
   }
   b.el.removeAttribute('open');
-  scrollToBottom();
+  scheduleScroll();
 }
 
 // ---- hydrate from get_messages ----
 function hydrateMessages(list) {
   messagesEl.innerHTML = '';
+  currentAssistant = null;
+  pendingTexts = [];
   if (!list || !list.length) {
     clearMessages();
     return;
   }
-  for (var i = 0; i < list.length; i++) {
-    var m = list[i];
-    if (!m || typeof m !== 'object') continue;
-    var role = m.role;
-    if (role === 'user') {
-      addUserMessage(extractText(m.content));
-    } else if (role === 'assistant') {
-      startAssistantMessage();
-      var content = m.content;
-      if (Array.isArray(content)) {
-        for (var k = 0; k < content.length; k++) {
-          var blk = content[k];
-          if (!blk || typeof blk !== 'object') continue;
-          if (blk.type === 'text') {
-            var tb = ensureBlock(k, 'text');
-            tb.text = blk.text || '';
-            renderMarkdown(tb.textEl, tb.text);
-          } else if (blk.type === 'thinking') {
-            var hb = ensureBlock(k, 'thinking');
-            hb.text = blk.thinking || '';
-            hb.textEl.textContent = hb.text;
-          } else if (blk.type === 'toolCall') {
-            finalizeToolCall(k, blk);
-          }
+  setStatus('Loading history...');
+  var i = 0;
+  var CHUNK = 30;
+  function step() {
+    var end = Math.min(i + CHUNK, list.length);
+    for (; i < end; i++) hydrateOne(list[i]);
+    if (i < list.length) requestAnimationFrame(step);
+    else { setStatus(''); scrollToBottom(); }
+  }
+  requestAnimationFrame(step);
+}
+function hydrateOne(m) {
+  if (!m || typeof m !== 'object') return;
+  var role = m.role;
+  if (role === 'user') {
+    addUserMessage(extractText(m.content));
+  } else if (role === 'assistant') {
+    startAssistantMessage();
+    var content = m.content;
+    if (Array.isArray(content)) {
+      for (var k = 0; k < content.length; k++) {
+        var blk = content[k];
+        if (!blk || typeof blk !== 'object') continue;
+        if (blk.type === 'text') {
+          var tb = ensureBlock(k, 'text');
+          tb.text = blk.text || '';
+          renderMarkdown(tb.textEl, tb.text);
+          tb.finalized = true;
+        } else if (blk.type === 'thinking') {
+          var hb = ensureBlock(k, 'thinking');
+          hb.text = blk.thinking || '';
+          hb.textEl.textContent = hb.text;
+        } else if (blk.type === 'toolCall') {
+          finalizeToolCall(k, blk);
         }
       }
-      endAssistantMessage();
-    } else if (role === 'toolResult') {
-      var fakeEv = { toolCallId: m.toolCallId, result: { content: m.content }, isError: !!m.isError };
-      endToolExecution(fakeEv);
     }
+    endAssistantMessage();
+  } else if (role === 'toolResult') {
+    var fakeEv = { toolCallId: m.toolCallId, result: { content: m.content }, isError: !!m.isError };
+    endToolExecution(fakeEv);
   }
-  scrollToBottom();
 }
 function extractText(content) {
   if (typeof content === 'string') return content;
