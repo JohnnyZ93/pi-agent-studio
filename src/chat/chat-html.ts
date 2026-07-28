@@ -438,6 +438,42 @@ body {
 .dialog .btn-primary:hover { background: var(--vscode-button-hoverBackground); }
 .dialog .btn-secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 .empty { text-align: center; opacity: 0.4; padding: 40px 20px; font-size: 13px; }
+.widget { flex-shrink: 0; padding: 6px 8px 0; }
+.widget-card {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-left: 3px solid var(--vscode-charts-blue, #3794ff);
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.06));
+  padding: 6px 8px;
+}
+.widget-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.widget-head .widget-title { flex: 1 1 auto; min-width: 0; }
+.widget-clear {
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.widget-clear:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
+.widget-body {
+  margin: 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  white-space: pre;
+  line-height: 1.5;
+}
 
 .ctx-menu {
   position: fixed;
@@ -474,6 +510,7 @@ body {
   <div class="messages" id="messages">
     <div class="empty">Start chatting with Pi\u2026</div>
   </div>
+  <div id="widget" class="widget" style="display:none"></div>
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>
     <div class="composer-box">
@@ -508,6 +545,7 @@ var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stro
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
 var ICON_STOP = '<svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.4" fill="currentColor"/></svg>';
 var messagesEl = document.getElementById('messages');
+var widgetEl = document.getElementById('widget');
 var inputEl = document.getElementById('input');
 var sendBtn = document.getElementById('send');
 var attachBtn = document.getElementById('attach-btn');
@@ -575,6 +613,38 @@ function applyContextUsage(usage) {
 
 function clearMessages() {
   messagesEl.innerHTML = '<div class="empty">Start chatting with Pi\u2026</div>';
+}
+
+function applyWidget(key, lines) {
+  if (!key || !lines || !lines.length) { widgetEl.style.display = 'none'; widgetEl.innerHTML = ''; return; }
+  widgetEl.innerHTML = '';
+  if (key !== 'todo-list') {
+    var pre = el('pre', 'widget-body');
+    pre.textContent = lines.join('\\n');
+    widgetEl.appendChild(pre);
+    widgetEl.style.display = 'block';
+    return;
+  }
+  var card = el('div', 'widget-card');
+  var head = el('div', 'widget-head');
+  var title = el('span', 'widget-title');
+  title.textContent = lines[0] || 'Todos';
+  head.appendChild(title);
+  if (lines.length > 1) {
+    var clearBtn = el('button', 'widget-clear');
+    clearBtn.type = 'button';
+    clearBtn.textContent = 'Clear';
+    clearBtn.addEventListener('click', function() { vscode.postMessage({ type: 'todoClear' }); });
+    head.appendChild(clearBtn);
+  }
+  card.appendChild(head);
+  if (lines.length > 1) {
+    var body = el('pre', 'widget-body');
+    body.textContent = lines.slice(1).join('\\n');
+    card.appendChild(body);
+  }
+  widgetEl.appendChild(card);
+  widgetEl.style.display = 'block';
 }
 
 // ---- message DOM ----
@@ -1030,6 +1100,20 @@ function completeAutocomplete(c) {
 }
 
 // ---- send ----
+function isExtensionCommand(msg) {
+  var s = msg.trim();
+  if (s.charAt(0) !== '/') return false;
+  var name = s.slice(1);
+  var sp = name.indexOf(' ');
+  if (sp >= 0) name = name.slice(0, sp);
+  if (!name) return false;
+  for (var i = 0; i < commands.length; i++) {
+    var c = commands[i];
+    if (c.name === name && c.source === 'extension') return true;
+  }
+  return false;
+}
+
 function sendPrompt() {
   var msg = inputEl.value;
   if (!msg.trim() || state.isStreaming) return;
@@ -1037,7 +1121,11 @@ function sendPrompt() {
   autoGrow();
   hideAutocomplete();
   addUserMessage(msg);
-  setStreaming(true);
+  if (!isExtensionCommand(msg)) {
+    setStreaming(true);
+  } else {
+    updateSendButton();
+  }
   vscode.postMessage({ type: 'prompt', message: msg });
 }
 
@@ -1220,6 +1308,7 @@ window.addEventListener('message', function(e) {
     case 'messages': hydrateMessages(d.messages); break;
     case 'event': handleEvent(d.event); break;
     case 'pickedResources': insertPickedResources(d.paths); break;
+    case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
     case 'contextUsage': applyContextUsage(d.usage); break;
     case 'dialog': showDialog(d.request); break;
     case 'error':

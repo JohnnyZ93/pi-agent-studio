@@ -101,6 +101,7 @@ export type ExtToWebview =
   | { type: "dialog"; request: ExtensionUiRequest }
   | { type: "pickedResources"; paths: string[] }
   | { type: "contextUsage"; usage: RpcContextUsage | null }
+  | { type: "widget"; widgetKey?: string; widgetLines?: string[] }
   | { type: "error"; message: string };
 
 // ---- postMessage: webview -> extension ----
@@ -117,4 +118,5 @@ export type WebviewToExt =
       value?: string;
       confirmed?: boolean;
       cancelled?: boolean;
-    };
+    }
+  | { type: "todoClear" };

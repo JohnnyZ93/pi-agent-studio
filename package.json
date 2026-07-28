@@ -269,11 +269,12 @@
           "items": {
             "type": "string",
             "enum": [
-              "vscode_get_diagnostics"
+              "vscode_get_diagnostics",
+              "todo"
             ]
           },
           "default": [],
-          "description": "LLM tools registered by the bundled VS Code bridge to disable (blocklist). Defaults to none (all enabled). Example: [\"vscode_get_diagnostics\"]."
+          "description": "LLM tools registered by bundled extensions (VS Code bridge, todo) to disable (blocklist). Defaults to none (all enabled). Example: [\"vscode_get_diagnostics\", \"todo\"]."
         },
         "pi-agent-studio.rpcTrace": {
           "type": "boolean",

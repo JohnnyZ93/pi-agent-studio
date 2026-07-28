@@ -83,6 +83,7 @@ export async function openChatPanel(
   let sessionName: string | undefined;
   let cachedBranch: string | undefined;
   let branchResolved = false;
+  let streaming = false;
 
   const rpc = await createRpcClient({
     piPath,
@@ -93,6 +94,8 @@ export async function openChatPanel(
     handlers: {
       onEvent: (event) => {
         if (disposed) return;
+        if (event.type === "agent_start") streaming = true;
+        else if (event.type === "agent_settled") streaming = false;
         panel.webview.postMessage({ type: "event", event });
         if (event.type === "agent_settled") {
           if (needsSessionFile) {
@@ -242,8 +245,15 @@ export async function openChatPanel(
       } else {
         panel.webview.postMessage({ type: "dialog", request: req });
       }
+    } else if (req.method === "setWidget") {
+      if (!disposed)
+        panel.webview.postMessage({
+          type: "widget",
+          widgetKey: req.widgetKey,
+          widgetLines: req.widgetLines,
+        });
     }
-    // Fire-and-forget methods (notify, setStatus, ...) are ignored in v1.
+    // Other fire-and-forget methods (notify, setStatus, ...) are ignored.
   }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
@@ -341,6 +351,9 @@ export async function openChatPanel(
           cancelled: msg.cancelled,
         });
         break;
+      case "todoClear":
+        void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
+        break;
     }
   });
 
@@ -371,8 +384,6 @@ function isChatTab(tab: vscode.Tab): boolean {
 
 function findChatColumn(): vscode.ViewColumn | undefined {
   for (const group of vscode.window.tabGroups.all) {
-    console.log(group);
-    console.log(group.tabs);
     if (group.tabs.some(isChatTab)) return group.viewColumn;
   }
   return undefined;

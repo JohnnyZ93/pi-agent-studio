@@ -1,7 +1,7 @@
 import { accessSync, constants, realpathSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { BRIDGE_EXTENSION_PATH } from "./constants.ts";
+import { BRIDGE_EXTENSION_PATH, TODO_EXTENSION_PATH } from "./constants.ts";
 import { resolvePiBinary } from "./_resolve.ts";
 import {
   createPiGlobalInstallCommand,
@@ -98,10 +98,21 @@ export function createPiShellArgs(options: {
   extraArgs?: string[];
 }): string[] {
   const userArgs = vscode.workspace.getConfiguration("pi-agent-studio").get<string[]>("args") ?? [];
-  const bridgeArgs = ["--extension", join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH)];
+  const extensionArgs = [
+    "-e",
+    join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
+  ];
   const args = options.sessionFile
-    ? ["--session", options.sessionFile, ...bridgeArgs, ...userArgs, ...(options.extraArgs ?? [])]
-    : [...bridgeArgs, ...userArgs, ...(options.extraArgs ?? [])];
+    ? [
+        "--session",
+        options.sessionFile,
+        ...extensionArgs,
+        ...userArgs,
+        ...(options.extraArgs ?? []),
+      ]
+    : [...extensionArgs, ...userArgs, ...(options.extraArgs ?? [])];
   return args;
 }
 
@@ -127,18 +138,23 @@ export function createRpcShellArgs(options: {
   extraArgs?: string[];
 }): string[] {
   const userArgs = vscode.workspace.getConfiguration("pi-agent-studio").get<string[]>("args") ?? [];
-  const bridgeArgs = ["--extension", join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH)];
+  const extensionArgs = [
+    "-e",
+    join(options.extensionUri.fsPath, BRIDGE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
+  ];
   const base = ["--mode", "rpc"];
   return options.sessionFile
     ? [
         "--session",
         options.sessionFile,
-        ...bridgeArgs,
+        ...extensionArgs,
         ...base,
         ...userArgs,
         ...(options.extraArgs ?? []),
       ]
-    : [...bridgeArgs, ...base, ...userArgs, ...(options.extraArgs ?? [])];
+    : [...extensionArgs, ...base, ...userArgs, ...(options.extraArgs ?? [])];
 }
 
 /** User-provided env overrides (merged over process.env by the spawner). */
