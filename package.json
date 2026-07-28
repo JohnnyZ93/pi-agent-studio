@@ -181,6 +181,11 @@
         },
         {
           "type": "webview",
+          "id": "pi-agent-studio.agents",
+          "name": "Agents"
+        },
+        {
+          "type": "webview",
           "id": "pi-agent-studio.settings",
           "name": "Settings",
           "visibility": "collapsed"
@@ -266,7 +271,8 @@
             "enum": [
               "vscode_get_diagnostics",
               "todo",
-              "questionnaire"
+              "questionnaire",
+              "subagent"
             ]
           },
           "default": [],

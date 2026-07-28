@@ -3,7 +3,9 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 import {
   BRIDGE_EXTENSION_PATH,
+  BUILTIN_AGENTS_DIR,
   QUESTIONNAIRE_EXTENSION_PATH,
+  SUBAGENT_EXTENSION_PATH,
   TODO_EXTENSION_PATH,
 } from "./constants.ts";
 import { resolvePiBinary } from "./_resolve.ts";
@@ -109,6 +111,8 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
   ];
   const args = options.sessionFile
     ? [
@@ -124,17 +128,24 @@ export function createPiShellArgs(options: {
 
 export function createPiEnvironment(
   bridgeConfig: { url: string; token: string } | undefined,
+  extensionUri?: vscode.Uri,
 ): Record<string, string> | undefined {
-  if (!bridgeConfig) return undefined;
+  if (!bridgeConfig && !extensionUri) return undefined;
   const config = vscode.workspace.getConfiguration("pi-agent-studio");
   const statusBar = config.get<boolean>("statusBar") ?? true;
   const disabledTools = config.get<string[]>("disabledTools") ?? [];
-  return {
-    PI_VSCODE_BRIDGE_URL: bridgeConfig.url,
-    PI_VSCODE_BRIDGE_TOKEN: bridgeConfig.token,
+  const env: Record<string, string> = {
     PI_VSCODE_STATUS_BAR: statusBar ? "1" : "0",
     PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
   };
+  if (bridgeConfig) {
+    env.PI_VSCODE_BRIDGE_URL = bridgeConfig.url;
+    env.PI_VSCODE_BRIDGE_TOKEN = bridgeConfig.token;
+  }
+  if (extensionUri) {
+    env.PI_VSCODE_BUILTIN_AGENTS_DIR = join(extensionUri.fsPath, BUILTIN_AGENTS_DIR);
+  }
+  return env;
 }
 
 /** Build pi CLI args for a `pi --mode rpc` subprocess (chat webview). */
@@ -151,6 +162,8 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, TODO_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, QUESTIONNAIRE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile
@@ -166,12 +179,12 @@ export function createRpcShellArgs(options: {
 }
 
 /** User-provided env overrides (merged over process.env by the spawner). */
-export function createRpcEnvironment(bridgeConfig?: {
-  url: string;
-  token: string;
-}): Record<string, string> {
+export function createRpcEnvironment(
+  bridgeConfig?: { url: string; token: string },
+  extensionUri?: vscode.Uri,
+): Record<string, string> {
   const userEnv =
     vscode.workspace.getConfiguration("pi-agent-studio").get<Record<string, string>>("env") ?? {};
-  const bridgeEnv = createPiEnvironment(bridgeConfig) ?? {};
+  const bridgeEnv = createPiEnvironment(bridgeConfig, extensionUri) ?? {};
   return { ...userEnv, ...bridgeEnv };
 }

@@ -1136,8 +1136,220 @@ function formatToolSummary(name, args) {
     if (args.limit != null) s += ' limit ' + args.limit;
   } else if (name === 'todo') {
     s = toolStr(args.action) || '...';
+  } else if (name === 'subagent') {
+    if (args && args.agent) s = args.agent;
+    else if (args && args.tasks && args.tasks.length) s = 'parallel (' + args.tasks.length + (args.tasks.length > 1 ? ' tasks' : ' task') + ')';
+    else s = 'subagent';
   }
   return s;
+}
+
+// ====== subagent rich rendering helpers ======
+function formatTokens(count) {
+  if (count < 1000) return count.toString();
+  if (count < 10000) return (count / 1000).toFixed(1) + 'k';
+  if (count < 1000000) return Math.round(count / 1000) + 'k';
+  return (count / 1000000).toFixed(1) + 'M';
+}
+function formatToolCallJs(name, args) {
+  var summary = formatToolSummary(name, args);
+  if (summary) return summary;
+  var astr = JSON.stringify(args);
+  return name + ' ' + (astr.length > 50 ? astr.slice(0, 50) + '...' : astr);
+}
+function getDisplayItemsJs(messages) {
+  var items = [];
+  for (var i = 0; i < messages.length; i++) {
+    var msg = messages[i];
+    if (msg.role === 'assistant') {
+      var content = msg.content;
+      if (Array.isArray(content)) {
+        for (var j = 0; j < content.length; j++) {
+          var part = content[j];
+          if (part.type === 'text') items.push({ type: 'text', text: part.text });
+          else if (part.type === 'toolCall') items.push({ type: 'toolCall', name: part.name, args: part.arguments });
+        }
+      }
+    }
+  }
+  return items;
+}
+function getFinalOutputJs(messages) {
+  for (var i = messages.length - 1; i >= 0; i--) {
+    var msg = messages[i];
+    if (msg.role === 'assistant') {
+      var content = msg.content;
+      if (Array.isArray(content)) {
+        for (var j = 0; j < content.length; j++) {
+          var part = content[j];
+          if (part.type === 'text') return part.text;
+        }
+      }
+    }
+  }
+  return '';
+}
+function formatUsageJs(usage, model) {
+  if (!usage) return '';
+  var parts = [];
+  if (usage.turns) parts.push(usage.turns + ' turn' + (usage.turns > 1 ? 's' : ''));
+  if (usage.input) parts.push('\\u2191' + formatTokens(usage.input));
+  if (usage.output) parts.push('\\u2193' + formatTokens(usage.output));
+  if (usage.cacheRead) parts.push('R' + formatTokens(usage.cacheRead));
+  if (usage.cacheWrite) parts.push('W' + formatTokens(usage.cacheWrite));
+  if (usage.cost) parts.push('$' + usage.cost.toFixed(4));
+  if (usage.contextTokens) parts.push('ctx:' + formatTokens(usage.contextTokens));
+  if (model) parts.push(model);
+  return parts.join(' ');
+}
+function aggregateUsageJs(results) {
+  var total = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 };
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    total.input += r.usage.input;
+    total.output += r.usage.output;
+    total.cacheRead += r.usage.cacheRead;
+    total.cacheWrite += r.usage.cacheWrite;
+    total.cost += r.usage.cost;
+    total.turns += r.usage.turns;
+  }
+  return total;
+}
+function renderSubagentResult(b, details) {
+  if (!b || !b.resultEl) return;
+  if (b.resultEl._fullBtn) { b.resultEl._fullBtn.remove(); b.resultEl._fullBtn = null; }
+  b.resultEl._full = null;
+  b.resultEl._piMd = null;
+  if (!details || !details.results) {
+    if (b.resultEl._full) b.resultEl.textContent = b.resultEl._full;
+    return;
+  }
+  var results = details.results;
+  var wrap = document.createElement('div');
+  wrap.style.color = 'var(--vscode-foreground)';
+  if (details.mode === 'single' && results.length === 1) {
+    var r = results[0];
+    var ic = r.exitCode === -1 ? '\\u23F3' : (r.exitCode === 0 ? '\\u2713' : '\\u2717');
+    var hdiv = document.createElement('div');
+    hdiv.style.fontWeight = '500';
+    hdiv.textContent = ic + ' ';
+    var aName = document.createElement('span');
+    aName.style.color = 'var(--vscode-terminal-ansiGreen, #4ec9b0)';
+    aName.textContent = r.agent;
+    hdiv.appendChild(aName);
+    hdiv.appendChild(document.createTextNode(' (' + r.agentSource + ')'));
+    if (r.stopReason && r.exitCode !== -1) hdiv.appendChild(document.createTextNode(' [' + r.stopReason + ']'));
+    wrap.appendChild(hdiv);
+    if (r.errorMessage) {
+      var errDiv = document.createElement('div');
+      errDiv.style.color = 'var(--vscode-errorForeground)';
+      errDiv.textContent = 'Error: ' + r.errorMessage;
+      wrap.appendChild(errDiv);
+    }
+    var items = getDisplayItemsJs(r.messages || []);
+    for (var ii = 0; ii < items.length; ii++) {
+      var idiv = document.createElement('div');
+      idiv.style.padding = '1px 0';
+      if (items[ii].type === 'toolCall') {
+        idiv.style.opacity = '0.85';
+        idiv.textContent = '\\u2192 ' + formatToolCallJs(items[ii].name, items[ii].args);
+      } else {
+        idiv.textContent = items[ii].text;
+        idiv.style.color = 'var(--vscode-foreground)';
+      }
+      wrap.appendChild(idiv);
+    }
+    var final = getFinalOutputJs(r.messages || []);
+    if (final) {
+      var mdDiv = document.createElement('div');
+      mdDiv.textContent = final.trim();
+      wrap.appendChild(mdDiv);
+    }
+    var usageStr = formatUsageJs(r.usage, r.model);
+    if (usageStr) {
+      var uDiv = document.createElement('div');
+      uDiv.style.opacity = '0.6';
+      uDiv.style.fontSize = '11px';
+      uDiv.textContent = usageStr;
+      wrap.appendChild(uDiv);
+    }
+    if (b.summaryEl) {
+      b.summaryEl.textContent = ic + ' ' + r.agent;
+      if (usageStr) b.summaryEl.textContent += ' \\u00B7 ' + usageStr;
+    }
+  } else if (details.mode === 'parallel') {
+    var running = 0, done = 0;
+    for (var di = 0; di < results.length; di++) {
+      if (results[di].exitCode === -1) running++;
+      else done++;
+    }
+    var pic = running > 0 ? '\\u23F3' : '\\u2713';
+    var ph = document.createElement('div');
+    ph.style.fontWeight = '500';
+    if (running > 0) ph.textContent = pic + ' parallel ' + done + '/' + results.length + ' done, ' + running + ' running';
+    else ph.textContent = pic + ' parallel ' + done + '/' + results.length + ' tasks';
+    wrap.appendChild(ph);
+    for (var ri = 0; ri < results.length; ri++) {
+      var sr = results[ri];
+      var sric = sr.exitCode === -1 ? '\\u23F3' : (sr.exitCode === 0 ? '\\u2713' : '\\u2717');
+      var sdiv = document.createElement('div');
+      sdiv.style.padding = '4px 0';
+      sdiv.style.margin = '2px 0';
+      sdiv.style.borderTop = '1px solid var(--vscode-widget-border,transparent)';
+      var sHead = document.createElement('div');
+      sHead.style.fontWeight = '500';
+      sHead.textContent = sric + ' ';
+      var saName = document.createElement('span');
+      saName.style.color = 'var(--vscode-terminal-ansiGreen, #4ec9b0)';
+      saName.textContent = sr.agent;
+      sHead.appendChild(saName);
+      sdiv.appendChild(sHead);
+      var itemiz = getDisplayItemsJs(sr.messages || []);
+      for (var si = 0; si < itemiz.length; si++) {
+        var sidiv = document.createElement('div');
+        if (itemiz[si].type === 'toolCall') {
+          sidiv.textContent = '\\u2192 ' + formatToolCallJs(itemiz[si].name, itemiz[si].args);
+          sidiv.style.opacity = '0.85';
+        }
+        sdiv.appendChild(sidiv);
+      }
+      var sout = getFinalOutputJs(sr.messages || []);
+      if (sout) {
+        var smd = document.createElement('div');
+        smd.textContent = sout.trim();
+        sdiv.appendChild(smd);
+      }
+      var su = formatUsageJs(sr.usage, sr.model);
+      if (su) {
+        var sud = document.createElement('div');
+        sud.style.opacity = '0.6';
+        sud.style.fontSize = '11px';
+        sud.textContent = su;
+        sdiv.appendChild(sud);
+      }
+      wrap.appendChild(sdiv);
+    }
+    var tu = aggregateUsageJs(results);
+    var tus = formatUsageJs(tu);
+    if (tus) {
+      var tud = document.createElement('div');
+      tud.style.opacity = '0.6';
+      tud.style.fontSize = '11px';
+      tud.style.marginTop = '4px';
+      tud.textContent = 'Total: ' + tus;
+      wrap.appendChild(tud);
+    }
+    if (b.summaryEl) {
+      b.summaryEl.textContent = pic + ' parallel';
+      if (running > 0) b.summaryEl.textContent += ' ' + done + '/' + results.length + ' running';
+      else if (tus) b.summaryEl.textContent += ' \\u00B7 ' + tus;
+    }
+  } else {
+    if (b.resultEl._full) b.resultEl.textContent = b.resultEl._full;
+    return;
+  }
+  b.resultEl.textContent = '';
+  b.resultEl.appendChild(wrap);
 }
 function applyToolSummary(b, name, args) {
   if (!b || !b.summaryEl) return;
@@ -1208,7 +1420,12 @@ function updateToolExecution(ev) {
   var b = findToolBlock(ev.toolCallId);
   if (!b || !b.resultEl) return;
   var pr = ev.partialResult;
-  if (pr && pr.content) {
+  if (!pr) return;
+  if (b.name === 'subagent' && pr.details) {
+    renderSubagentResult(b, pr.details);
+    return;
+  }
+  if (pr.content) {
     var txt = '';
     if (Array.isArray(pr.content)) {
       for (var i = 0; i < pr.content.length; i++) {
@@ -1227,6 +1444,12 @@ function endToolExecution(ev) {
   if (b.statusEl) b.statusEl.textContent = ev.isError ? 'error' : 'done';
   if (ev.isError) b.el.classList.add('is-error');
   var r = ev.result;
+  if (b.name === 'subagent' && r && r.details) {
+    renderSubagentResult(b, r.details);
+    b.el.removeAttribute('open');
+    scheduleScroll();
+    return;
+  }
   if (r && r.content && b.resultEl) {
     var txt = '';
     if (Array.isArray(r.content)) {
@@ -1294,7 +1517,9 @@ function hydrateOne(m) {
     applyAssistantStopError(m.stopReason, m.errorMessage, 0);
     endAssistantMessage();
   } else if (role === 'toolResult') {
-    var fakeEv = { toolCallId: m.toolCallId, result: { content: m.content }, isError: !!m.isError };
+    var evResult = { content: m.content };
+    if (m.details) evResult.details = m.details;
+    var fakeEv = { toolCallId: m.toolCallId, result: evResult, isError: !!m.isError };
     endToolExecution(fakeEv);
   }
 }

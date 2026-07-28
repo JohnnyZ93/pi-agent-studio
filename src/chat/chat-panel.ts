@@ -74,7 +74,7 @@ export async function openChatPanel(
     extensionUri: opts.extensionUri,
     sessionFile: opts.sessionFile,
   });
-  const env = createRpcEnvironment(opts.bridgeConfig);
+  const env = createRpcEnvironment(opts.bridgeConfig, opts.extensionUri);
   const cwd = opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
   let disposed = false;

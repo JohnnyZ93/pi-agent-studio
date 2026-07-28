@@ -8,6 +8,7 @@ import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
 import { createSessionsViewProvider } from "./sessions/sessions-sidebar.ts";
 import { createModelsViewProvider } from "./models/models-sidebar.ts";
 import { ensureModelsJsonExists } from "./models/models-config.ts";
+import { createAgentsViewProvider } from "./agents/agents-sidebar.ts";
 import { createSettingsViewProvider } from "./settings/settings-sidebar.ts";
 import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
@@ -138,6 +139,10 @@ export async function activate(context: vscode.ExtensionContext) {
       createSessionsViewProvider(extensionUri, bridgeConfig, sessions, chatTracker),
     ),
     vscode.window.registerWebviewViewProvider("pi-agent-studio.models", createModelsViewProvider()),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.agents",
+      createAgentsViewProvider(extensionUri),
+    ),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.settings",
       createSettingsViewProvider(),
