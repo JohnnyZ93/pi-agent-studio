@@ -699,6 +699,9 @@ var commands = [];
 var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
 var state = { model: null, thinkingLevel: 'medium', isStreaming: false, sessionFile: null };
 var retryAttempt = 0;
+var inputHistory = [];
+var historyIndex = -1;
+var historyDraft = '';
 
 var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
@@ -1490,7 +1493,9 @@ function hydrateOne(m) {
   if (!m || typeof m !== 'object') return;
   var role = m.role;
   if (role === 'user') {
-    var ub = addUserMessage(extractText(m.content));
+    var utext = extractText(m.content);
+    pushHistory(utext);
+    var ub = addUserMessage(utext);
     if (m && m.timestamp != null) ub._piTs = m.timestamp;
   } else if (role === 'assistant') {
     startAssistantMessage();
@@ -1726,9 +1731,12 @@ function sendPrompt(behavior) {
   var msg = inputEl.value;
   if (!msg.trim()) return;
   if (state.isStreaming && isLocalCommand(msg)) return;
+  pushHistory(msg);
   inputEl.value = '';
   autoGrow();
   hideAutocomplete();
+  historyIndex = -1;
+  historyDraft = '';
   if (state.isStreaming) {
     vscode.postMessage({ type: 'prompt', message: msg, streamingBehavior: behavior || 'steer' });
   } else {
@@ -1745,6 +1753,37 @@ function sendPrompt(behavior) {
 function autoGrow() {
   inputEl.style.height = 'auto';
   inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
+}
+function pushHistory(msg) {
+  if (typeof msg !== 'string' || !msg.trim()) return;
+  var last = inputHistory.length ? inputHistory[inputHistory.length - 1] : '';
+  if (last.trim() === msg.trim()) return;
+  inputHistory.push(msg);
+  if (inputHistory.length > 500) inputHistory.shift();
+}
+function navigateHistory(delta) {
+  if (!inputHistory.length) return;
+  if (historyIndex === -1) {
+    if (delta > 0) return;
+    historyDraft = inputEl.value;
+    historyIndex = inputHistory.length - 1;
+  } else {
+    historyIndex += delta;
+    if (historyIndex >= inputHistory.length) {
+      historyIndex = -1;
+      inputEl.value = historyDraft;
+      historyDraft = '';
+      autoGrow();
+      updateSendButton();
+      return;
+    }
+    if (historyIndex < 0) historyIndex = 0;
+  }
+  inputEl.value = inputHistory[historyIndex];
+  var len = inputEl.value.length;
+  try { inputEl.setSelectionRange(len, len); } catch (e) {}
+  autoGrow();
+  updateSendButton();
 }
 
 attachBtn.addEventListener('click', function() {
@@ -2047,7 +2086,7 @@ sendBtn.addEventListener('click', function() {
   sendPrompt();
 });
 
-inputEl.addEventListener('input', function() { autoGrow(); updateAutocomplete(); updateSendButton(); });
+inputEl.addEventListener('input', function() { autoGrow(); updateAutocomplete(); updateSendButton(); historyIndex = -1; historyDraft = ''; });
 inputEl.addEventListener('keydown', function(ev) {
   if (acItems.length && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
     ev.preventDefault();
@@ -2061,6 +2100,14 @@ inputEl.addEventListener('keydown', function(ev) {
     return;
   }
   if (ev.key === 'Escape' && acItems.length) { ev.preventDefault(); hideAutocomplete(); return; }
+  if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === 'ArrowUp') {
+    var pos = inputEl.selectionStart;
+    if (inputEl.value.slice(0, pos).indexOf('\\n') === -1) { ev.preventDefault(); navigateHistory(-1); return; }
+  }
+  if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === 'ArrowDown') {
+    var dpos = inputEl.selectionStart;
+    if (inputEl.value.slice(dpos).indexOf('\\n') === -1) { ev.preventDefault(); navigateHistory(1); return; }
+  }
   if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) {
     ev.preventDefault();
     sendPrompt(ev.altKey ? 'followUp' : 'steer');
