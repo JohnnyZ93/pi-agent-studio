@@ -582,6 +582,40 @@ body {
   white-space: pre;
   line-height: 1.5;
 }
+.queue { flex-shrink: 0; padding: 6px 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.queue-item {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-left: 3px solid var(--vscode-charts-blue, #3794ff);
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.06));
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.queue-item.is-followup { border-left-color: var(--vscode-charts-purple, #b392f0); }
+.queue-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--vscode-charts-blue, #3794ff);
+  color: var(--vscode-button-foreground, #fff);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.queue-item.is-followup .queue-badge { background: var(--vscode-charts-purple, #b392f0); }
+.queue-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.9;
+  max-height: 60px;
+  overflow: hidden;
+}
 
 .ctx-menu {
   position: fixed;
@@ -620,6 +654,7 @@ body {
     <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
   </div>
   <div id="widget" class="widget" style="display:none"></div>
+  <div id="queue" class="queue" style="display:none"></div>
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>
     <div class="composer-box">
@@ -663,6 +698,7 @@ var EMPTY_HTML = '<div class="empty">'
   + '</div>';
 var messagesEl = document.getElementById('messages');
 var widgetEl = document.getElementById('widget');
+var queueEl = document.getElementById('queue');
 var inputEl = document.getElementById('input');
 var sendBtn = document.getElementById('send');
 var attachBtn = document.getElementById('attach-btn');
@@ -788,6 +824,28 @@ function applyWidget(key, lines) {
   }
   widgetEl.appendChild(card);
   widgetEl.style.display = 'block';
+}
+
+var queueState = { steering: [], followUp: [] };
+function makeQueueItem(text, kind) {
+  var item = el('div', 'queue-item' + (kind === 'followUp' ? ' is-followup' : ''));
+  var badge = el('span', 'queue-badge');
+  badge.textContent = kind === 'followUp' ? 'Follow-up' : 'Steering';
+  var txt = el('div', 'queue-text');
+  txt.textContent = text;
+  txt.title = text;
+  item.appendChild(badge);
+  item.appendChild(txt);
+  return item;
+}
+function renderQueue() {
+  var s = queueState.steering || [];
+  var f = queueState.followUp || [];
+  if (!s.length && !f.length) { queueEl.style.display = 'none'; queueEl.innerHTML = ''; return; }
+  queueEl.innerHTML = '';
+  for (var i = 0; i < s.length; i++) queueEl.appendChild(makeQueueItem(s[i], 'steer'));
+  for (var j = 0; j < f.length; j++) queueEl.appendChild(makeQueueItem(f[j], 'followUp'));
+  queueEl.style.display = 'flex';
 }
 
 // ---- message DOM ----
@@ -1261,7 +1319,14 @@ function handleEvent(event) {
     case 'agent_settled': setStreaming(false); retryAttempt = 0; break;
     case 'message_start':
       if (event.message && event.message.role === 'assistant') startAssistantMessage();
-      else if (event.message && event.message.role === 'user' && lastUserBubble && event.message.timestamp != null && lastUserBubble._piTs == null) lastUserBubble._piTs = event.message.timestamp;
+      else if (event.message && event.message.role === 'user') {
+        if (lastUserBubble && lastUserBubble._piTs == null) {
+          if (event.message.timestamp != null) lastUserBubble._piTs = event.message.timestamp;
+        } else {
+          var ub = addUserMessage(extractText(event.message.content));
+          if (event.message.timestamp != null) ub._piTs = event.message.timestamp;
+        }
+      }
       break;
     case 'message_end':
       if (event.message && event.message.role === 'assistant') {
@@ -1292,6 +1357,11 @@ function handleEvent(event) {
         messagesEl.appendChild(reb);
         scrollToBottom();
       }
+      break;
+    case 'queue_update':
+      queueState.steering = Array.isArray(event.steering) ? event.steering : [];
+      queueState.followUp = Array.isArray(event.followUp) ? event.followUp : [];
+      renderQueue();
       break;
     default: break;
   }
@@ -1415,19 +1485,24 @@ function isLocalCommand(msg) {
   return false;
 }
 
-function sendPrompt() {
+function sendPrompt(behavior) {
   var msg = inputEl.value;
-  if (!msg.trim() || state.isStreaming) return;
+  if (!msg.trim()) return;
+  if (state.isStreaming && isLocalCommand(msg)) return;
   inputEl.value = '';
   autoGrow();
   hideAutocomplete();
-  addUserMessage(msg);
-  if (!isLocalCommand(msg)) {
-    setStreaming(true);
+  if (state.isStreaming) {
+    vscode.postMessage({ type: 'prompt', message: msg, streamingBehavior: behavior || 'steer' });
   } else {
-    updateSendButton();
+    addUserMessage(msg);
+    if (!isLocalCommand(msg)) {
+      setStreaming(true);
+    } else {
+      updateSendButton();
+    }
+    vscode.postMessage({ type: 'prompt', message: msg });
   }
-  vscode.postMessage({ type: 'prompt', message: msg });
 }
 
 function autoGrow() {
@@ -1646,7 +1721,7 @@ inputEl.addEventListener('keydown', function(ev) {
     renderAutocomplete();
     return;
   }
-  if (acItems.length && (ev.key === 'Enter' || ev.key === 'Tab')) {
+  if (acItems.length && !ev.altKey && (ev.key === 'Enter' || ev.key === 'Tab')) {
     ev.preventDefault();
     completeAutocomplete(acItems[acIndex]);
     return;
@@ -1654,7 +1729,7 @@ inputEl.addEventListener('keydown', function(ev) {
   if (ev.key === 'Escape' && acItems.length) { ev.preventDefault(); hideAutocomplete(); return; }
   if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) {
     ev.preventDefault();
-    sendPrompt();
+    sendPrompt(ev.altKey ? 'followUp' : 'steer');
   }
 });
 acEl.addEventListener('click', function(ev) {
@@ -1679,7 +1754,7 @@ window.addEventListener('message', function(e) {
     case 'models': models = d.models || []; renderModels(); break;
     case 'thinkingLevels': thinkingLevels = d.levels || []; renderThinking(); break;
     case 'commands': commands = d.commands || []; break;
-    case 'messages': hydrateMessages(d.messages); break;
+    case 'messages': queueState.steering = []; queueState.followUp = []; renderQueue(); hydrateMessages(d.messages); break;
     case 'event': handleEvent(d.event); break;
     case 'pickedResources': insertPickedResources(d.paths); break;
     case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
