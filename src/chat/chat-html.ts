@@ -259,10 +259,6 @@ body {
 .thinking-block {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--vscode-widget-border, transparent);
-  border-radius: 6px;
-  background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.08));
-  padding: 4px 8px;
   font-size: 12px;
 }
 .thinking-block > summary {
@@ -298,6 +294,12 @@ body {
   position: relative;
   max-height: 340px;
   overflow-y: auto;
+}
+.thinking-block[open] .thinking-body {
+  margin-top: 4px;
+  margin-left: 3px;
+  padding-left: 12px;
+  border-left: 2px solid var(--vscode-widget-border, rgba(127,127,127,0.25));
 }
 .compaction-block {
   display: flex;
