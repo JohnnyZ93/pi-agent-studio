@@ -296,6 +296,8 @@ body {
   opacity: 0.85;
   line-height: 1.5;
   position: relative;
+  max-height: 340px;
+  overflow-y: auto;
 }
 .compaction-block {
   display: flex;
@@ -904,6 +906,13 @@ function scheduleScroll() {
     for (var i = 0; i < pendingTexts.length; i++) {
       var tb = pendingTexts[i];
       if (tb && tb.textEl) tb.textEl.scrollTop = tb.textEl.scrollHeight;
+    }
+    if (currentAssistant) {
+      var blks = currentAssistant.blocks;
+      for (var k = 0; k < blks.length; k++) {
+        var tk = blks[k];
+        if (tk && tk.type === 'thinking' && tk._tnode && tk.textEl) tk.textEl.scrollTop = tk.textEl.scrollHeight;
+      }
     }
   });
 }
