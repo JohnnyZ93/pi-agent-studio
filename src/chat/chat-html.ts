@@ -162,6 +162,31 @@ body {
 }
 
 .messages-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
+.scroll-bottom-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground, #2d2d30));
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 30;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity .18s, transform .18s, visibility .18s;
+}
+.scroll-bottom-btn.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+.scroll-bottom-btn:hover { transform: scale(1.12); }
+.scroll-bottom-btn svg { width: 16px; height: 16px; display: block; }
 .messages {
   flex: 1;
   min-height: 0;
@@ -171,7 +196,7 @@ body {
   flex-direction: column;
   gap: 12px;
 }
-.msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+.msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; flex-shrink: 0; }
 .msg.user { align-items: flex-end; }
 .msg.assistant { align-items: stretch; }
 .msg-time {
@@ -765,6 +790,7 @@ body {
   </div>
   <div class="messages-wrap">
     <div class="messages" id="messages"></div>
+    <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
   </div>
   <div id="widget" class="widget" style="display:none"></div>
   <div id="queue" class="queue" style="display:none"></div>
@@ -865,13 +891,20 @@ function formatTime(ts) {
   return hr + ':' + mm + ' ' + ampm;
 }
 var autoScroll = true;
+var scrollBottomBtn = document.getElementById('scroll-bottom-btn');
 var STICK_THRESHOLD = 48;
 function isAtBottom() {
   return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - STICK_THRESHOLD;
 }
+function updateScrollBtn() {
+  if (autoScroll) scrollBottomBtn.classList.remove('show');
+  else scrollBottomBtn.classList.add('show');
+}
 messagesEl.addEventListener('scroll', function() {
   autoScroll = isAtBottom();
+  updateScrollBtn();
 });
+scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
 function scheduleScroll() {
   if (scrollRAF) return;
@@ -896,6 +929,7 @@ function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   messagesEl.scrollTop = messagesEl.scrollHeight;
+  updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
@@ -2577,7 +2611,7 @@ function hideToast() {
 
 var infoBackdropFn = null;
 function showInfoPanel(title, markdown) {
-  overlayEl.innerHTML = '';
+  closeInfoPanel();
   var box = el('div', 'info-panel');
   var h = el('h3'); h.textContent = title || ''; box.appendChild(h);
   var body = el('div', 'info-panel-body');
