@@ -144,7 +144,7 @@ export type ExtToWebview =
   | { type: "event"; event: RpcEvent }
   | { type: "dialog"; request: ExtensionUiRequest }
   | { type: "pickedResources"; paths: string[] }
-  | { type: "contextUsage"; usage: RpcContextUsage | null }
+  | { type: "contextUsage"; usage: RpcContextUsage | null; cost?: number }
   | { type: "widget"; widgetKey?: string; widgetLines?: string[] }
   | { type: "toast"; text: string; kind?: "info" | "success" | "error" }
   | { type: "infoPanel"; title: string; markdown: string }

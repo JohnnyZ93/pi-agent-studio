@@ -185,8 +185,13 @@ export async function openChatPanel(
   async function sendContextUsage(): Promise<void> {
     if (disposed) return;
     try {
-      const usage = await rpc.getSessionStats();
-      if (!disposed) panel.webview.postMessage({ type: "contextUsage", usage });
+      const stats = await rpc.getSessionStatsFull();
+      if (disposed) return;
+      panel.webview.postMessage({
+        type: "contextUsage",
+        usage: stats.contextUsage ?? null,
+        cost: stats.cost,
+      });
     } catch {
       // ignore - stats are best-effort
     }

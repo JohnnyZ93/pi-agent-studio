@@ -833,6 +833,7 @@ var ctxRing = document.getElementById('ctx-ring');
 var ctxRingProg = document.getElementById('ctx-ring-prog');
 var ctxRingText = '';
 var lastCtxUsage = null;
+var sessionCost = null;
 var latestCacheHitPct = null;
 var prevTurn = null;
 var thinkingSelect = document.getElementById('thinking-select');
@@ -925,9 +926,10 @@ function formatTokens(n) {
   if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
   return String(n);
 }
-function applyContextUsage(usage) {
+function applyContextUsage(usage, cost) {
   if (!ctxRingProg || !ctxRing) return;
   lastCtxUsage = usage;
+  if (cost != null && typeof cost === 'number' && isFinite(cost)) sessionCost = cost;
   var pct = (usage && typeof usage.percent === 'number') ? usage.percent : 0;
   if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
   ctxRingProg.style.strokeDashoffset = String(100 - pct);
@@ -946,6 +948,9 @@ function rebuildCtxRingTooltip() {
   }
   if (latestCacheHitPct != null) {
     lines.push('Cache:   ' + latestCacheHitPct.toFixed(1) + '% hit');
+  }
+  if (sessionCost != null) {
+    lines.push('Cost:    $' + sessionCost.toFixed(3));
   }
   ctxRingText = lines.join('\\n');
 }
@@ -1856,6 +1861,7 @@ function hydrateMessages(list) {
   pendingTexts = [];
   prevTurn = null;
   latestCacheHitPct = null;
+  sessionCost = null;
   if (!list || !list.length) {
     clearMessages();
     rebuildCtxRingTooltip();
@@ -2667,7 +2673,7 @@ window.addEventListener('message', function(e) {
     case 'pickedResources': insertPickedResources(d.paths); break;
     case 'files': applyFileResults(d.query, d.files); break;
     case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
-    case 'contextUsage': applyContextUsage(d.usage); break;
+    case 'contextUsage': applyContextUsage(d.usage, d.cost); break;
     case 'toast': showToast(d.text, d.kind); break;
     case 'infoPanel': showInfoPanel(d.title, d.markdown); break;
     case 'btwLoading':
