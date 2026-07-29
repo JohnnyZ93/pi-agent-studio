@@ -378,6 +378,7 @@ body {
 }
 .tool-args { border-top: 1px solid var(--vscode-widget-border, transparent); color: var(--vscode-foreground); }
 .tool-result { border-top: 1px solid var(--vscode-widget-border, transparent); color: var(--vscode-terminal-ansiGreen, #4ec9b0); }
+.tool-result img { display: block; max-height: 200px; width: auto; max-width: 100%; margin-top: 6px; border-radius: 4px; border: 1px solid var(--vscode-widget-border, transparent); }
 .tool-block.is-error .tool-result { color: var(--vscode-errorForeground, #f48771); }
 .tool-args:empty, .tool-result:empty { display: none; }
 .diff-block {
@@ -793,7 +794,7 @@ body {
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>
     <div class="composer-box">
-      <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands)"></textarea>
+      <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands, @ for files)"></textarea>
       <div class="composer-controls-bar">
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
         <div class="composer-spacer"></div>
@@ -839,6 +840,7 @@ var EMPTY_HTML = '<div class="empty">'
   + '<span class="empty-hint"><kbd>Alt+Enter</kbd>follow-up</span>'
   + '<span class="empty-hint"><kbd>\u2191\u2193</kbd>history</span>'
   + '<span class="empty-hint"><kbd>/</kbd>commands</span>'
+  + '<span class="empty-hint"><kbd>@</kbd>files</span>'
   + '<span class="empty-hint"><kbd>Tab</kbd>complete</span>'
   + '</div>'
   + '</div>';
@@ -866,6 +868,8 @@ var toastEl = document.getElementById('toast');
 
 var acItems = [];
 var acIndex = -1;
+var acMode = 'command';
+var fileTimer = null;
 var PI_HOME = ${JSON.stringify(home || "")};
 var PI_SEP = ${JSON.stringify(sep || "/")};
 
@@ -1244,6 +1248,29 @@ function setClamped(preEl, text) {
     preEl.textContent = text.slice(0, MAX_INLINE) + ' ... (truncated, ' + (text.length - MAX_INLINE) + ' more chars)';
   } else {
     preEl.textContent = text;
+  }
+}
+function extractToolResultText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    var t = '';
+    for (var i = 0; i < content.length; i++) {
+      var c = content[i];
+      t += (typeof c === 'string' ? c : (c && c.text ? c.text : ''));
+    }
+    return t;
+  }
+  return '';
+}
+function appendToolResultImages(resultEl, content) {
+  if (!Array.isArray(content) || !resultEl) return;
+  for (var i = 0; i < content.length; i++) {
+    var c = content[i];
+    if (c && c.type === 'image' && c.data && c.mimeType) {
+      var img = document.createElement('img');
+      img.src = 'data:' + c.mimeType + ';base64,' + c.data;
+      resultEl.appendChild(img);
+    }
   }
 }
 function parseDiffLine(line) {
@@ -1806,16 +1833,10 @@ function updateToolExecution(ev) {
     return;
   }
   if (pr.content) {
-    var txt = '';
-    if (Array.isArray(pr.content)) {
-      for (var i = 0; i < pr.content.length; i++) {
-        var c = pr.content[i];
-        txt += (typeof c === 'string' ? c : (c && c.text ? c.text : ''));
-      }
-    } else if (typeof pr.content === 'string') {
-      txt = pr.content;
-    }
+    var txt = extractToolResultText(pr.content);
     if (txt) setClamped(b.resultEl, txt);
+    else b.resultEl.textContent = '';
+    appendToolResultImages(b.resultEl, pr.content);
   }
 }
 function endToolExecution(ev) {
@@ -1848,16 +1869,10 @@ function endToolExecution(ev) {
   }
   b.el.classList.remove('is-diff');
   if (r && r.content && b.resultEl) {
-    var txt = '';
-    if (Array.isArray(r.content)) {
-      for (var i = 0; i < r.content.length; i++) {
-        var c = r.content[i];
-        txt += (typeof c === 'string' ? c : (c && c.text ? c.text : ''));
-      }
-    } else if (typeof r.content === 'string') {
-      txt = r.content;
-    }
+    var txt = extractToolResultText(r.content);
     if (txt) setClamped(b.resultEl, txt);
+    else b.resultEl.textContent = '';
+    appendToolResultImages(b.resultEl, r.content);
   }
   if (!b.el._userToggled) b.el.removeAttribute('open');
   scheduleScroll();
@@ -2074,53 +2089,117 @@ function currentSlashToken() {
   if (token.indexOf(' ') !== -1) return null;
   return { token: token, lineStart: lineStart, after: inputEl.value.slice(pos) };
 }
-function updateAutocomplete() {
-  var info = currentSlashToken();
-  if (!info) { hideAutocomplete(); return; }
-  var q = info.token.toLowerCase();
-  var matches = [];
-  for (var i = 0; i < commands.length; i++) {
-    var c = commands[i];
-    if (c.name.toLowerCase().indexOf(q) === 0) matches.push(c);
+function currentAtToken() {
+  var val = inputEl.value;
+  var pos = inputEl.selectionStart;
+  if (pos == null) return null;
+  var before = val.slice(0, pos);
+  var wordStart = 0;
+  for (var i = before.length - 1; i >= 0; i--) {
+    if (/\\s/.test(before.charAt(i))) { wordStart = i + 1; break; }
   }
-  if (!matches.length) { hideAutocomplete(); return; }
-  acItems = matches;
-  acIndex = 0;
-  renderAutocomplete();
-  acEl.style.display = 'block';
+  var token = before.slice(wordStart, pos);
+  if (token.charAt(0) !== '@') return null;
+  return { query: token.slice(1), lineStart: wordStart, after: val.slice(pos) };
+}
+function updateAutocomplete() {
+  var slash = currentSlashToken();
+  if (slash) {
+    clearTimeout(fileTimer);
+    acMode = 'command';
+    var q = slash.token.toLowerCase();
+    var matches = [];
+    for (var i = 0; i < commands.length; i++) {
+      var c = commands[i];
+      if (c.name.toLowerCase().indexOf(q) === 0) matches.push(c);
+    }
+    if (!matches.length) { hideAutocomplete(); return; }
+    acItems = matches;
+    acIndex = 0;
+    renderAutocomplete();
+    acEl.style.display = 'block';
+    return;
+  }
+  var at = currentAtToken();
+  if (!at) { hideAutocomplete(); return; }
+  acMode = 'file';
+  acItems = [];
+  acIndex = -1;
+  acEl.style.display = 'none';
+  var query = at.query;
+  clearTimeout(fileTimer);
+  fileTimer = setTimeout(function() {
+    vscode.postMessage({ type: 'searchFiles', query: query });
+  }, 120);
 }
 function renderAutocomplete() {
   acEl.innerHTML = '';
   for (var i = 0; i < acItems.length; i++) {
-    var c = acItems[i];
     var item = el('div', 'autocomplete-item' + (i === acIndex ? ' active' : ''));
     item.setAttribute('data-i', String(i));
-    var name = el('div', 'ac-name');
-    name.textContent = '/' + c.name;
-    var desc = el('div', 'ac-desc');
-    desc.textContent = c.description || '';
-    var src = el('div', 'ac-source');
-    src.textContent = c.source;
-    item.appendChild(name);
-    item.appendChild(desc);
-    item.appendChild(src);
+    if (acMode === 'file') {
+      var p = acItems[i];
+      var slashIdx = p.lastIndexOf('/');
+      var fname = el('div', 'ac-name');
+      fname.textContent = slashIdx >= 0 ? p.slice(slashIdx + 1) : p;
+      item.appendChild(fname);
+      if (slashIdx >= 0) {
+        var fdir = el('div', 'ac-desc');
+        fdir.textContent = p.slice(0, slashIdx);
+        item.appendChild(fdir);
+      }
+    } else {
+      var c = acItems[i];
+      var cname = el('div', 'ac-name');
+      cname.textContent = '/' + c.name;
+      var cdesc = el('div', 'ac-desc');
+      cdesc.textContent = c.description || '';
+      var csrc = el('div', 'ac-source');
+      csrc.textContent = c.source;
+      item.appendChild(cname);
+      item.appendChild(cdesc);
+      item.appendChild(csrc);
+    }
     acEl.appendChild(item);
   }
   var active = acEl.querySelector('.active');
   if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
 }
-function hideAutocomplete() { acEl.style.display = 'none'; acItems = []; acIndex = -1; }
-function completeAutocomplete(c) {
-  var val = inputEl.value;
+function hideAutocomplete() { clearTimeout(fileTimer); acEl.style.display = 'none'; acItems = []; acIndex = -1; acMode = 'command'; }
+function applyFileResults(query, files) {
+  var info = currentAtToken();
+  if (!info || info.query !== query) return;
+  if (!files || !files.length) { hideAutocomplete(); return; }
+  acMode = 'file';
+  acItems = files;
+  acIndex = 0;
+  renderAutocomplete();
+  acEl.style.display = 'block';
+}
+function completeAutocomplete(item) {
+  if (acMode === 'file') {
+    var info = currentAtToken();
+    if (!info) { hideAutocomplete(); return; }
+    var val = inputEl.value;
+    var replacement = '@' + item + ' ';
+    inputEl.value = val.slice(0, info.lineStart) + replacement + info.after;
+    var newPos = info.lineStart + replacement.length;
+    inputEl.focus();
+    try { inputEl.setSelectionRange(newPos, newPos); } catch (e) {}
+    hideAutocomplete();
+    return;
+  }
+  var c = item;
+  var val2 = inputEl.value;
   var pos = inputEl.selectionStart;
-  var before = val.slice(0, pos);
+  var before = val2.slice(0, pos);
   var lineStart = before.lastIndexOf('\\n') + 1;
-  var after = val.slice(pos);
-  var replacement = '/' + c.name + ' ';
-  inputEl.value = val.slice(0, lineStart) + replacement + after;
-  var newPos = lineStart + replacement.length;
+  var after = val2.slice(pos);
+  var replacement2 = '/' + c.name + ' ';
+  inputEl.value = val2.slice(0, lineStart) + replacement2 + after;
+  var newPos2 = lineStart + replacement2.length;
   inputEl.focus();
-  try { inputEl.setSelectionRange(newPos, newPos); } catch (e) {}
+  try { inputEl.setSelectionRange(newPos2, newPos2); } catch (e) {}
   hideAutocomplete();
 }
 
@@ -2520,7 +2599,7 @@ inputEl.addEventListener('keydown', function(ev) {
     completeAutocomplete(acItems[acIndex]);
     return;
   }
-  if (ev.key === 'Escape' && acItems.length) { ev.preventDefault(); hideAutocomplete(); return; }
+  if (ev.key === 'Escape' && (acItems.length || fileTimer)) { ev.preventDefault(); hideAutocomplete(); return; }
   if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === 'ArrowUp') {
     var pos = inputEl.selectionStart;
     if (inputEl.value.slice(0, pos).indexOf('\\n') === -1) { ev.preventDefault(); navigateHistory(-1); return; }
@@ -2559,6 +2638,7 @@ window.addEventListener('message', function(e) {
     case 'messages': queueState.steering = []; queueState.followUp = []; renderQueue(); hydrateMessages(d.messages); break;
     case 'event': handleEvent(d.event); break;
     case 'pickedResources': insertPickedResources(d.paths); break;
+    case 'files': applyFileResults(d.query, d.files); break;
     case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
     case 'contextUsage': applyContextUsage(d.usage); break;
     case 'toast': showToast(d.text, d.kind); break;

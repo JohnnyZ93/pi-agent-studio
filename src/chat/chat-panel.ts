@@ -483,6 +483,30 @@ export async function openChatPanel(
         }
         break;
       }
+      case "searchFiles": {
+        const query: string = typeof msg.query === "string" ? msg.query : "";
+        if (!cwd) {
+          if (!disposed) panel.webview.postMessage({ type: "files", query, files: [] });
+          break;
+        }
+        try {
+          const uris = await vscode.workspace.findFiles(
+            new vscode.RelativePattern(cwd, "**/*"),
+            undefined,
+            500,
+          );
+          const q = query.toLowerCase();
+          const files = uris
+            .map((u) => toDisplayPath(u.fsPath, cwd))
+            .filter((p) => !q || p.toLowerCase().indexOf(q) >= 0)
+            .sort((a, b) => a.length - b.length || a.localeCompare(b))
+            .slice(0, 80);
+          if (!disposed) panel.webview.postMessage({ type: "files", query, files });
+        } catch {
+          if (!disposed) panel.webview.postMessage({ type: "files", query, files: [] });
+        }
+        break;
+      }
       case "newSession":
         try {
           await rpc.newSession();
