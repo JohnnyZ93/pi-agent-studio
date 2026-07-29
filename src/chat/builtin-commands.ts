@@ -73,5 +73,10 @@ export function mergeBuiltinCommands(piCommands: RpcCommand[]): RpcCommand[] {
     seen.add(c.name);
     merged.push(c);
   }
+  merged.sort((a, b) => {
+    const an = (a.name ?? "").toLowerCase();
+    const bn = (b.name ?? "").toLowerCase();
+    return an < bn ? -1 : an > bn ? 1 : 0;
+  });
   return merged;
 }

@@ -199,6 +199,13 @@ body {
 .msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
 .msg.user { align-items: flex-end; }
 .msg.assistant { align-items: stretch; }
+.msg-time {
+  font-size: 11px;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
 
 .bubble {
   max-width: 85%;
@@ -290,8 +297,32 @@ body {
   line-height: 1.5;
   position: relative;
 }
-.thinking-body.is-collapsible { max-height: 340px; overflow-y: auto; }
-.thinking-body.is-collapsible.is-expanded { max-height: none; overflow-y: visible; }
+.compaction-block {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-left: 3px solid var(--vscode-charts-purple, #b392f0);
+  border-radius: 6px;
+  background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.08));
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.compaction-block > summary {
+  cursor: pointer;
+  opacity: 0.85;
+  list-style: none;
+  user-select: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.compaction-block > summary::-webkit-details-marker { display: none; }
+.compaction-block > summary:before { content: "▶"; font-size: 9px; opacity: 0.6; }
+.compaction-block[open] > summary:before { content: "▼"; }
+.compaction-label { font-weight: 600; opacity: 0.8; }
+.compaction-body { margin-top: 6px; line-height: 1.55; padding: 2px 0; font-size: 13px; max-height: 340px; overflow-y: auto; }
+.compaction-body > :last-child { margin-bottom: 0; }
 
 .tool-block {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -347,7 +378,37 @@ body {
 .tool-result { border-top: 1px solid var(--vscode-widget-border, transparent); color: var(--vscode-terminal-ansiGreen, #4ec9b0); }
 .tool-block.is-error .tool-result { color: var(--vscode-errorForeground, #f48771); }
 .tool-args:empty, .tool-result:empty { display: none; }
-.tool-expand { margin: 4px 0; align-self: flex-start; font-size: 11px; padding: 2px 8px; cursor: pointer; border: 1px solid var(--vscode-button-border, transparent); background: var(--vscode-button-secondaryBackground, var(--vscode-toolbar-hoverBackground)); color: var(--vscode-button-secondaryForeground, var(--vscode-foreground)); border-radius: 3px; }
+.diff-block {
+  margin: 0;
+  padding: 2px 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-foreground);
+}
+.diff-line { white-space: pre-wrap; word-break: break-word; padding: 0 6px; }
+.diff-sign { display: inline-block; width: 1ch; user-select: none; }
+.diff-gutter { display: inline-block; min-width: 3.5em; padding-right: 8px; text-align: right; user-select: none; opacity: 0.5; }
+.diff-content { display: inline; }
+.diff-line.added { background: var(--vscode-diffEditor-insertedLineBackground, rgba(46,160,67,0.13)); }
+.diff-line.added .diff-sign, .diff-line.added .diff-content { color: var(--vscode-gitDecoration-addedResourceForeground, #73c991); }
+.diff-line.removed { background: var(--vscode-diffEditor-removedLineBackground, rgba(248,81,73,0.13)); }
+.diff-line.removed .diff-sign, .diff-line.removed .diff-content { color: var(--vscode-gitDecoration-deletedResourceForeground, #f48771); }
+.diff-line.context .diff-content { color: var(--vscode-descriptionForeground, var(--vscode-foreground)); opacity: 0.9; }
+.diff-line.context .diff-gutter { opacity: 0.4; }
+.diff-line.hunk { opacity: 0.5; }
+.diff-line.hunk .diff-content { font-style: italic; }
+.tool-block.is-diff .tool-args { display: none; }
+.code-block {
+  margin: 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--vscode-foreground);
+}
+.code-line { white-space: pre-wrap; word-break: break-word; padding: 0 6px; }
+.code-gutter { display: inline-block; min-width: 3.5em; padding-right: 8px; text-align: right; user-select: none; opacity: 0.4; }
+.code-content { display: inline; }
 .text-block.is-streaming { white-space: pre-wrap; word-break: break-word; }
 
 .error-banner {
@@ -493,6 +554,7 @@ body {
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.error { border-color: var(--vscode-errorForeground, #f48771); }
 .toast.success { border-color: var(--vscode-testing-runPassed, #3fb950); }
+.toast.warning { border-color: var(--vscode-editorWarning-foreground, #cca700); }
 @keyframes toast-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 .toast.persistent { animation: toast-pulse 1.4s ease-in-out infinite; }
 .info-panel {
@@ -750,6 +812,9 @@ var modelSelect = document.getElementById('model-select');
 var ctxRing = document.getElementById('ctx-ring');
 var ctxRingProg = document.getElementById('ctx-ring-prog');
 var ctxRingText = '';
+var lastCtxUsage = null;
+var latestCacheHitPct = null;
+var prevTurn = null;
 var thinkingSelect = document.getElementById('thinking-select');
 var statusEl = document.getElementById('status');
 var sessionInfoEl = document.getElementById('session-info');
@@ -765,26 +830,29 @@ var PI_SEP = ${JSON.stringify(sep || "/")};
 
 // ---- helpers ----
 function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function formatTime(ts) {
+  if (ts == null || typeof ts !== 'number' || !isFinite(ts)) return '';
+  var d = new Date(ts);
+  var h = d.getHours();
+  var m = d.getMinutes();
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var hr = h % 12; if (hr === 0) hr = 12;
+  var mm = m < 10 ? '0' + m : '' + m;
+  return hr + ':' + mm + ' ' + ampm;
+}
 var autoScroll = true;
 var scrollBottomBtn = document.getElementById('scroll-bottom-btn');
+var STICK_THRESHOLD = 48;
+function isAtBottom() {
+  return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - STICK_THRESHOLD;
+}
 function updateScrollBtn() {
   if (autoScroll) scrollBottomBtn.classList.remove('show');
   else scrollBottomBtn.classList.add('show');
 }
-var lastScrollTop = messagesEl.scrollTop;
-var scrollCheckRAF = null;
 messagesEl.addEventListener('scroll', function() {
-  var st = messagesEl.scrollTop;
-  if (st < lastScrollTop - 1) { autoScroll = false; updateScrollBtn(); }
-  lastScrollTop = st;
-  if (scrollCheckRAF) return;
-  scrollCheckRAF = requestAnimationFrame(function() {
-    scrollCheckRAF = null;
-    if (messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 2) {
-      autoScroll = true;
-      updateScrollBtn();
-    }
-  });
+  autoScroll = isAtBottom();
+  updateScrollBtn();
 });
 scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
@@ -792,17 +860,13 @@ function scheduleScroll() {
   if (scrollRAF) return;
   scrollRAF = requestAnimationFrame(function() {
     scrollRAF = null;
-    if (autoScroll) {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      lastScrollTop = messagesEl.scrollTop;
-    }
+    if (autoScroll) messagesEl.scrollTop = messagesEl.scrollHeight;
   });
 }
 function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   messagesEl.scrollTop = messagesEl.scrollHeight;
-  lastScrollTop = messagesEl.scrollTop;
   updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
@@ -836,16 +900,27 @@ function formatTokens(n) {
 }
 function applyContextUsage(usage) {
   if (!ctxRingProg || !ctxRing) return;
+  lastCtxUsage = usage;
   var pct = (usage && typeof usage.percent === 'number') ? usage.percent : 0;
   if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
   ctxRingProg.style.strokeDashoffset = String(100 - pct);
+  rebuildCtxRingTooltip();
+}
+function rebuildCtxRingTooltip() {
+  var usage = lastCtxUsage;
+  var lines = [];
   var tokens = (usage && typeof usage.tokens === 'number') ? usage.tokens : null;
   var cw = (usage && typeof usage.contextWindow === 'number') ? usage.contextWindow : null;
   if (tokens != null && cw != null) {
-    ctxRingText = 'Usage:   ' + pct.toFixed(1) + '%\\nContext: ' + formatTokens(tokens) + ' / ' + formatTokens(cw);
-  } else {
-    ctxRingText = '';
+    var p = (typeof usage.percent === 'number') ? usage.percent : 0;
+    if (p < 0) p = 0; else if (p > 100) p = 100;
+    lines.push('Usage:   ' + p.toFixed(1) + '%');
+    lines.push('Context: ' + formatTokens(tokens) + ' / ' + formatTokens(cw));
   }
+  if (latestCacheHitPct != null) {
+    lines.push('Cache:   ' + latestCacheHitPct.toFixed(1) + '% hit');
+  }
+  ctxRingText = lines.join('\\n');
 }
 
 function clearMessages() {
@@ -932,16 +1007,45 @@ function addUserMessage(text) {
     row.appendChild(btn);
   }
 
+  var timeEl = el('span', 'msg-time');
+  row.appendChild(timeEl);
+  bubble._piTimeEl = timeEl;
+
   scheduleScroll();
   return bubble;
 }
+function applyUserBubbleTime(bubble, ts) {
+  if (!bubble) return;
+  bubble._piTs = ts;
+  if (bubble._piTimeEl) bubble._piTimeEl.textContent = formatTime(ts);
+}
 
-function startAssistantMessage() {
+function addCompactionMessage(m) {
+  var empty = messagesEl.querySelector('.empty');
+  if (empty) empty.remove();
+  var row = el('div', 'msg compaction');
+  var det = el('details', 'compaction-block');
+  var summ = el('summary', '');
+  var label = el('span', 'compaction-label');
+  label.textContent = '[compaction]';
+  summ.appendChild(label);
+  var tokensBefore = (m && typeof m.tokensBefore === 'number') ? m.tokensBefore : null;
+  summ.appendChild(document.createTextNode('Compacted from ' + (tokensBefore != null ? tokensBefore.toLocaleString() : '?') + ' tokens'));
+  det.appendChild(summ);
+  var body = el('div', 'compaction-body text-block');
+  renderMarkdown(body, (m && typeof m.summary === 'string') ? m.summary : '');
+  det.appendChild(body);
+  row.appendChild(det);
+  messagesEl.appendChild(row);
+  scheduleScroll();
+}
+
+function startAssistantMessage(ts) {
   var empty = messagesEl.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg assistant');
   messagesEl.appendChild(row);
-  currentAssistant = { el: row, blocks: [] };
+  currentAssistant = { el: row, blocks: [], ts: ts != null ? ts : null };
   scheduleScroll();
 }
 
@@ -950,9 +1054,8 @@ function collapseThinking() {
   for (var i = 0; i < currentAssistant.blocks.length; i++) {
     var b = currentAssistant.blocks[i];
     if (b && b.type === 'thinking') {
-      applyThinkingCollapsible(b);
       b.el.classList.remove('is-running');
-      b.el.removeAttribute('open');
+      if (!b.el._userToggled) b.el.removeAttribute('open');
     }
   }
 }
@@ -1013,20 +1116,27 @@ function ensureBlock(ci, type) {
   b = createBlock(type);
   blocks[ci] = b;
   currentAssistant.el.appendChild(b.el);
+  if (b.timeEl) {
+    if (currentAssistant.ts != null) b.timeEl.textContent = formatTime(currentAssistant.ts);
+    currentAssistant.el.appendChild(b.timeEl);
+  }
   return b;
 }
 
 function createBlock(type) {
   if (type === 'text') {
     var t = el('div', 'text-block');
-    return { type: 'text', el: t, text: '', textEl: t };
+    var ttime = el('span', 'msg-time');
+    return { type: 'text', el: t, text: '', textEl: t, timeEl: ttime };
   }
   if (type === 'thinking') {
     var det = el('details', 'thinking-block');
     det.setAttribute('open', '');
-    det.appendChild(el('summary', ''));
+    var tSumm = el('summary', '');
+    det.appendChild(tSumm);
     var body = el('div', 'thinking-body');
     det.appendChild(body);
+    tSumm.addEventListener('click', function() { det._userToggled = true; });
     return { type: 'thinking', el: det, text: '', textEl: body };
   }
   // toolcall
@@ -1044,6 +1154,7 @@ function createBlock(type) {
   wrap.appendChild(head);
   wrap.appendChild(args);
   wrap.appendChild(result);
+  head.addEventListener('click', function() { wrap._userToggled = true; });
   return { type: 'toolcall', el: wrap, nameEl: name, summaryEl: summary, statusEl: st, argsEl: args, resultEl: result, toolCallId: null, name: 'tool', argsText: '' };
 }
 
@@ -1066,50 +1177,109 @@ function applyTextCollapsible(b) {
     var expanded = textEl.classList.toggle('is-expanded');
     btn.textContent = expanded ? 'Show less' : 'Show more';
   });
-  textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+  var host = b.el ? b.el.parentNode : textEl.parentNode;
+  var ref = b.el ? b.el.nextSibling : textEl.nextSibling;
+  host.insertBefore(btn, ref);
   textEl._expandBtn = btn;
 }
-function applyThinkingCollapsible(b) {
-  var body = b.textEl;
-  if (!body || !body.parentNode) return;
-  if (body.classList.contains('is-collapsible')) return;
-  if (body.scrollHeight > 360) {
-    body.classList.add('is-collapsible');
-    var btn = el('button', 'expand-btn');
-    btn.type = 'button';
-    btn.textContent = 'Show more';
-    btn.addEventListener('click', function() {
-      var expanded = body.classList.toggle('is-expanded');
-      btn.textContent = expanded ? 'Show less' : 'Show more';
-    });
-    body.parentNode.insertBefore(btn, body.nextSibling);
-    body._expandBtn = btn;
-  }
-}
+
 
 var MAX_INLINE = 12000;
 function setClamped(preEl, text) {
   text = typeof text === 'string' ? text : '';
   if (text.length > MAX_INLINE) {
-    if (preEl._fullBtn) preEl._fullBtn.remove();
     preEl.textContent = text.slice(0, MAX_INLINE) + ' ... (truncated, ' + (text.length - MAX_INLINE) + ' more chars)';
-    var full = text;
-    var btn = el('button', 'tool-expand');
-    btn.type = 'button';
-    btn.textContent = 'Expand';
-    btn.addEventListener('click', function() {
-      preEl.textContent = full;
-      if (preEl._fullBtn) { preEl._fullBtn.remove(); preEl._fullBtn = null; }
-      preEl._full = null;
-    });
-    if (preEl.parentNode) preEl.parentNode.insertBefore(btn, preEl.nextSibling);
-    preEl._full = full;
-    preEl._fullBtn = btn;
   } else {
     preEl.textContent = text;
-    if (preEl._fullBtn) { preEl._fullBtn.remove(); preEl._fullBtn = null; }
-    preEl._full = null;
   }
+}
+function parseDiffLine(line) {
+  if (typeof line !== 'string' || line.length === 0) return null;
+  var prefix = line.charAt(0);
+  if (prefix !== '+' && prefix !== '-' && prefix !== ' ') return null;
+  var rest = line.slice(1);
+  var i = 0;
+  while (i < rest.length) {
+    var cc = rest.charCodeAt(i);
+    if (cc === 32 || (cc >= 48 && cc <= 57)) i++; else break;
+  }
+  var lineNum = rest.slice(0, i);
+  var content = rest.slice(i);
+  if (content.charAt(0) === ' ') content = content.slice(1);
+  return { prefix: prefix, lineNum: lineNum, content: content };
+}
+function renderToolDiff(resultEl, diffText) {
+  if (!resultEl) return;
+  resultEl._piMd = null;
+  resultEl.textContent = '';
+  var lines = String(diffText || '').split(String.fromCharCode(10));
+  var wrap = el('div', 'diff-block');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var parsed = parseDiffLine(line);
+    var row = el('div', 'diff-line');
+    var sign = el('span', 'diff-sign');
+    var gutter = el('span', 'diff-gutter');
+    var content = el('span', 'diff-content');
+    if (!parsed) {
+      row.classList.add('context');
+      sign.textContent = ' ';
+      gutter.textContent = '';
+      content.textContent = line;
+    } else if (parsed.prefix === '+') {
+      row.classList.add('added');
+      sign.textContent = '+';
+      gutter.textContent = parsed.lineNum.trim();
+      content.textContent = parsed.content;
+    } else if (parsed.prefix === '-') {
+      row.classList.add('removed');
+      sign.textContent = '-';
+      gutter.textContent = parsed.lineNum.trim();
+      content.textContent = parsed.content;
+    } else if (parsed.content === '...' && parsed.lineNum.trim() === '') {
+      row.classList.add('hunk');
+      sign.textContent = ' ';
+      gutter.textContent = '';
+      content.textContent = '...';
+    } else {
+      row.classList.add('context');
+      sign.textContent = ' ';
+      gutter.textContent = parsed.lineNum.trim();
+      content.textContent = parsed.content;
+    }
+    row.appendChild(sign);
+    row.appendChild(gutter);
+    row.appendChild(content);
+    wrap.appendChild(row);
+  }
+  resultEl.appendChild(wrap);
+}
+function renderWriteContent(argsEl, args) {
+  if (!argsEl) return;
+  argsEl._piMd = null;
+  argsEl.textContent = '';
+  var parsed = args;
+  if (typeof args === 'string') { try { parsed = JSON.parse(args); } catch (e) { parsed = null; } }
+  var content = parsed && typeof parsed.content === 'string' ? parsed.content : '';
+  if (!content) return;
+  var lines = content.split(String.fromCharCode(10));
+  while (lines.length && lines[lines.length - 1] === '') lines.pop();
+  if (!lines.length) return;
+  var wrap = el('div', 'code-block');
+  var width = String(lines.length).length;
+  for (var i = 0; i < lines.length; i++) {
+    var numStr = String(i + 1);
+    while (numStr.length < width) numStr = ' ' + numStr;
+    var row = el('div', 'code-line');
+    var gutter = el('span', 'code-gutter');
+    gutter.textContent = numStr;
+    var code = el('span', 'code-content');
+    code.textContent = lines[i];
+    row.appendChild(gutter);
+    row.appendChild(code);
+    wrap.appendChild(row);
+  }
+  argsEl.appendChild(wrap);
 }
 
 var pendingTexts = [];
@@ -1148,15 +1318,8 @@ function appendThinkingDelta(ci, delta) {
     b.textEl.textContent = '';
     b._tnode = document.createTextNode('');
     b.textEl.appendChild(b._tnode);
-    b.textEl.addEventListener('scroll', function() {
-      b._userScrolledUp = b.textEl.scrollHeight - b.textEl.scrollTop - b.textEl.clientHeight > 24;
-    });
   }
   b._tnode.appendData(delta);
-  applyThinkingCollapsible(b);
-  if (!b._userScrolledUp && b.textEl.classList.contains('is-collapsible') && !b.textEl.classList.contains('is-expanded')) {
-    b.textEl.scrollTop = b.textEl.scrollHeight;
-  }
   scheduleScroll();
 }
 function appendToolCallDelta(ci, delta) {
@@ -1274,6 +1437,92 @@ function formatUsageJs(usage, model) {
   if (model) parts.push(model);
   return parts.join(' ');
 }
+function computeCacheHitPct(usage) {
+  if (!usage) return null;
+  var cr = usage.cacheRead || 0;
+  var cw = usage.cacheWrite || 0;
+  if (cr <= 0 && cw <= 0) return null;
+  var prompt = (usage.input || 0) + cr + cw;
+  if (prompt <= 0) return null;
+  return (cr / prompt) * 100;
+}
+function promptTokensOf(usage) {
+  if (!usage) return 0;
+  return (usage.input || 0) + (usage.cacheRead || 0) + (usage.cacheWrite || 0);
+}
+function cacheReadPricePerM() {
+  var cost = state.model && state.model.cost;
+  if (cost && typeof cost.cacheRead === 'number') return cost.cacheRead;
+  return null;
+}
+function detectCacheMissJs(usage, modelId, ts) {
+  if (!prevTurn || !usage) return null;
+  if (typeof ts === 'number' && ts === prevTurn.ts) return null;
+  var promptTokens = (usage.input || 0) + (usage.cacheRead || 0) + (usage.cacheWrite || 0);
+  if (promptTokens <= 0) return null;
+  if (usage.cacheRead + usage.cacheWrite === 0 && !prevTurn.reportedCache) return null;
+  var missedTokens = Math.min(prevTurn.promptTokens, promptTokens) - (usage.cacheRead || 0);
+  if (missedTokens <= 1024) return null;
+  var cost = (usage.cost && typeof usage.cost === 'object') ? usage.cost : null;
+  var paidTokens = (usage.input || 0) + (usage.cacheWrite || 0);
+  var paidPerToken = (cost && paidTokens > 0) ? ((cost.input || 0) + (cost.cacheWrite || 0)) / paidTokens : 0;
+  var readPerToken;
+  if ((usage.cacheRead || 0) > 0 && cost) {
+    readPerToken = (cost.cacheRead || 0) / usage.cacheRead;
+  } else {
+    var price = cacheReadPricePerM();
+    readPerToken = (price != null && price > 0) ? price / 1000000 : 0;
+  }
+  var missedCost = missedTokens * Math.max(0, paidPerToken - readPerToken);
+  var showByTokens = missedTokens >= 20000;
+  var showByCost = missedCost >= 0.10;
+  if (!showByTokens && !showByCost) return null;
+  var idleMs = (typeof ts === 'number' && typeof prevTurn.ts === 'number') ? ts - prevTurn.ts : 0;
+  var modelChanged = !!modelId && !!prevTurn.modelId && modelId !== prevTurn.modelId;
+  var label;
+  if (modelChanged) label = 'Cache miss after model switch';
+  else if (idleMs >= 300000) label = 'Cache miss after ' + Math.round(idleMs / 60000) + 'm idle';
+  else label = 'Cache miss';
+  return { label: label, missedTokens: missedTokens, missedCost: missedCost };
+}
+function recordCacheUsage(usage, modelId, ts) {
+  latestCacheHitPct = computeCacheHitPct(usage);
+  rebuildCtxRingTooltip();
+  if (!usage) { prevTurn = null; return; }
+  if (prevTurn && (typeof ts !== 'number' || ts !== prevTurn.ts)) {
+    var miss = detectCacheMissJs(usage, modelId, ts);
+    if (miss) {
+      var costStr = (miss.missedCost >= 0.01)
+        ? ' (~$' + miss.missedCost.toFixed(2) + ')'
+        : '';
+      showToast('\\u26A0 ' + miss.label + ' \\u00B7 ' + formatTokens(miss.missedTokens) + ' tokens re-billed' + costStr, 'warning');
+    }
+  }
+  prevTurn = {
+    promptTokens: promptTokensOf(usage),
+    modelId: modelId || '',
+    ts: (typeof ts === 'number') ? ts : Date.now(),
+    reportedCache: !!(prevTurn && prevTurn.reportedCache) || (usage.cacheRead + usage.cacheWrite > 0)
+  };
+}
+function seedCacheBaseline(list) {
+  if (!list || !list.length) return;
+  for (var i = list.length - 1; i >= 0; i--) {
+    var m = list[i];
+    if (!m || m.role !== 'assistant' || !m.usage || m.stopReason === 'error') continue;
+    var u = m.usage;
+    if (!u.input && !u.output && !u.cacheRead && !u.cacheWrite) continue;
+    latestCacheHitPct = computeCacheHitPct(u);
+    prevTurn = {
+      promptTokens: promptTokensOf(u),
+      modelId: state.model ? state.model.provider + '/' + state.model.id : '',
+      ts: (typeof m.timestamp === 'number') ? m.timestamp : Date.now(),
+      reportedCache: (u.cacheRead + u.cacheWrite) > 0
+    };
+    rebuildCtxRingTooltip();
+    break;
+  }
+}
 function aggregateUsageJs(results) {
   var total = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 };
   for (var i = 0; i < results.length; i++) {
@@ -1299,11 +1548,8 @@ function subagentDetailsHasError(details) {
 }
 function renderSubagentResult(b, details) {
   if (!b || !b.resultEl) return;
-  if (b.resultEl._fullBtn) { b.resultEl._fullBtn.remove(); b.resultEl._fullBtn = null; }
-  b.resultEl._full = null;
   b.resultEl._piMd = null;
   if (!details || !details.results) {
-    if (b.resultEl._full) b.resultEl.textContent = b.resultEl._full;
     return;
   }
   var results = details.results;
@@ -1427,7 +1673,6 @@ function renderSubagentResult(b, details) {
       else if (tus) b.summaryEl.textContent += ' \\u00B7 ' + tus;
     }
   } else {
-    if (b.resultEl._full) b.resultEl.textContent = b.resultEl._full;
     return;
   }
   b.resultEl.textContent = '';
@@ -1448,7 +1693,8 @@ function finalizeToolCall(ci, toolCall) {
     if (args !== undefined && args !== null) {
       b.argsText = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
       b._anode = null;
-      setClamped(b.argsEl, b.argsText);
+      if (b.name === 'write') renderWriteContent(b.argsEl, args);
+      else setClamped(b.argsEl, b.argsText);
     }
     applyToolSummary(b, b.name, args);
   }
@@ -1488,7 +1734,7 @@ function startToolExecution(ev) {
   }
   if (ev.toolName) { b.name = ev.toolName; b.nameEl ? (b.nameEl.textContent = ev.toolName) : null; }
   b.el._block = b;
-  b.el.setAttribute('open', '');
+  if (!b.el._userToggled) b.el.setAttribute('open', '');
   if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.add('is-running'); }
   if (ev.args !== undefined && ev.args !== null && b.argsEl && !b.argsText) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
@@ -1532,10 +1778,24 @@ function endToolExecution(ev) {
       if (b.statusEl) { b.statusEl.textContent = 'error'; b.statusEl.classList.remove('is-running'); }
       b.el.classList.add('is-error');
     }
-    b.el.removeAttribute('open');
+    if (!b.el._userToggled) b.el.removeAttribute('open');
     scheduleScroll();
     return;
   }
+  if (b.name === 'edit' && !ev.isError && r && r.details && typeof r.details.diff === 'string') {
+    b.el.classList.add('is-diff');
+    renderToolDiff(b.resultEl, r.details.diff);
+    if (!b.el._userToggled && !isHydrating) b.el.setAttribute('open', '');
+    scheduleScroll();
+    return;
+  }
+  if (b.name === 'write' && !ev.isError) {
+    if (b.resultEl) { b.resultEl._piMd = null; b.resultEl.textContent = ''; }
+    if (!b.el._userToggled) b.el.removeAttribute('open');
+    scheduleScroll();
+    return;
+  }
+  b.el.classList.remove('is-diff');
   if (r && r.content && b.resultEl) {
     var txt = '';
     if (Array.isArray(r.content)) {
@@ -1548,19 +1808,25 @@ function endToolExecution(ev) {
     }
     if (txt) setClamped(b.resultEl, txt);
   }
-  b.el.removeAttribute('open');
+  if (!b.el._userToggled) b.el.removeAttribute('open');
   scheduleScroll();
 }
 
+var isHydrating = false;
 // ---- hydrate from get_messages ----
 function hydrateMessages(list) {
   messagesEl.innerHTML = '';
   currentAssistant = null;
   pendingTexts = [];
+  prevTurn = null;
+  latestCacheHitPct = null;
   if (!list || !list.length) {
     clearMessages();
+    rebuildCtxRingTooltip();
+    isHydrating = false;
     return;
   }
+  isHydrating = true;
   setStatus('Loading history...');
   var i = 0;
   var CHUNK = 30;
@@ -1568,7 +1834,7 @@ function hydrateMessages(list) {
     var end = Math.min(i + CHUNK, list.length);
     for (; i < end; i++) hydrateOne(list[i]);
     if (i < list.length) requestAnimationFrame(step);
-    else { setStatus(''); scrollToBottom(); }
+    else { isHydrating = false; setStatus(''); scrollToBottom(); seedCacheBaseline(list); }
   }
   requestAnimationFrame(step);
 }
@@ -1579,9 +1845,9 @@ function hydrateOne(m) {
     var utext = extractText(m.content);
     pushHistory(utext);
     var ub = addUserMessage(utext);
-    if (m && m.timestamp != null) ub._piTs = m.timestamp;
+    if (m && m.timestamp != null) applyUserBubbleTime(ub, m.timestamp);
   } else if (role === 'assistant') {
-    startAssistantMessage();
+    startAssistantMessage(m.timestamp);
     var content = m.content;
     if (Array.isArray(content)) {
       for (var k = 0; k < content.length; k++) {
@@ -1597,7 +1863,6 @@ function hydrateOne(m) {
           var hb = ensureBlock(k, 'thinking');
           hb.text = blk.thinking || '';
           hb.textEl.textContent = hb.text;
-          applyThinkingCollapsible(hb);
         } else if (blk.type === 'toolCall') {
           finalizeToolCall(k, blk);
         }
@@ -1610,6 +1875,8 @@ function hydrateOne(m) {
     if (m.details) evResult.details = m.details;
     var fakeEv = { toolCallId: m.toolCallId, result: evResult, isError: !!m.isError };
     endToolExecution(fakeEv);
+  } else if (role === 'compactionSummary') {
+    addCompactionMessage(m);
   }
 }
 function extractText(content) {
@@ -1644,13 +1911,13 @@ function handleEvent(event) {
     case 'agent_start': setStreaming(true); break;
     case 'agent_settled': setStreaming(false); retryAttempt = 0; break;
     case 'message_start':
-      if (event.message && event.message.role === 'assistant') startAssistantMessage();
+      if (event.message && event.message.role === 'assistant') startAssistantMessage(event.message.timestamp);
       else if (event.message && event.message.role === 'user') {
         if (lastUserBubble && lastUserBubble._piTs == null) {
-          if (event.message.timestamp != null) lastUserBubble._piTs = event.message.timestamp;
+          if (event.message.timestamp != null) applyUserBubbleTime(lastUserBubble, event.message.timestamp);
         } else {
           var ub = addUserMessage(extractText(event.message.content));
-          if (event.message.timestamp != null) ub._piTs = event.message.timestamp;
+          if (event.message.timestamp != null) applyUserBubbleTime(ub, event.message.timestamp);
         }
       }
       break;
@@ -1660,7 +1927,14 @@ function handleEvent(event) {
         var asr = amsg.stopReason;
         applyAssistantStopError(asr, amsg.errorMessage, retryAttempt);
         endAssistantMessage();
-        if (asr && asr !== 'error') retryAttempt = 0;
+        if (asr && asr !== 'error') {
+          retryAttempt = 0;
+          recordCacheUsage(
+            amsg.usage,
+            state.model ? state.model.provider + '/' + state.model.id : '',
+            amsg.timestamp
+          );
+        }
       }
       break;
     case 'message_update': handleAssistantMessageEvent(event.assistantMessageEvent); break;
@@ -1757,7 +2031,6 @@ function updateAutocomplete() {
   for (var i = 0; i < commands.length; i++) {
     var c = commands[i];
     if (c.name.toLowerCase().indexOf(q) === 0) matches.push(c);
-    if (matches.length >= 8) break;
   }
   if (!matches.length) { hideAutocomplete(); return; }
   acItems = matches;
@@ -1782,6 +2055,8 @@ function renderAutocomplete() {
     item.appendChild(src);
     acEl.appendChild(item);
   }
+  var active = acEl.querySelector('.active');
+  if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
 }
 function hideAutocomplete() { acEl.style.display = 'none'; acItems = []; acIndex = -1; }
 function completeAutocomplete(c) {
