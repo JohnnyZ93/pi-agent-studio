@@ -32,7 +32,7 @@ const DEFAULT_PROMPT = {
   user: "Notes from developer (ignore if not relevant): {{USER_CURRENT_INPUT}}",
 };
 
-const TRUNCATED_DIFF_SIZE = 200000;
+const TRUNCATED_DIFF_SIZE = 64 * 1024;
 const MIN_PER_FILE_BUDGET = 2000;
 const FILE_TRUNCATED_MARK = "\n[... file diff truncated ...]";
 
@@ -283,12 +283,17 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(`Failed to generate commit message: ${errorMessage}`);
   } finally {
+    vscode.commands.executeCommand("setContext", "pi-agent-studio.isGeneratingCommit", false);
     if (abortListener) {
       commitGenerationAbortController?.signal.removeEventListener("abort", abortListener);
     }
-    unsubscribe?.();
-    session?.dispose();
-    vscode.commands.executeCommand("setContext", "pi-agent-studio.isGeneratingCommit", false);
+    commitGenerationAbortController = undefined;
+    try {
+      unsubscribe?.();
+      session?.dispose();
+    } catch {
+      /* ignore */
+    }
   }
 }
 
