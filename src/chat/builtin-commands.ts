@@ -59,6 +59,8 @@ export function parseBuiltin(message: string): ParsedBuiltin | null {
   return { name, args };
 }
 
+const HIDDEN_COMMAND_NAMES = new Set(["todo-clear", "pi-vscode-tree"]);
+
 export function mergeBuiltinCommands(piCommands: RpcCommand[]): RpcCommand[] {
   const builtins = builtinCommands();
   const seen = new Set<string>();
@@ -70,6 +72,7 @@ export function mergeBuiltinCommands(piCommands: RpcCommand[]): RpcCommand[] {
   }
   for (const c of piCommands) {
     if (seen.has(c.name)) continue;
+    if (HIDDEN_COMMAND_NAMES.has(c.name)) continue;
     seen.add(c.name);
     merged.push(c);
   }
