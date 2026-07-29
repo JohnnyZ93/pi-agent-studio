@@ -2,6 +2,17 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.0] - 2026-07-29
+
+- **Chat UI**: added message timestamps, compaction blocks (collapsible token-reduction summaries), git-style diff view for `edit` tool results (color-coded added/removed), and line-numbered code view for `write` tool content.
+- **Chat UI**: added file autocomplete and image display for tool results.
+- **Chat UI**: added keyboard shortcut hints in the empty state and limited streaming text block height with scroll.
+- **Chat UI**: improved auto-scroll with a stick-to-bottom threshold and `_userToggled` flag that preserves manual expand/collapse; thinking blocks now limit height and auto-scroll.
+- **Chat UI**: replaced the collapsible fade overlay with native scroll and added running spinners; removed default box styling on thinking blocks with a left border on the open body.
+- **Agents sidebar**: added a model dropdown to agent create/edit forms, populated from available models.
+- **Autocomplete**: scoring-based matching (prefix bonus + fuzzy subsequence) with highlighted matching characters; removed the redundant scroll-to-bottom button.
+- **Git commit**: lowered the diff size limit (200k → 64k) and wrapped disposal calls in try-catch inside a `finally` block for robust cleanup.
+
 ## [1.0.7] - 2026-07-29
 
 - Added `pi-agent-studio.ui` setting (`terminal` / `webview`): open pi in a VS Code WebviewPanel backed by a per-panel `pi --mode rpc` subprocess, with streaming, prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands (`/compact`, `/autocompact`, `/session`, `/name`, `/changelog`, `/clear`, `/new`), and retry UI.
