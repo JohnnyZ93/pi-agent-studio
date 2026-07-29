@@ -172,7 +172,7 @@ body {
   align-items: center;
   justify-content: center;
   background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground, #2d2d30));
-  color: var(--vscode-foreground);
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
   border: 1px solid var(--vscode-widget-border, transparent);
   border-radius: 50%;
   cursor: pointer;
@@ -185,7 +185,7 @@ body {
   transition: opacity .18s, transform .18s, visibility .18s;
 }
 .scroll-bottom-btn.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
-.scroll-bottom-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+.scroll-bottom-btn:hover { transform: scale(1.12); }
 .scroll-bottom-btn svg { width: 16px; height: 16px; display: block; }
 .messages {
   flex: 1;
@@ -212,16 +212,8 @@ body {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
 }
-.user-bubble.is-collapsible { max-height: 220px; overflow: hidden; position: relative; }
+.user-bubble.is-collapsible { max-height: 220px; overflow-y: auto; }
 .user-bubble.is-collapsible.is-expanded { max-height: none; overflow: visible; }
-.user-bubble .expand-fade {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 44px;
-  background: linear-gradient(to bottom, transparent, var(--vscode-button-background));
-  pointer-events: none;
-}
-.user-bubble.is-expanded .expand-fade { display: none; }
 .expand-btn {
   align-self: flex-end;
   margin-top: 2px;
@@ -236,16 +228,8 @@ body {
   cursor: pointer;
 }
 .expand-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
-.text-block.is-collapsible { max-height: 340px; overflow: hidden; position: relative; }
+.text-block.is-collapsible { max-height: 340px; overflow-y: auto; }
 .text-block.is-collapsible.is-expanded { max-height: none; overflow: visible; }
-.text-block .expand-fade {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 44px;
-  background: linear-gradient(to bottom, transparent, var(--vscode-editor-background));
-  pointer-events: none;
-}
-.text-block.is-expanded .expand-fade { display: none; }
 .assistant .text-block { line-height: 1.55; padding: 2px 0; font-size: 13px; }
 .text-block > :last-child { margin-bottom: 0; }
 .text-block p { margin: 0 0 8px; }
@@ -280,6 +264,20 @@ body {
   list-style: none;
   user-select: none;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+.thinking-block.is-running > summary { opacity: 1; }
+.thinking-block.is-running > summary::after {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-left: auto;
+  border: 1.5px solid var(--vscode-charts-blue, #3794ff);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: tool-spin 0.7s linear infinite;
 }
 .thinking-block > summary::-webkit-details-marker { display: none; }
 .thinking-block > summary:before { content: "\\25B6  Thinking"; font-size: 11px; }
@@ -320,6 +318,20 @@ body {
 .tool-name { font-weight: 600; font-family: var(--vscode-editor-font-family); }
 .tool-summary { font-family: var(--vscode-editor-font-family); color: var(--vscode-foreground); opacity: 0.9; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-status { opacity: 0.6; font-size: 11px; margin-left: auto; }
+.tool-status.is-running { opacity: 1; color: var(--vscode-charts-blue, #3794ff); }
+.tool-status.is-running::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  vertical-align: -1px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: tool-spin 0.7s linear infinite;
+}
+@keyframes tool-spin { to { transform: rotate(360deg); } }
 .tool-args, .tool-result {
   margin: 0;
   padding: 6px 8px;
@@ -910,7 +922,6 @@ function addUserMessage(text) {
 
   if (bubble.scrollHeight > 240) {
     bubble.classList.add('is-collapsible');
-    bubble.appendChild(el('div', 'expand-fade'));
     var btn = el('button', 'expand-btn');
     btn.type = 'button';
     btn.textContent = 'Show more';
@@ -940,6 +951,7 @@ function collapseThinking() {
     var b = currentAssistant.blocks[i];
     if (b && b.type === 'thinking') {
       applyThinkingCollapsible(b);
+      b.el.classList.remove('is-running');
       b.el.removeAttribute('open');
     }
   }
@@ -965,7 +977,7 @@ function markAssistantToolErrors(text) {
     if (b && b.type === 'toolcall') {
       if (b.resultEl) setClamped(b.resultEl, text);
       b.el.classList.add('is-error');
-      if (b.statusEl) b.statusEl.textContent = 'error';
+      if (b.statusEl) { b.statusEl.textContent = 'error'; b.statusEl.classList.remove('is-running'); }
     }
   }
 }
@@ -1043,14 +1055,10 @@ function applyTextCollapsible(b) {
   var textEl = b.textEl;
   if (!textEl || !textEl.parentNode) return;
   if (textEl._expandBtn) { textEl._expandBtn.remove(); textEl._expandBtn = null; }
-  if (textEl._fade) { textEl._fade.remove(); textEl._fade = null; }
   textEl.classList.remove('is-collapsible');
   textEl.classList.remove('is-expanded');
   if (textEl.scrollHeight <= 360) return;
   textEl.classList.add('is-collapsible');
-  var fade = el('div', 'expand-fade');
-  textEl.appendChild(fade);
-  textEl._fade = fade;
   var btn = el('button', 'expand-btn');
   btn.type = 'button';
   btn.textContent = 'Show more';
@@ -1134,6 +1142,7 @@ function appendTextDelta(ci, delta) {
 }
 function appendThinkingDelta(ci, delta) {
   var b = ensureBlock(ci, 'thinking');
+  b.el.classList.add('is-running');
   b.text += delta;
   if (!b._tnode) {
     b.textEl.textContent = '';
@@ -1480,7 +1489,7 @@ function startToolExecution(ev) {
   if (ev.toolName) { b.name = ev.toolName; b.nameEl ? (b.nameEl.textContent = ev.toolName) : null; }
   b.el._block = b;
   b.el.setAttribute('open', '');
-  if (b.statusEl) b.statusEl.textContent = 'running';
+  if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.add('is-running'); }
   if (ev.args !== undefined && ev.args !== null && b.argsEl && !b.argsText) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
     b._anode = null;
@@ -1514,13 +1523,13 @@ function updateToolExecution(ev) {
 function endToolExecution(ev) {
   var b = findToolBlock(ev.toolCallId);
   if (!b) return;
-  if (b.statusEl) b.statusEl.textContent = ev.isError ? 'error' : 'done';
+  if (b.statusEl) { b.statusEl.textContent = ev.isError ? 'error' : 'done'; b.statusEl.classList.remove('is-running'); }
   if (ev.isError) b.el.classList.add('is-error');
   var r = ev.result;
   if (b.name === 'subagent' && r && r.details) {
     renderSubagentResult(b, r.details);
     if (!ev.isError && subagentDetailsHasError(r.details)) {
-      if (b.statusEl) b.statusEl.textContent = 'error';
+      if (b.statusEl) { b.statusEl.textContent = 'error'; b.statusEl.classList.remove('is-running'); }
       b.el.classList.add('is-error');
     }
     b.el.removeAttribute('open');
@@ -1623,7 +1632,7 @@ function handleAssistantMessageEvent(amev) {
   var ci = amev.contentIndex || 0;
   if (t === 'text_start') { collapseThinking(); ensureBlock(ci, 'text'); }
   else if (t === 'text_delta') { appendTextDelta(ci, amev.delta || ''); }
-  else if (t === 'thinking_start') { ensureBlock(ci, 'thinking'); }
+  else if (t === 'thinking_start') { var tb = ensureBlock(ci, 'thinking'); tb.el.classList.add('is-running'); }
   else if (t === 'thinking_delta') { appendThinkingDelta(ci, amev.delta || ''); }
   else if (t === 'toolcall_start') { collapseThinking(); ensureBlock(ci, 'toolcall'); }
   else if (t === 'toolcall_delta') { appendToolCallDelta(ci, amev.delta || ''); }
