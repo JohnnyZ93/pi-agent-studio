@@ -409,7 +409,7 @@ body {
 .code-line { white-space: pre-wrap; word-break: break-word; padding: 0 6px; }
 .code-gutter { display: inline-block; min-width: 3.5em; padding-right: 8px; text-align: right; user-select: none; opacity: 0.4; }
 .code-content { display: inline; }
-.text-block.is-streaming { white-space: pre-wrap; word-break: break-word; }
+.text-block.is-streaming { white-space: pre-wrap; word-break: break-word; max-height: 340px; overflow-y: auto; }
 
 .error-banner {
   padding: 6px 10px;
@@ -648,6 +648,37 @@ body {
 .empty-logo svg { width: 100%; height: 100%; display: block; }
 .empty-line { font-size: 15px; font-weight: 600; color: var(--vscode-foreground); }
 .empty-accent { color: var(--vscode-button-background, var(--vscode-textLink-foreground, #0e639c)); }
+.empty-hints {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 24px;
+  margin-top: 14px;
+}
+.empty-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  opacity: 0.72;
+  white-space: nowrap;
+  justify-self: start;
+}
+.empty-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 19px;
+  padding: 0 6px;
+  font-family: var(--vscode-font-family);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--vscode-foreground);
+  background: var(--vscode-button-secondaryBackground, rgba(127,127,127,0.12));
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+}
 .widget { flex-shrink: 0; padding: 6px 8px 0; }
 .widget-card {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -800,6 +831,14 @@ var EMPTY_HTML = '<div class="empty">'
   + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
   + '<div class="empty-line">There are many agent harnesses</div>'
   + '<div class="empty-line">but this one is <span class="empty-accent">yours</span></div>'
+  + '<div class="empty-hints">'
+  + '<span class="empty-hint"><kbd>Enter</kbd>send / steer</span>'
+  + '<span class="empty-hint"><kbd>Shift+Enter</kbd>newline</span>'
+  + '<span class="empty-hint"><kbd>Alt+Enter</kbd>follow-up</span>'
+  + '<span class="empty-hint"><kbd>\u2191\u2193</kbd>history</span>'
+  + '<span class="empty-hint"><kbd>/</kbd>commands</span>'
+  + '<span class="empty-hint"><kbd>Tab</kbd>complete</span>'
+  + '</div>'
   + '</div>';
 var messagesEl = document.getElementById('messages');
 var widgetEl = document.getElementById('widget');
@@ -860,7 +899,12 @@ function scheduleScroll() {
   if (scrollRAF) return;
   scrollRAF = requestAnimationFrame(function() {
     scrollRAF = null;
-    if (autoScroll) messagesEl.scrollTop = messagesEl.scrollHeight;
+    if (!autoScroll) return;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    for (var i = 0; i < pendingTexts.length; i++) {
+      var tb = pendingTexts[i];
+      if (tb && tb.textEl) tb.textEl.scrollTop = tb.textEl.scrollHeight;
+    }
   });
 }
 function scrollToBottom() {
@@ -1734,7 +1778,6 @@ function startToolExecution(ev) {
   }
   if (ev.toolName) { b.name = ev.toolName; b.nameEl ? (b.nameEl.textContent = ev.toolName) : null; }
   b.el._block = b;
-  if (!b.el._userToggled) b.el.setAttribute('open', '');
   if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.add('is-running'); }
   if (ev.args !== undefined && ev.args !== null && b.argsEl && !b.argsText) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
@@ -1785,7 +1828,6 @@ function endToolExecution(ev) {
   if (b.name === 'edit' && !ev.isError && r && r.details && typeof r.details.diff === 'string') {
     b.el.classList.add('is-diff');
     renderToolDiff(b.resultEl, r.details.diff);
-    if (!b.el._userToggled && !isHydrating) b.el.setAttribute('open', '');
     scheduleScroll();
     return;
   }
