@@ -510,7 +510,6 @@ body {
   color: var(--vscode-editor-background, #1e1e1e);
   filter: brightness(1.12);
 }
-.hint { font-size: 11px; opacity: 0.5; padding: 0 2px; }
 
 .overlay {
   position: fixed;
@@ -875,7 +874,6 @@ body {
         <button id="send" class="icon-btn send-btn" type="button" title="Send message"></button>
       </div>
     </div>
-    <div class="hint" id="hint"></div>
   </div>
 </div>
 <div class="overlay" id="overlay" style="display:none"></div>
@@ -935,7 +933,6 @@ var prevTurn = null;
 var thinkingSelect = document.getElementById('thinking-select');
 var statusEl = document.getElementById('status');
 var sessionInfoEl = document.getElementById('session-info');
-var hintEl = document.getElementById('hint');
 var acEl = document.getElementById('autocomplete');
 var overlayEl = document.getElementById('overlay');
 var toastEl = document.getElementById('toast');
@@ -1021,14 +1018,6 @@ function setStreaming(b) {
   updateSendButton();
   attachBtn.disabled = b;
   if (!b && !statusEl.textContent) setStatus('');
-}
-function showHint(t) { hintEl.textContent = t || ''; }
-
-function formatTokens(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'm';
-  if (n >= 100000) return Math.round(n / 1000) + 'k';
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
-  return String(n);
 }
 function applyContextUsage(usage, cost) {
   if (!ctxRingProg || !ctxRing) return;
@@ -1627,13 +1616,13 @@ function formatTokens(count) {
   if (count < 1000000) return Math.round(count / 1000) + 'k';
   return (count / 1000000).toFixed(1) + 'M';
 }
-function formatToolCallJs(name, args) {
+function formatToolCall(name, args) {
   var summary = formatToolSummary(name, args);
   if (summary) return summary;
   var astr = JSON.stringify(args);
   return name + ' ' + (astr.length > 50 ? astr.slice(0, 50) + '...' : astr);
 }
-function getDisplayItemsJs(messages) {
+function getDisplayItems(messages) {
   var items = [];
   for (var i = 0; i < messages.length; i++) {
     var msg = messages[i];
@@ -1650,7 +1639,7 @@ function getDisplayItemsJs(messages) {
   }
   return items;
 }
-function getFinalOutputJs(messages) {
+function getFinalOutput(messages) {
   for (var i = messages.length - 1; i >= 0; i--) {
     var msg = messages[i];
     if (msg.role === 'assistant') {
@@ -1665,7 +1654,7 @@ function getFinalOutputJs(messages) {
   }
   return '';
 }
-function formatUsageJs(usage, model) {
+function formatUsage(usage, model) {
   if (!usage) return '';
   var parts = [];
   if (usage.turns) parts.push(usage.turns + ' turn' + (usage.turns > 1 ? 's' : ''));
@@ -1696,7 +1685,7 @@ function cacheReadPricePerM() {
   if (cost && typeof cost.cacheRead === 'number') return cost.cacheRead;
   return null;
 }
-function detectCacheMissJs(usage, modelId, ts) {
+function detectCacheMiss(usage, modelId, ts) {
   if (!prevTurn || !usage) return null;
   if (typeof ts === 'number' && ts === prevTurn.ts) return null;
   var promptTokens = (usage.input || 0) + (usage.cacheRead || 0) + (usage.cacheWrite || 0);
@@ -1731,7 +1720,7 @@ function recordCacheUsage(usage, modelId, ts) {
   rebuildCtxRingTooltip();
   if (!usage) { prevTurn = null; return; }
   if (prevTurn && (typeof ts !== 'number' || ts !== prevTurn.ts)) {
-    var miss = detectCacheMissJs(usage, modelId, ts);
+    var miss = detectCacheMiss(usage, modelId, ts);
     if (miss) {
       var costStr = (miss.missedCost >= 0.01)
         ? ' (~$' + miss.missedCost.toFixed(2) + ')'
@@ -1764,7 +1753,7 @@ function seedCacheBaseline(list) {
     break;
   }
 }
-function aggregateUsageJs(results) {
+function aggregateUsage(results) {
   var total = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, contextTokens: 0, turns: 0 };
   for (var i = 0; i < results.length; i++) {
     var r = results[i];
@@ -1787,12 +1776,39 @@ function subagentDetailsHasError(details) {
   }
   return false;
 }
+function appendAgentBody(parent, r) {
+  var items = getDisplayItems(r.messages || []);
+  for (var i = 0; i < items.length; i++) {
+    var idiv = document.createElement('div');
+    if (items[i].type === 'toolCall') {
+      idiv.style.opacity = '0.85';
+      idiv.textContent = '\\u2192 ' + formatToolCall(items[i].name, items[i].args);
+    } else {
+      idiv.textContent = items[i].text;
+    }
+    parent.appendChild(idiv);
+  }
+  var final = getFinalOutput(r.messages || []);
+  if (final) {
+    var mdDiv = document.createElement('div');
+    mdDiv.textContent = final.trim();
+    parent.appendChild(mdDiv);
+  }
+  var usageStr = formatUsage(r.usage, r.model);
+  if (usageStr) {
+    var uDiv = document.createElement('div');
+    uDiv.style.opacity = '0.6';
+    uDiv.style.fontSize = '11px';
+    uDiv.textContent = usageStr;
+    parent.appendChild(uDiv);
+  }
+  return usageStr;
+}
+
 function renderSubagentResult(b, details) {
   if (!b || !b.resultEl) return;
   b.resultEl._piMd = null;
-  if (!details || !details.results) {
-    return;
-  }
+  if (!details || !details.results) return;
   var results = details.results;
   var wrap = document.createElement('div');
   wrap.style.color = 'var(--vscode-foreground)';
@@ -1815,33 +1831,7 @@ function renderSubagentResult(b, details) {
       errDiv.textContent = 'Error: ' + r.errorMessage;
       wrap.appendChild(errDiv);
     }
-    var items = getDisplayItemsJs(r.messages || []);
-    for (var ii = 0; ii < items.length; ii++) {
-      var idiv = document.createElement('div');
-      idiv.style.padding = '1px 0';
-      if (items[ii].type === 'toolCall') {
-        idiv.style.opacity = '0.85';
-        idiv.textContent = '\\u2192 ' + formatToolCallJs(items[ii].name, items[ii].args);
-      } else {
-        idiv.textContent = items[ii].text;
-        idiv.style.color = 'var(--vscode-foreground)';
-      }
-      wrap.appendChild(idiv);
-    }
-    var final = getFinalOutputJs(r.messages || []);
-    if (final) {
-      var mdDiv = document.createElement('div');
-      mdDiv.textContent = final.trim();
-      wrap.appendChild(mdDiv);
-    }
-    var usageStr = formatUsageJs(r.usage, r.model);
-    if (usageStr) {
-      var uDiv = document.createElement('div');
-      uDiv.style.opacity = '0.6';
-      uDiv.style.fontSize = '11px';
-      uDiv.textContent = usageStr;
-      wrap.appendChild(uDiv);
-    }
+    var usageStr = appendAgentBody(wrap, r);
     if (b.summaryEl) {
       b.summaryEl.textContent = ic + ' ' + r.agent;
       if (usageStr) b.summaryEl.textContent += ' \\u00B7 ' + usageStr;
@@ -1860,46 +1850,24 @@ function renderSubagentResult(b, details) {
     wrap.appendChild(ph);
     for (var ri = 0; ri < results.length; ri++) {
       var sr = results[ri];
-      var sric = sr.exitCode === -1 ? '\\u23F3' : (sr.exitCode === 0 ? '\\u2713' : '\\u2717');
       var sdiv = document.createElement('div');
       sdiv.style.padding = '4px 0';
       sdiv.style.margin = '2px 0';
       sdiv.style.borderTop = '1px solid var(--vscode-widget-border,transparent)';
       var sHead = document.createElement('div');
       sHead.style.fontWeight = '500';
+      var sric = sr.exitCode === -1 ? '\\u23F3' : (sr.exitCode === 0 ? '\\u2713' : '\\u2717');
       sHead.textContent = sric + ' ';
       var saName = document.createElement('span');
       saName.style.color = 'var(--vscode-terminal-ansiGreen, #4ec9b0)';
       saName.textContent = sr.agent;
       sHead.appendChild(saName);
       sdiv.appendChild(sHead);
-      var itemiz = getDisplayItemsJs(sr.messages || []);
-      for (var si = 0; si < itemiz.length; si++) {
-        var sidiv = document.createElement('div');
-        if (itemiz[si].type === 'toolCall') {
-          sidiv.textContent = '\\u2192 ' + formatToolCallJs(itemiz[si].name, itemiz[si].args);
-          sidiv.style.opacity = '0.85';
-        }
-        sdiv.appendChild(sidiv);
-      }
-      var sout = getFinalOutputJs(sr.messages || []);
-      if (sout) {
-        var smd = document.createElement('div');
-        smd.textContent = sout.trim();
-        sdiv.appendChild(smd);
-      }
-      var su = formatUsageJs(sr.usage, sr.model);
-      if (su) {
-        var sud = document.createElement('div');
-        sud.style.opacity = '0.6';
-        sud.style.fontSize = '11px';
-        sud.textContent = su;
-        sdiv.appendChild(sud);
-      }
+      appendAgentBody(sdiv, sr);
       wrap.appendChild(sdiv);
     }
-    var tu = aggregateUsageJs(results);
-    var tus = formatUsageJs(tu);
+    var tu = aggregateUsage(results);
+    var tus = formatUsage(tu);
     if (tus) {
       var tud = document.createElement('div');
       tud.style.opacity = '0.6';
@@ -2856,7 +2824,6 @@ window.addEventListener('message', function(e) {
   var d = e.data;
   if (!d || typeof d !== 'object') return;
   switch (d.type) {
-    case 'ready': break;
     case 'state': applyState(d.state); break;
     case 'sessionInfo': sessionInfoEl.textContent = d.label || ''; break;
     case 'models': models = d.models || []; renderModels(); break;

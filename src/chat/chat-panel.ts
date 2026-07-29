@@ -536,22 +536,6 @@ export async function openChatPanel(
         }
         break;
       }
-      case "newSession":
-        try {
-          await rpc.newSession();
-          const st = await rpc.getState();
-          applySessionFile(st.sessionFile, st.sessionName);
-          panel.webview.postMessage({ type: "state", state: st });
-          const messages = await rpc.getMessages();
-          panel.webview.postMessage({ type: "messages", messages });
-          void sendContextUsage();
-        } catch (e) {
-          panel.webview.postMessage({
-            type: "error",
-            message: e instanceof Error ? e.message : String(e),
-          });
-        }
-        break;
       case "fork":
         try {
           if (streaming) {
