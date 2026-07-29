@@ -31,6 +31,8 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .detail h3{margin:0 0 8px;font-size:13px}
 .form-group{margin-bottom:8px}
 .form-group label{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
+.form-check{display:flex;align-items:center;gap:6px}
+.form-check label{display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
 .form-group input,.form-group select,.form-group textarea{width:100%;padding:4px 6px;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border,transparent);border-radius:3px;font-size:12px;font-family:inherit;outline:none}
 .form-group textarea{min-height:60px;resize:vertical}
 .form-row{display:flex;gap:6px}
@@ -71,6 +73,36 @@ function showErr(m) { var e = document.getElementById('error-toast'); e.textCont
 function refresh() { vsc.postMessage({ type: 'refresh' }); }
 function sourceLabel(a) { return a.isBuiltin ? 'built-in' : a.source; }
 function sourceClass(a) { return a.isBuiltin ? 'builtin' : a.source; }
+
+// ====== shared field renderers (used by both create & edit forms) ======
+function renderTextField(id, label, value, placeholder) {
+  return '<div class="form-group"><label>' + escH(label) + '</label>' +
+    '<input id="' + id + '" value="' + escA(value || '') + '" placeholder="' + escA(placeholder || '') + '" /></div>';
+}
+function renderTextareaField(id, label, value, placeholder) {
+  return '<div class="form-group"><label>' + escH(label) + '</label>' +
+    '<textarea id="' + id + '" placeholder="' + escA(placeholder || '') + '">' + escH(value || '') + '</textarea></div>';
+}
+function renderModelSelect(currentModel) {
+  var models = (VD && VD.models) ? VD.models : [];
+  var h = '<div class="form-group"><label>Model</label><select id="f-model">';
+  h += '<option value="">(default)</option>';
+  var found = false;
+  for (var i = 0; i < models.length; i++) {
+    var key = models[i];
+    var sel = key === currentModel;
+    if (sel) found = true;
+    h += '<option value="' + escA(key) + '"' + (sel ? ' selected' : '') + '>' + escH(key) + '</option>';
+  }
+  if (currentModel && !found) {
+    h += '<option value="' + escA(currentModel) + '" selected>' + escH(currentModel) + '</option>';
+  }
+  h += '</select></div>';
+  return h;
+}
+function renderDisableCheckbox(checked) {
+  return '<div class="form-group form-check"><label><input type="checkbox" id="f-disable" ' + (checked ? 'checked' : '') + ' /> Disable model invocation</label></div>';
+}
 
 // ====== render ======
 function render() {
@@ -123,11 +155,11 @@ function renderDetail(a) {
     h += '<div class="form-group"><label>Source</label><div class="readonly-field">' + escH(sourceLabel(a)) + (isBuiltin && a.hasOverride ? ' (override)' : '') + '</div></div>';
   }
   h += '<div class="form-group"><label>Name</label><div class="readonly-field"><code>' + escH(a.name) + '</code></div></div>';
-  h += '<div class="form-group"><label>Description</label><input id="f-desc" value="' + escA(a.description || '') + '" placeholder="Short description" /></div>';
-  h += '<div class="form-group"><label>Tools</label><input id="f-tools" value="' + escA((a.tools || []).join(', ')) + '" placeholder="bash, read, grep, find" /></div>';
-  h += '<div class="form-group"><label>Model</label><input id="f-model" value="' + escA(a.model || '') + '" placeholder="(default: pi-configured model)" /></div>';
-  h += '<div class="form-group"><label>System Prompt (body)</label><textarea id="f-prompt" placeholder="Agent system prompt">' + escH(a.systemPrompt || '') + '</textarea></div>';
-  h += '<div class="form-group" style="display:flex;align-items:center;gap:6px"><label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="f-disable" ' + (a.disableModelInvocation ? 'checked' : '') + ' /> Disable model invocation</label></div>';
+  h += renderTextField('f-desc', 'Description', a.description || '', 'Short description');
+  h += renderTextField('f-tools', 'Tools', (a.tools || []).join(', '), 'bash, read, grep, find');
+  h += renderModelSelect(a.model || '');
+  h += renderTextareaField('f-prompt', 'System Prompt (body)', a.systemPrompt || '', 'Agent system prompt');
+  h += renderDisableCheckbox(a.disableModelInvocation);
   h += '<div class="btn-row">';
   h += '<button class="btn btn-primary" data-action="save" data-name="' + escA(a.name) + '" data-new="0" data-builtin="' + (isBuiltin ? '1' : '0') + '" data-scope="' + escA(a.source) + '">Save</button>';
   if (isBuiltin && a.hasOverride) {
@@ -145,12 +177,11 @@ function renderNewForm() {
   h += '<input type="hidden" id="f-name" value="" />';
   h += '<div class="form-group"><label>Scope</label><select id="f-scope"><option value="user">user (~/.pi/agent/agents)</option>${projectOpt}</select></div>';
   h += '<div class="form-group"><label>Name</label><input id="f-name-inp" value="" placeholder="my-agent" /></div>';
-  h += '<div class="form-group"><label>Description</label><input id="f-desc" value="" placeholder="Short description" /></div>';
-  h += '<div class="form-group"><label>Tools</label><input id="f-tools" value="" placeholder="bash, read, grep, find" /></div>';
-  h += '<div class="form-group"><label>Model</label><input id="f-model" value="" placeholder="(default)" /></div>';
-  h += '<div class="form-group"><label>System Prompt (body)</label><textarea id="f-prompt" placeholder="Agent system prompt"></textarea></div>';
-  h += '<div class="form-group" style="display:flex;align-items:center;gap:6px">';
-  h += '<label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="f-disable" /> Disable model invocation</label></div>';
+  h += renderTextField('f-desc', 'Description', '', 'Short description');
+  h += renderTextField('f-tools', 'Tools', '', 'bash, read, grep, find');
+  h += renderModelSelect('');
+  h += renderTextareaField('f-prompt', 'System Prompt (body)', '', 'Agent system prompt');
+  h += renderDisableCheckbox(false);
   h += '<div class="btn-row">';
   h += '<button class="btn btn-primary" data-action="save" data-new="1" data-builtin="0" data-scope="user">Create</button>';
   h += '<button class="btn btn-secondary" data-action="cancel">Cancel</button>';

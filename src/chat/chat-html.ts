@@ -162,31 +162,6 @@ body {
 }
 
 .messages-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative; }
-.scroll-bottom-btn {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground, #2d2d30));
-  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
-  border: 1px solid var(--vscode-widget-border, transparent);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  z-index: 30;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(6px);
-  transition: opacity .18s, transform .18s, visibility .18s;
-}
-.scroll-bottom-btn.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
-.scroll-bottom-btn:hover { transform: scale(1.12); }
-.scroll-bottom-btn svg { width: 16px; height: 16px; display: block; }
 .messages {
   flex: 1;
   min-height: 0;
@@ -469,6 +444,7 @@ body {
 .autocomplete-item .ac-name { font-weight: 500; font-family: var(--vscode-editor-font-family); font-size: 12px; }
 .autocomplete-item .ac-desc { font-size: 11px; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .autocomplete-item .ac-source { font-size: 10px; opacity: 0.5; }
+.autocomplete-item .ac-name mark.ac-hl { background: transparent; color: var(--vscode-list-highlightForeground, inherit); font-weight: 700; }
 
 #input {
   width: 100%;
@@ -789,7 +765,6 @@ body {
   </div>
   <div class="messages-wrap">
     <div class="messages" id="messages"></div>
-    <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
   </div>
   <div id="widget" class="widget" style="display:none"></div>
   <div id="queue" class="queue" style="display:none"></div>
@@ -871,6 +846,7 @@ var toastEl = document.getElementById('toast');
 var acItems = [];
 var acIndex = -1;
 var acMode = 'command';
+var acMatchIndices = [];
 var fileTimer = null;
 var PI_HOME = ${JSON.stringify(home || "")};
 var PI_SEP = ${JSON.stringify(sep || "/")};
@@ -888,20 +864,13 @@ function formatTime(ts) {
   return hr + ':' + mm + ' ' + ampm;
 }
 var autoScroll = true;
-var scrollBottomBtn = document.getElementById('scroll-bottom-btn');
 var STICK_THRESHOLD = 48;
 function isAtBottom() {
   return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - STICK_THRESHOLD;
 }
-function updateScrollBtn() {
-  if (autoScroll) scrollBottomBtn.classList.remove('show');
-  else scrollBottomBtn.classList.add('show');
-}
 messagesEl.addEventListener('scroll', function() {
   autoScroll = isAtBottom();
-  updateScrollBtn();
 });
-scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
 function scheduleScroll() {
   if (scrollRAF) return;
@@ -926,7 +895,6 @@ function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
   messagesEl.scrollTop = messagesEl.scrollHeight;
-  updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
@@ -2104,19 +2072,60 @@ function currentAtToken() {
   if (token.charAt(0) !== '@') return null;
   return { query: token.slice(1), lineStart: wordStart, after: val.slice(pos) };
 }
+function scoreCommand(name, q) {
+  var n = name.toLowerCase();
+  if (!q) return { score: 1, indices: null };
+  var pi = n.indexOf(q);
+  if (pi >= 0) {
+    var idx = [];
+    for (var k = 0; k < q.length; k++) idx.push(pi + k);
+    if (pi === 0) return { score: 900, indices: idx };
+    var prev = n.charAt(pi - 1);
+    var base = (prev === '-' || prev === '_' || prev === ' ') ? 750 : 600;
+    return { score: base - pi, indices: idx };
+  }
+  var qi = 0, firstIdx = -1, lastIdx = -1, consec = 0, maxConsec = 0, indices = [];
+  for (var i = 0; i < n.length && qi < q.length; i++) {
+    if (n.charAt(i) === q.charAt(qi)) {
+      if (firstIdx < 0) firstIdx = i;
+      if (lastIdx >= 0 && i === lastIdx + 1) consec++; else consec = 1;
+      if (consec > maxConsec) maxConsec = consec;
+      lastIdx = i;
+      indices.push(i);
+      qi++;
+    }
+  }
+  if (qi !== q.length) return null;
+  var startBonus = 0;
+  if (firstIdx === 0) startBonus = 50;
+  else { var p = n.charAt(firstIdx - 1); if (p === '-' || p === '_' || p === ' ') startBonus = 30; }
+  var gaps = (lastIdx - firstIdx + 1) - q.length;
+  var compactBonus = gaps > 0 ? Math.max(0, 40 - gaps * 3) : 40;
+  return { score: 100 + startBonus + maxConsec * 8 + compactBonus, indices: indices };
+}
 function updateAutocomplete() {
   var slash = currentSlashToken();
   if (slash) {
     clearTimeout(fileTimer);
     acMode = 'command';
     var q = slash.token.toLowerCase();
-    var matches = [];
+    var scored = [];
     for (var i = 0; i < commands.length; i++) {
       var c = commands[i];
-      if (c.name.toLowerCase().indexOf(q) === 0) matches.push(c);
+      var m = scoreCommand(c.name, q);
+      if (m) scored.push({ cmd: c, score: m.score, indices: m.indices, ord: i });
     }
-    if (!matches.length) { hideAutocomplete(); return; }
-    acItems = matches;
+    if (!scored.length) { hideAutocomplete(); return; }
+    scored.sort(function(a, b) {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.ord - b.ord;
+    });
+    acItems = [];
+    acMatchIndices = [];
+    for (var j = 0; j < scored.length; j++) {
+      acItems.push(scored[j].cmd);
+      acMatchIndices.push(scored[j].indices);
+    }
     acIndex = 0;
     renderAutocomplete();
     acEl.style.display = 'block';
@@ -2153,7 +2162,23 @@ function renderAutocomplete() {
     } else {
       var c = acItems[i];
       var cname = el('div', 'ac-name');
-      cname.textContent = '/' + c.name;
+      var matched = acMatchIndices[i];
+      if (matched && matched.length) {
+        cname.appendChild(document.createTextNode('/'));
+        var mi = 0;
+        for (var k = 0; k < c.name.length; k++) {
+          if (mi < matched.length && matched[mi] === k) {
+            var mk = el('mark', 'ac-hl');
+            mk.textContent = c.name.charAt(k);
+            cname.appendChild(mk);
+            mi++;
+          } else {
+            cname.appendChild(document.createTextNode(c.name.charAt(k)));
+          }
+        }
+      } else {
+        cname.textContent = '/' + c.name;
+      }
       var cdesc = el('div', 'ac-desc');
       cdesc.textContent = c.description || '';
       var csrc = el('div', 'ac-source');
@@ -2167,7 +2192,7 @@ function renderAutocomplete() {
   var active = acEl.querySelector('.active');
   if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
 }
-function hideAutocomplete() { clearTimeout(fileTimer); acEl.style.display = 'none'; acItems = []; acIndex = -1; acMode = 'command'; }
+function hideAutocomplete() { clearTimeout(fileTimer); acEl.style.display = 'none'; acItems = []; acIndex = -1; acMode = 'command'; acMatchIndices = []; }
 function applyFileResults(query, files) {
   var info = currentAtToken();
   if (!info || info.query !== query) return;

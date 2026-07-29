@@ -10,6 +10,27 @@ import {
   type AgentFormData,
 } from "./agents-config.ts";
 import { getAgentsHtml } from "./agents-sidebar-html.ts";
+import { getModelRuntime } from "../models/auth-config.ts";
+
+async function getAvailableAgentModels(): Promise<string[]> {
+  try {
+    const runtime = await getModelRuntime();
+    const all = await runtime.getAvailable();
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const m of all) {
+      const key = `${m.provider}/${m.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(key);
+    }
+    list.sort((a, b) => a.localeCompare(b));
+    return list;
+  } catch (err) {
+    console.error("[pi-agent-studio] Agents view: failed to list models:", err);
+    return [];
+  }
+}
 
 export function createAgentsViewProvider(extensionUri: vscode.Uri): vscode.WebviewViewProvider {
   return {
@@ -19,12 +40,13 @@ export function createAgentsViewProvider(extensionUri: vscode.Uri): vscode.Webvi
       const projectDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       webviewView.webview.html = getAgentsHtml(!!projectDir);
 
-      const postData = () => {
+      const postData = async () => {
         try {
           const agents = listAgents(builtinDir, projectDir);
+          const models = await getAvailableAgentModels();
           webviewView.webview.postMessage({
             type: "data",
-            data: { agents, hasWorkspace: !!projectDir },
+            data: { agents, hasWorkspace: !!projectDir, models },
           });
         } catch (err) {
           console.error("[pi-agent-studio] Agents view: error building data:", err);
