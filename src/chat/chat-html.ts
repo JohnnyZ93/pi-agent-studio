@@ -688,20 +688,31 @@ body {
 .widget { flex-shrink: 0; padding: 6px 8px 0; }
 .widget-card {
   border: 1px solid var(--vscode-widget-border, transparent);
-  border-left: 3px solid var(--vscode-charts-blue, #3794ff);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.06));
-  padding: 6px 8px;
+  padding: 8px 10px;
 }
 .widget-head {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
-.widget-head .widget-title { flex: 1 1 auto; min-width: 0; }
+.widget-title {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.widget-title svg { width: 14px; height: 14px; display: block; opacity: 0.9; }
+.widget-stats {
+  font-size: 11px;
+  opacity: 0.7;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
 .widget-clear {
   background: transparent;
   color: var(--vscode-foreground);
@@ -712,6 +723,8 @@ body {
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 .widget-clear:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
 .widget-body {
@@ -720,6 +733,61 @@ body {
   font-size: 12px;
   white-space: pre;
   line-height: 1.5;
+}
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+}
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  transition: background 0.12s;
+}
+.todo-item:hover { background: var(--vscode-list-hoverBackground, rgba(127,127,127,0.08)); }
+.todo-check {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  border-radius: 4px;
+  border: 1.5px solid var(--vscode-input-placeholderForeground, rgba(127,127,127,0.55));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.todo-check svg { width: 11px; height: 11px; display: block; }
+.todo-item.is-done .todo-check {
+  background: var(--vscode-charts-green, #4ec9b0);
+  border-color: var(--vscode-charts-green, #4ec9b0);
+  color: var(--vscode-editor-background, #1e1e1e);
+}
+.todo-id {
+  flex-shrink: 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+  color: var(--vscode-textLink-foreground, var(--vscode-charts-blue, #3794ff));
+  opacity: 0.8;
+  margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.todo-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+.todo-item.is-done .todo-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--vscode-disabledForeground, currentColor);
+  opacity: 0.5;
 }
 .queue { flex-shrink: 0; padding: 6px 8px 0; display: flex; flex-direction: column; gap: 4px; }
 .queue-item {
@@ -833,6 +901,8 @@ var historyDraft = '';
 var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
 var ICON_STOP = '<svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.4" fill="currentColor"/></svg>';
+var ICON_TODO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5l1.5 1.5L6.5 3.5"/><path d="M2.5 10l1.5 1.5L6.5 8.5"/><path d="M9 4.5h4.5"/><path d="M9 10h4.5"/></svg>';
+var ICON_CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>';
 var EMPTY_HTML = '<div class="empty">'
   + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
   + '<div class="empty-line">There are many agent harnesses</div>'
@@ -1003,11 +1073,55 @@ function applyWidget(key, lines) {
     widgetEl.style.display = 'block';
     return;
   }
+  var CDONE = String.fromCharCode(0x2713);
+  var COPEN = String.fromCharCode(0x25cb);
+  var header = lines[0] || '';
+  var doneCount = 0, totalCount = 0, headerOk = false;
+  if (header.indexOf('Todos') === 0) {
+    var he = header.indexOf('done');
+    var mid = (he > 5 ? header.slice(5, he) : header.slice(5)).trim();
+    var sl = mid.indexOf('/');
+    if (sl >= 0) {
+      doneCount = parseInt(mid.slice(0, sl), 10) || 0;
+      totalCount = parseInt(mid.slice(sl + 1), 10) || 0;
+      headerOk = true;
+    }
+  }
+  function skipWS(s, p) { while (p < s.length) { var c = s.charCodeAt(p); if (c !== 32 && c !== 9) break; p++; } return p; }
+  var items = [];
+  for (var i = 1; i < lines.length; i++) {
+    var raw = lines[i] == null ? '' : String(lines[i]);
+    var p = skipWS(raw, 0);
+    var ch = raw.charAt(p);
+    if (ch === CDONE || ch === COPEN) {
+      var done = ch === CDONE;
+      p = skipWS(raw, p + 1);
+      var id = '';
+      if (raw.charAt(p) === '#') {
+        var q = p + 1;
+        while (q < raw.length) { var cc = raw.charCodeAt(q); if (cc < 48 || cc > 57) break; q++; }
+        id = raw.slice(p + 1, q);
+        p = q;
+      }
+      p = skipWS(raw, p);
+      items.push({ done: done, id: id, text: raw.slice(p) });
+    } else {
+      var rt = raw.trim();
+      if (rt) items.push({ done: false, id: '', text: rt });
+    }
+  }
+  if (!headerOk && items.length) { totalCount = items.length; doneCount = 0; for (var k = 0; k < items.length; k++) if (items[k].done) doneCount++; }
+
   var card = el('div', 'widget-card');
   var head = el('div', 'widget-head');
   var title = el('span', 'widget-title');
-  title.textContent = lines[0] || 'Todos';
+  title.innerHTML = ICON_TODO + '<span>Todos</span>';
   head.appendChild(title);
+  if (totalCount > 0) {
+    var stats = el('span', 'widget-stats');
+    stats.textContent = doneCount + '/' + totalCount + ' done';
+    head.appendChild(stats);
+  }
   if (lines.length > 1) {
     var clearBtn = el('button', 'widget-clear');
     clearBtn.type = 'button';
@@ -1016,10 +1130,25 @@ function applyWidget(key, lines) {
     head.appendChild(clearBtn);
   }
   card.appendChild(head);
-  if (lines.length > 1) {
-    var body = el('pre', 'widget-body');
-    body.textContent = lines.slice(1).join('\\n');
-    card.appendChild(body);
+  if (items.length) {
+    var list = el('div', 'todo-list');
+    for (var j = 0; j < items.length; j++) {
+      var it = items[j];
+      var row = el('div', 'todo-item' + (it.done ? ' is-done' : ''));
+      var check = el('span', 'todo-check');
+      if (it.done) check.innerHTML = ICON_CHECK;
+      row.appendChild(check);
+      if (it.id) {
+        var idSpan = el('span', 'todo-id');
+        idSpan.textContent = '#' + it.id;
+        row.appendChild(idSpan);
+      }
+      var txt = el('span', 'todo-text');
+      txt.textContent = it.text;
+      row.appendChild(txt);
+      list.appendChild(row);
+    }
+    card.appendChild(list);
   }
   widgetEl.appendChild(card);
   widgetEl.style.display = 'block';
