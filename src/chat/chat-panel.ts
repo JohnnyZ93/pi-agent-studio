@@ -216,6 +216,17 @@ export async function openChatPanel(
 
   async function refreshContextAfterCompaction(event: RpcEvent): Promise<void> {
     if (disposed) return;
+    const aborted = event.aborted as boolean | undefined;
+    const errorMessage = event.errorMessage as string | undefined;
+    if (!aborted && !errorMessage) {
+      // rehydrate so the compactionSummary block renders in-stream
+      try {
+        const msgs = await rpc.getMessages();
+        if (!disposed) panel.webview.postMessage({ type: "messages", messages: msgs });
+      } catch {
+        // fall through to context refresh
+      }
+    }
     const result = event.result as { estimatedTokensAfter?: number } | undefined;
     const after = result?.estimatedTokensAfter;
     if (typeof after === "number") {
@@ -273,15 +284,11 @@ export async function openChatPanel(
     try {
       switch (name) {
         case "compact": {
-          const result = await rpc.compact(args || undefined);
-          const parts: string[] = [
-            "**Compaction completed.**" + (args ? " _(custom instructions applied)_" : ""),
-          ];
-          if (result.tokensBefore != null) {
-            parts.push(`Tokens before: **${result.tokensBefore}**`);
+          try {
+            await rpc.compact(args || undefined);
+          } catch {
+            // error UI is handled via the compaction_end event
           }
-          if (result.summary) parts.push("", result.summary);
-          showInfoPanel("Compaction", parts.join("\n\n"));
           break;
         }
         case "autocompact": {

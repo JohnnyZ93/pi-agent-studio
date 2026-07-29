@@ -1178,6 +1178,7 @@ function renderQueue() {
 
 // ---- message DOM ----
 var currentAssistant = null; // { el, blocks: [] }
+var pendingCompactionBlock = null;
 var lastUserBubble = null;
 
 function addUserMessage(text) {
@@ -1232,6 +1233,28 @@ function addCompactionMessage(m) {
   det.appendChild(body);
   row.appendChild(det);
   messagesEl.appendChild(row);
+  scheduleScroll();
+}
+function addCompactionPlaceholder() {
+  var empty = messagesEl.querySelector('.empty');
+  if (empty) empty.remove();
+  var row = el('div', 'msg compaction');
+  var det = el('details', 'compaction-block');
+  det.setAttribute('open', '');
+  var summ = el('summary', '');
+  var label = el('span', 'compaction-label');
+  label.textContent = '[compaction]';
+  summ.appendChild(label);
+  summ.appendChild(document.createTextNode(' Compacting\u2026'));
+  var spin = el('span', 'tool-status is-running');
+  summ.appendChild(spin);
+  det.appendChild(summ);
+  var body = el('div', 'compaction-body');
+  body.textContent = 'Summarizing conversation\u2026';
+  det.appendChild(body);
+  row.appendChild(det);
+  messagesEl.appendChild(row);
+  pendingCompactionBlock = row;
   scheduleScroll();
 }
 
@@ -2020,6 +2043,7 @@ var isHydrating = false;
 // ---- hydrate from get_messages ----
 function hydrateMessages(list) {
   messagesEl.innerHTML = '';
+  pendingCompactionBlock = null;
   currentAssistant = null;
   pendingTexts = [];
   prevTurn = null;
@@ -2146,8 +2170,15 @@ function handleEvent(event) {
     case 'tool_execution_start': startToolExecution(event); break;
     case 'tool_execution_update': updateToolExecution(event); break;
     case 'tool_execution_end': endToolExecution(event); break;
-    case 'compaction_start': setStatus('Compacting\u2026'); showToast('Compacting session\u2026', 'info', true); break;
-    case 'compaction_end': hideToast(); setStatus(''); break;
+    case 'compaction_start': setStatus('Compacting\u2026'); addCompactionPlaceholder(); break;
+    case 'compaction_end':
+      hideToast();
+      setStatus('');
+      if (d.aborted || d.errorMessage) {
+        if (pendingCompactionBlock) { pendingCompactionBlock.remove(); pendingCompactionBlock = null; }
+        if (d.errorMessage) showToast(d.errorMessage, 'error');
+      }
+      break;
     case 'auto_retry_start':
       retryAttempt = event.attempt;
       setStatus('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026');
