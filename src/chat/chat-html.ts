@@ -2834,6 +2834,12 @@ window.addEventListener('message', function(e) {
     case 'messages': queueState.steering = []; queueState.followUp = []; renderQueue(); hydrateMessages(d.messages); break;
     case 'event': handleEvent(d.event); break;
     case 'pickedResources': insertPickedResources(d.paths); break;
+    case 'prefillInput':
+      inputEl.value = d.text || '';
+      autoGrow();
+      updateSendButton();
+      inputEl.focus();
+      break;
     case 'files': applyFileResults(d.query, d.files); break;
     case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
     case 'contextUsage': applyContextUsage(d.usage, d.cost); break;

@@ -149,7 +149,8 @@ export type ExtToWebview =
   | { type: "toast"; text: string; kind?: "info" | "success" | "error" }
   | { type: "infoPanel"; title: string; markdown: string }
   | { type: "btwLoading"; text: string | null }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "prefillInput"; text: string };
 
 // ---- postMessage: webview -> extension ----
 export type WebviewToExt =

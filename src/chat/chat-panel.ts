@@ -33,6 +33,23 @@ const sessionToPanel = new Map<string, string>();
 const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
 const CHAT_PANEL_TITLE = "Pi Chat";
 
+function messageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  let t = "";
+  for (const block of content) {
+    if (typeof block === "string") t += block;
+    else if (
+      block &&
+      typeof block === "object" &&
+      block.type === "text" &&
+      typeof block.text === "string"
+    )
+      t += (t ? "\n" : "") + block.text;
+  }
+  return t;
+}
+
 export async function openChatPanel(
   opts: OpenChatPanelOptions,
 ): Promise<ChatPanelHandle | undefined> {
@@ -577,12 +594,14 @@ export async function openChatPanel(
             toast("Could not locate that message to revert to.", "error");
             break;
           }
+          const revText = messageText(revEntry.message?.content);
           await rpc.prompt(`/pi-vscode-tree ${revEntry.id}`);
           const revSt = await rpc.getState();
           applySessionFile(revSt.sessionFile, revSt.sessionName);
           panel.webview.postMessage({ type: "state", state: revSt });
           const revMsgs = await rpc.getMessages();
           panel.webview.postMessage({ type: "messages", messages: revMsgs });
+          if (revText) panel.webview.postMessage({ type: "prefillInput", text: revText });
           void sendContextUsage();
           toast("Reverted to selected message.", "success");
         } catch (e) {
