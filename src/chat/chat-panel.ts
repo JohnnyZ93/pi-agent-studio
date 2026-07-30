@@ -32,6 +32,7 @@ const sessionToPanel = new Map<string, string>();
 
 const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
 const CHAT_PANEL_TITLE = "Pi Chat";
+const BTW_ABORT_TITLE = "Pi Btw Abort";
 
 function messageText(content: unknown): string {
   if (typeof content === "string") return content;
@@ -396,6 +397,10 @@ export async function openChatPanel(
   }
 
   function handleExtUiRequest(req: ExtensionUiRequest): void {
+    if (req.method === "confirm" && req.title === BTW_ABORT_TITLE) {
+      if (!disposed) panel.webview.postMessage({ type: "btwAbortReady", id: req.id });
+      return;
+    }
     if (
       req.method === "select" ||
       req.method === "confirm" ||
@@ -404,24 +409,6 @@ export async function openChatPanel(
     ) {
       panel.webview.postMessage({ type: "dialog", request: req });
     } else if (req.method === "setWidget") {
-      if (req.widgetKey === "btw") {
-        const lines = req.widgetLines as string[] | undefined;
-        if (lines && lines.length >= 2) {
-          if (!disposed) {
-            panel.webview.postMessage({
-              type: "infoPanel",
-              title: String(lines[0]),
-              markdown: lines.slice(1).join("\n"),
-            });
-            panel.webview.postMessage({ type: "btwLoading", text: null });
-          }
-        } else if (lines && lines.length === 1) {
-          if (!disposed) panel.webview.postMessage({ type: "btwLoading", text: String(lines[0]) });
-        } else if (!disposed) {
-          panel.webview.postMessage({ type: "btwLoading", text: null });
-        }
-        return;
-      }
       if (!disposed)
         panel.webview.postMessage({
           type: "widget",
@@ -649,6 +636,9 @@ export async function openChatPanel(
       }
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
+        break;
+      case "btwAbort":
+        rpc.respondExtensionUi(msg.id, { confirmed: true });
         break;
     }
   });

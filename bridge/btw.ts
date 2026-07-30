@@ -146,21 +146,46 @@ async function askSideQuestion(
   });
 }
 
+const BTW_ABORT_TITLE = "Pi Btw Abort";
+
 async function askAndShowInWebview(question: string, ctx: ExtensionCommandContext) {
-  ctx.ui.setWidget("btw", [`⏳ Answering /btw with ${ctx.model!.id}…`]);
+  const modelId = ctx.model?.id ?? "";
+  ctx.ui.setWidget("btw", [JSON.stringify({ phase: "loading", question, model: modelId })]);
+
+  const fetchAc = new AbortController();
+  const dialogAc = new AbortController();
+  const abortPromise = ctx.ui.confirm(BTW_ABORT_TITLE, question, { signal: dialogAc.signal });
+  const fetchPromise = fetchAnswer(question, ctx, fetchAc.signal).catch(() => undefined);
+
+  let answer: string | undefined;
   try {
-    const answer = await fetchAnswer(question, ctx, undefined);
-    if (answer === undefined) {
-      ctx.ui.setWidget("btw", undefined);
+    const winner = await Promise.race([
+      fetchPromise.then((a) => ({ kind: "fetch" as const, answer: a })),
+      abortPromise.then((confirmed) => ({ kind: "abort" as const, confirmed })),
+    ]);
+    if (winner.kind === "abort" && winner.confirmed) {
+      fetchAc.abort();
+      await fetchPromise;
+      ctx.ui.setWidget("btw", [JSON.stringify({ phase: "error", message: "/btw cancelled" })]);
       ctx.ui.notify("Cancelled", "info");
       return;
     }
-    ctx.ui.setWidget("btw", [question, answer]);
+    dialogAc.abort();
+    answer = winner.kind === "fetch" ? winner.answer : await fetchPromise;
   } catch (error: unknown) {
+    fetchAc.abort();
+    dialogAc.abort();
     ctx.ui.setWidget("btw", undefined);
     const message = error instanceof Error ? error.message : String(error);
     ctx.ui.notify(`/btw failed: ${message}`, "error");
+    return;
   }
+
+  if (answer === undefined) {
+    ctx.ui.setWidget("btw", undefined);
+    return;
+  }
+  ctx.ui.setWidget("btw", [JSON.stringify({ phase: "result", question, answer })]);
 }
 
 async function showAnswer(question: string, answer: string, ctx: ExtensionCommandContext) {

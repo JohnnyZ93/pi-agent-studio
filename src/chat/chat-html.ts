@@ -385,6 +385,34 @@ body {
 .compaction-label { font-weight: 600; opacity: 0.8; }
 .compaction-body { margin-top: 6px; line-height: 1.55; padding: 2px 0; font-size: 13px; max-height: 340px; overflow-y: auto; }
 .compaction-body > :last-child { margin-bottom: 0; }
+.btw-block {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-left: 3px solid var(--vscode-charts-yellow, #cca700);
+  border-radius: 6px;
+  background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.08));
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.btw-block > summary {
+  cursor: pointer;
+  opacity: 0.85;
+  list-style: none;
+  user-select: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btw-block > summary::-webkit-details-marker { display: none; }
+.btw-block > summary:before { content: "▶"; font-size: 9px; opacity: 0.6; }
+.btw-block[open] > summary:before { content: "▼"; }
+.btw-label { font-weight: 600; opacity: 0.8; flex: 0 0 auto; }
+.btw-q { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btw-body { margin-top: 6px; line-height: 1.55; padding: 2px 0; font-size: 13px; max-height: 340px; overflow-y: auto; }
+.btw-body > :last-child { margin-bottom: 0; }
+.btw-loading-text { opacity: 0.7; font-size: 12px; }
 
 .tool-block {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -952,7 +980,7 @@ var models = [];
 var thinkingLevels = [];
 var commands = [];
 var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
-var state = { model: null, thinkingLevel: 'medium', isStreaming: false, sessionFile: null };
+var state = { model: null, thinkingLevel: 'medium', isStreaming: false, isBtwLoading: false, sessionFile: null };
 var retryAttempt = 0;
 var inputHistory = [];
 var historyIndex = -1;
@@ -1078,10 +1106,10 @@ function scrollToBottom() {
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
-  if (state.isStreaming) {
+  if (state.isStreaming || state.isBtwLoading) {
     sendBtn.innerHTML = ICON_STOP;
     sendBtn.classList.add('is-stop');
-    sendBtn.title = 'Stop generation';
+    sendBtn.title = state.isBtwLoading ? 'Stop /btw' : 'Stop generation';
     sendBtn.disabled = false;
   } else {
     sendBtn.innerHTML = ICON_SEND;
@@ -1215,6 +1243,9 @@ function renderQueue() {
 // ---- message DOM ----
 var currentAssistant = null; // { el, blocks: [] }
 var pendingCompactionBlock = null;
+var pendingBtwBlock = null;
+var btwAbortId = null;
+var btwStatusActive = false;
 var lastUserBubble = null;
 
 function addUserMessage(text, images) {
@@ -1303,6 +1334,85 @@ function addCompactionPlaceholder() {
   messagesEl.appendChild(row);
   pendingCompactionBlock = row;
   scheduleScroll();
+}
+
+function setBtwStatus(text) {
+  if (text) { setStatus(text); btwStatusActive = true; }
+  else if (btwStatusActive) { setStatus(''); btwStatusActive = false; }
+}
+function setBtwLoading(b) {
+  state.isBtwLoading = b;
+  if (!b) btwAbortId = null;
+  updateSendButton();
+}
+function addBtwPlaceholder(question, model) {
+  var empty = messagesEl.querySelector('.empty');
+  if (empty) empty.remove();
+  var row = el('div', 'msg btw');
+  var det = el('details', 'btw-block');
+  det.setAttribute('open', '');
+  var summ = el('summary', '');
+  var label = el('span', 'btw-label');
+  label.textContent = '[btw]';
+  summ.appendChild(label);
+  var q = el('span', 'btw-q');
+  q.textContent = question || '';
+  q.title = question || '';
+  summ.appendChild(q);
+  var spin = el('span', 'tool-status is-running');
+  summ.appendChild(spin);
+  det.appendChild(summ);
+  var body = el('div', 'btw-body btw-loading-text');
+  body.textContent = 'Answering' + (model ? ' with ' + model : '') + '\u2026';
+  det.appendChild(body);
+  row.appendChild(det);
+  messagesEl.appendChild(row);
+  pendingBtwBlock = row;
+  setBtwStatus('Answering /btw' + (model ? ' with ' + model : '') + '\u2026');
+  scheduleScroll();
+}
+function showBtwResult(question, answer) {
+  if (!pendingBtwBlock) addBtwPlaceholder(question, '');
+  var det = pendingBtwBlock ? pendingBtwBlock.querySelector('.btw-block') : null;
+  if (det) {
+    var spin = det.querySelector('.tool-status.is-running');
+    if (spin) spin.remove();
+    var body = det.querySelector('.btw-body');
+    if (body) {
+      body.classList.remove('btw-loading-text');
+      body.classList.add('text-block');
+      renderMarkdown(body, answer || '');
+    }
+  }
+  pendingBtwBlock = null;
+  setBtwLoading(false);
+  setBtwStatus(null);
+  scheduleScroll();
+}
+function clearBtw() {
+  if (pendingBtwBlock) { pendingBtwBlock.remove(); pendingBtwBlock = null; }
+  setBtwLoading(false);
+  setBtwStatus(null);
+}
+function showBtwError(message) {
+  if (pendingBtwBlock) { pendingBtwBlock.remove(); pendingBtwBlock = null; }
+  setBtwLoading(false);
+  setBtwStatus(null);
+  var eb = el('div', 'error-banner');
+  eb.textContent = message || 'Error';
+  messagesEl.appendChild(eb);
+  scrollToBottom();
+}
+function handleBtw(lines) {
+  var payload = {};
+  if (lines && lines.length) {
+    try { payload = JSON.parse(lines[0] || '{}'); } catch (e) {}
+  }
+  if (!payload || !payload.phase) { clearBtw(); return; }
+  if (payload.phase === 'loading') addBtwPlaceholder(payload.question || '', payload.model || '');
+  else if (payload.phase === 'result') showBtwResult(payload.question || '', payload.answer || '');
+  else if (payload.phase === 'error') showBtwError(payload.message || '');
+  else clearBtw();
 }
 
 function startAssistantMessage(ts) {
@@ -2108,6 +2218,10 @@ var isHydrating = false;
 function hydrateMessages(list) {
   messagesEl.innerHTML = '';
   pendingCompactionBlock = null;
+  pendingBtwBlock = null;
+  btwAbortId = null;
+  btwStatusActive = false;
+  state.isBtwLoading = false;
   currentAssistant = null;
   pendingTexts = [];
   prevTurn = null;
@@ -2989,6 +3103,7 @@ thinkingSelect.addEventListener('change', function() {
 });
 sendBtn.addEventListener('click', function() {
   if (state.isStreaming) { vscode.postMessage({ type: 'abort' }); return; }
+  if (state.isBtwLoading && btwAbortId) { vscode.postMessage({ type: 'btwAbort', id: btwAbortId }); return; }
   sendPrompt();
 });
 
@@ -3050,14 +3165,17 @@ window.addEventListener('message', function(e) {
       inputEl.focus();
       break;
     case 'files': applyFileResults(d.query, d.files); break;
-    case 'widget': applyWidget(d.widgetKey, d.widgetLines); break;
+    case 'widget':
+      if (d.widgetKey === 'btw') handleBtw(d.widgetLines);
+      else applyWidget(d.widgetKey, d.widgetLines);
+      break;
+    case 'btwAbortReady':
+      btwAbortId = d.id;
+      setBtwLoading(true);
+      break;
     case 'contextUsage': applyContextUsage(d.usage, d.cost); break;
     case 'toast': showToast(d.text, d.kind); break;
     case 'infoPanel': showInfoPanel(d.title, d.markdown); break;
-    case 'btwLoading':
-      if (d.text) { showToast(d.text, 'info', true); setStatus(d.text); }
-      else { hideToast(); setStatus(''); }
-      break;
     case 'dialog': showDialog(d.request); break;
     case 'error':
       setStreaming(false);

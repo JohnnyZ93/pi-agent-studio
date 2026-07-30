@@ -159,7 +159,7 @@ export type ExtToWebview =
   | { type: "widget"; widgetKey?: string; widgetLines?: string[] }
   | { type: "toast"; text: string; kind?: "info" | "success" | "error" }
   | { type: "infoPanel"; title: string; markdown: string }
-  | { type: "btwLoading"; text: string | null }
+  | { type: "btwAbortReady"; id: string }
   | { type: "error"; message: string }
   | { type: "prefillInput"; text: string };
 
@@ -179,5 +179,6 @@ export type WebviewToExt =
       cancelled?: boolean;
     }
   | { type: "todoClear" }
+  | { type: "btwAbort"; id: string }
   | { type: "fork"; ts: number }
   | { type: "revert"; ts: number };
