@@ -51,6 +51,22 @@ function messageText(content: unknown): string {
   return t;
 }
 
+function escapeGlob(s: string): string {
+  let out = "";
+  for (const ch of s) {
+    const lower = ch.toLowerCase();
+    const upper = ch.toUpperCase();
+    if (lower !== upper) {
+      out += `[${lower}${upper}]`;
+    } else if (/[*?[\]{}()!@\\]/.test(ch)) {
+      out += `\\${ch}`;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 export async function openChatPanel(
   opts: OpenChatPanelOptions,
 ): Promise<ChatPanelHandle | undefined> {
@@ -530,18 +546,28 @@ export async function openChatPanel(
           if (!disposed) panel.webview.postMessage({ type: "files", query, files: [] });
           break;
         }
+        const q = query.trim();
+        if (!q) {
+          if (!disposed) panel.webview.postMessage({ type: "files", query, files: [] });
+          break;
+        }
         try {
-          const uris = await vscode.workspace.findFiles(
-            new vscode.RelativePattern(cwd, "**/*"),
-            undefined,
-            500,
-          );
-          const q = query.toLowerCase();
-          const files = uris
-            .map((u) => toDisplayPath(u.fsPath, cwd))
-            .filter((p) => !q || p.toLowerCase().indexOf(q) >= 0)
-            .sort((a, b) => a.length - b.length || a.localeCompare(b))
-            .slice(0, 80);
+          const excludePatterns = new Set<string>();
+          for (const scope of ["files", "search"] as const) {
+            const cfg = vscode.workspace
+              .getConfiguration(scope)
+              .get<Record<string, boolean>>("exclude");
+            if (cfg) {
+              for (const [glob, on] of Object.entries(cfg)) {
+                if (on) excludePatterns.add(glob);
+                else excludePatterns.delete(glob);
+              }
+            }
+          }
+          const exclude = excludePatterns.size ? `{${[...excludePatterns].join(",")}}` : undefined;
+          const include = new vscode.RelativePattern(cwd, `**/*${escapeGlob(q)}*`);
+          const uris = await vscode.workspace.findFiles(include, exclude, 80);
+          const files = uris.map((u) => toDisplayPath(u.fsPath, cwd));
           if (!disposed) panel.webview.postMessage({ type: "files", query, files });
         } catch {
           if (!disposed) panel.webview.postMessage({ type: "files", query, files: [] });
