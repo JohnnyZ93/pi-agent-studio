@@ -2,6 +2,16 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.1] - 2026-07-29
+
+- **Chat UI**: added image attachment support — paste or drag-and-drop images into the composer with inline preview.
+- **Chat UI**: added todo list widget — parsed from agent output, rendered above the composer with completion icons and progress stats.
+- **Chat UI**: added toolbar buttons (info / reload) and Ctrl+Click to open files from tool result blocks.
+- **Chat UI**: improved compaction UI — event-driven placeholder with error handling, and auto-prefill input when reverting to a message.
+- **Subagent**: added `title` field to tasks and collapsible result details with section labels and usage model display.
+- **Btw widget**: revamped with abort support and richer UI.
+- **Chat UI**: fixed auto-scroll so only user scroll changes the stick-to-bottom state.
+
 ## [1.1.0] - 2026-07-29
 
 - **Chat UI**: added message timestamps, compaction blocks (collapsible token-reduction summaries), git-style diff view for `edit` tool results (color-coded added/removed), and line-numbered code view for `write` tool content.
