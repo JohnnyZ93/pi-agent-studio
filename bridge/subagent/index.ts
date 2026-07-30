@@ -147,6 +147,7 @@ interface SingleResult {
   agent: string;
   agentSource: AgentSource | "unknown";
   task: string;
+  title?: string;
   exitCode: number;
   messages: Message[];
   stderr: string;
@@ -266,6 +267,7 @@ async function runSingleAgent(
   agents: AgentConfig[],
   agentName: string,
   task: string,
+  title: string | undefined,
   cwd: string | undefined,
   step: number | undefined,
   signal: AbortSignal | undefined,
@@ -280,6 +282,7 @@ async function runSingleAgent(
       agent: agentName,
       agentSource: "unknown",
       task,
+      title,
       exitCode: 1,
       messages: [],
       stderr: agent
@@ -306,6 +309,7 @@ async function runSingleAgent(
     agent: agentName,
     agentSource: agent.source,
     task,
+    title,
     exitCode: -1,
     messages: [],
     stderr: "",
@@ -448,6 +452,9 @@ async function runSingleAgent(
 const TaskItem = Type.Object({
   agent: Type.String({ description: "Name of the agent to invoke" }),
   task: Type.String({ description: "Task to delegate to the agent" }),
+  title: Type.String({
+    description: "Short title (3-8 words) summarizing this task, shown in the block header.",
+  }),
   cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
 });
 
@@ -456,11 +463,17 @@ const SubagentParams = Type.Object({
     Type.String({ description: "Name of the agent to invoke (for single mode)" }),
   ),
   task: Type.Optional(Type.String({ description: "Task to delegate (for single mode)" })),
-  tasks: Type.Optional(
-    Type.Array(TaskItem, { description: "Array of {agent, task} for parallel execution" }),
+  title: Type.Optional(
+    Type.String({
+      description:
+        "Short title (3-8 words) summarizing the task, shown in the block header. (for single mode)",
+    }),
   ),
   cwd: Type.Optional(
-    Type.String({ description: "Working directory for the agent process (single mode)" }),
+    Type.String({ description: "Working directory for the agent process (for single mode)" }),
+  ),
+  tasks: Type.Optional(
+    Type.Array(TaskItem, { description: "Array of {agent, task, title} for parallel execution" }),
   ),
 });
 
@@ -548,6 +561,7 @@ export default function (pi: ExtensionAPI) {
             agent: params.tasks[i].agent,
             agentSource: "unknown",
             task: params.tasks[i].task,
+            title: params.tasks[i].title,
             exitCode: -1, // -1 = still running
             messages: [],
             stderr: "",
@@ -588,6 +602,7 @@ export default function (pi: ExtensionAPI) {
               agents,
               t.agent,
               t.task,
+              t.title,
               t.cwd,
               undefined,
               signal,
@@ -631,6 +646,7 @@ export default function (pi: ExtensionAPI) {
           agents,
           params.agent,
           params.task,
+          params.title,
           params.cwd,
           undefined,
           signal,
@@ -680,7 +696,8 @@ export default function (pi: ExtensionAPI) {
           theme.fg("muted", ` [${scope}]`);
         for (const t of args.tasks.slice(0, 3)) {
           const preview = t.task.length > 40 ? `${t.task.slice(0, 40)}...` : t.task;
-          text += `\n  ${theme.fg("accent", t.agent)}${theme.fg("dim", ` ${preview}`)}`;
+          const tTitle = t.title ? theme.fg("muted", ` · ${t.title}`) : "";
+          text += `\n  ${theme.fg("accent", t.agent)}${tTitle}${theme.fg("dim", ` ${preview}`)}`;
         }
         if (args.tasks.length > 3)
           text += `\n  ${theme.fg("muted", `... +${args.tasks.length - 3} more`)}`;
@@ -688,6 +705,7 @@ export default function (pi: ExtensionAPI) {
       }
       const agentName = args.agent || "...";
       const scope = deriveScope(args.agent ? [args.agent] : []);
+      const title = args.title ? String(args.title) : "";
       const preview = args.task
         ? args.task.length > 60
           ? `${args.task.slice(0, 60)}...`
@@ -696,6 +714,7 @@ export default function (pi: ExtensionAPI) {
       let text =
         theme.fg("toolTitle", theme.bold("subagent ")) +
         theme.fg("accent", agentName) +
+        (title ? theme.fg("muted", ` · ${title}`) : "") +
         theme.fg("muted", ` [${scope}]`);
       text += `\n  ${theme.fg("dim", preview)}`;
       return new Text(text, 0, 0);

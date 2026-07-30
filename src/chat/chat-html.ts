@@ -491,6 +491,44 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 .diff-line.hunk { opacity: 0.5; }
 .diff-line.hunk .diff-content { font-style: italic; }
 .tool-block.is-diff .tool-args { display: none; }
+.tool-block.is-subagent .tool-args { display: none; }
+.subagent-wrap { color: var(--vscode-foreground); }
+.subagent-body { padding: 2px 0; font-size: 12px; line-height: 1.5; }
+.sub-task {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-left: 2px solid var(--vscode-charts-blue, #3794ff);
+  border-radius: 3px;
+  margin: 4px 0;
+  overflow: hidden;
+}
+.sub-task.is-failed { border-left-color: var(--vscode-errorForeground, #f48771); }
+.sub-task-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 8px; font-size: 12px; font-weight: 500;
+  background: var(--vscode-list-hoverBackground, rgba(127,127,127,0.1));
+  cursor: pointer; list-style: none; user-select: none;
+}
+.sub-task-head::-webkit-details-marker { display: none; }
+.sub-task-head:before { content: "▼"; font-size: 8px; opacity: 0.5; }
+.sub-task:not([open]) > .sub-task-head:before { content: "▶"; }
+.sub-task-icon { flex: 0 0 auto; }
+.sub-task-agent { color: var(--vscode-terminal-ansiGreen, #4ec9b0); flex: 0 0 auto; }
+.sub-task-title { color: var(--vscode-foreground); opacity: 0.9; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub-task-status { opacity: 0.6; font-size: 11px; margin-left: auto; flex: 0 0 auto; }
+.sub-task-body { padding: 6px 8px; font-size: 12px; line-height: 1.5; }
+.sub-section-label { color: var(--vscode-descriptionForeground, var(--vscode-foreground)); opacity: 0.7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 2px; }
+.sub-task-text { color: var(--vscode-foreground); opacity: 0.85; margin-bottom: 4px; max-height: 160px; overflow-y: auto; }
+.sub-toolcall { color: var(--vscode-descriptionForeground, var(--vscode-foreground)); opacity: 0.8; white-space: pre-wrap; word-break: break-word; font-family: var(--vscode-editor-font-family); }
+.sub-toolcall-name { font-weight: 600; opacity: 1; color: var(--vscode-foreground); }
+.sub-final { margin-top: 6px; }
+.sub-md.text-block { font-size: 12px; padding: 0; line-height: 1.0; }
+.sub-md.text-block p, .sub-md.text-block pre, .sub-md.text-block ul, .sub-md.text-block ol, .sub-md.text-block blockquote, .sub-md.text-block table { margin: 0 0 5px; }
+.sub-md.text-block li { margin: 1px 0; }
+.sub-md.text-block > :last-child { margin-bottom: 0; }
+.sub-error { color: var(--vscode-errorForeground, #f48771); margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
+.sub-empty { opacity: 0.6; font-style: italic; }
+.sub-usage { opacity: 0.6; font-size: 11px; margin-top: 6px; }
+.sub-total { opacity: 0.6; font-size: 11px; margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--vscode-widget-border, transparent); }
 .code-block {
   margin: 0;
   font-family: var(--vscode-editor-font-family);
@@ -1785,9 +1823,16 @@ function formatToolSummary(name, args) {
   } else if (name === 'todo') {
     s = toolStr(args.action) || '...';
   } else if (name === 'subagent') {
-    if (args && args.agent) s = args.agent;
-    else if (args && args.tasks && args.tasks.length) s = 'parallel (' + args.tasks.length + (args.tasks.length > 1 ? ' tasks' : ' task') + ')';
-    else s = 'subagent';
+    if (args && args.tasks && args.tasks.length) {
+      s = 'parallel · ' + args.tasks.length + (args.tasks.length > 1 ? ' tasks' : ' task');
+    } else if (args && args.agent) {
+      s = args.agent;
+      var ttl = args.title ? String(args.title) : '';
+      if (!ttl && args.task) ttl = args.task.length > 60 ? args.task.slice(0, 60) + '…' : args.task;
+      if (ttl) s += ' · ' + ttl;
+    } else {
+      s = 'subagent';
+    }
   }
   return s;
 }
@@ -1798,12 +1843,6 @@ function formatTokens(count) {
   if (count < 10000) return (count / 1000).toFixed(1) + 'k';
   if (count < 1000000) return Math.round(count / 1000) + 'k';
   return (count / 1000000).toFixed(1) + 'M';
-}
-function formatToolCall(name, args) {
-  var summary = formatToolSummary(name, args);
-  if (summary) return summary;
-  var astr = JSON.stringify(args);
-  return name + ' ' + (astr.length > 50 ? astr.slice(0, 50) + '...' : astr);
 }
 function getDisplayItems(messages) {
   var items = [];
@@ -1959,29 +1998,75 @@ function subagentDetailsHasError(details) {
   }
   return false;
 }
-function appendAgentBody(parent, r) {
+function isFailedSubagent(r) {
+  if (!r) return false;
+  if (r.exitCode === -1) return false;
+  return r.exitCode !== 0 || r.stopReason === 'error' || r.stopReason === 'aborted';
+}
+function subagentTitle(r) {
+  if (r && r.title) return String(r.title);
+  if (r && r.task) return r.task.length > 60 ? r.task.slice(0, 60) + '…' : r.task;
+  return '';
+}
+var subMdCache = Object.create(null);
+function renderSubMd(target, text) {
+  target._piMd = text;
+  var html = subMdCache[text];
+  if (html === undefined) {
+    try { html = md.render(text); } catch (e) { html = null; }
+    subMdCache[text] = html;
+  }
+  if (html === null) target.textContent = text;
+  else target.innerHTML = html;
+}
+function renderAgentBody(parent, r) {
+  var failed = isFailedSubagent(r);
+  if (r && r.task) {
+    var tLabel = el('div', 'sub-section-label');
+    tLabel.textContent = 'Task';
+    parent.appendChild(tLabel);
+    var tBody = el('div', 'sub-task-text sub-md text-block');
+    renderSubMd(tBody, r.task);
+    parent.appendChild(tBody);
+  }
   var items = getDisplayItems(r.messages || []);
+  var hasCalls = false;
   for (var i = 0; i < items.length; i++) {
-    var idiv = document.createElement('div');
     if (items[i].type === 'toolCall') {
-      idiv.style.opacity = '0.85';
-      idiv.textContent = '\\u2192 ' + formatToolCall(items[i].name, items[i].args);
-    } else {
-      idiv.textContent = items[i].text;
+      hasCalls = true;
+      var cdiv = el('div', 'sub-toolcall');
+      var tcName = items[i].name || '';
+      var tcSum = formatToolSummary(tcName, items[i].args);
+      if (!tcSum) {
+        var astr = JSON.stringify(items[i].args || {});
+        tcSum = astr.length > 50 ? astr.slice(0, 50) + '…' : astr;
+      }
+      cdiv.appendChild(document.createTextNode('→ '));
+      var tcNameSpan = el('span', 'sub-toolcall-name');
+      tcNameSpan.textContent = tcName;
+      cdiv.appendChild(tcNameSpan);
+      cdiv.appendChild(document.createTextNode(' ' + tcSum));
+      parent.appendChild(cdiv);
     }
-    parent.appendChild(idiv);
+  }
+  if (failed && r.errorMessage) {
+    var errDiv = el('div', 'sub-error');
+    errDiv.textContent = 'Error: ' + r.errorMessage;
+    parent.appendChild(errDiv);
   }
   var final = getFinalOutput(r.messages || []);
   if (final) {
-    var mdDiv = document.createElement('div');
-    mdDiv.textContent = final.trim();
+    var mdDiv = el('div', 'sub-final sub-md text-block');
+    renderSubMd(mdDiv, final.trim());
     parent.appendChild(mdDiv);
+  } else if (!failed && !hasCalls && !(r && r.task)) {
+    var empty = el('div', 'sub-empty');
+    empty.textContent = r && r.exitCode === -1 ? '(running…)' : '(no output)';
+    parent.appendChild(empty);
   }
   var usageStr = formatUsage(r.usage, r.model);
   if (usageStr) {
-    var uDiv = document.createElement('div');
-    uDiv.style.opacity = '0.6';
-    uDiv.style.fontSize = '11px';
+    var uDiv = el('div', 'sub-usage');
     uDiv.textContent = usageStr;
     parent.appendChild(uDiv);
   }
@@ -1991,78 +2076,60 @@ function appendAgentBody(parent, r) {
 function renderSubagentResult(b, details) {
   if (!b || !b.resultEl) return;
   b.resultEl._piMd = null;
-  if (!details || !details.results) return;
+  if (!details || !details.results || !details.results.length) return;
   var results = details.results;
-  var wrap = document.createElement('div');
-  wrap.style.color = 'var(--vscode-foreground)';
+  var wrap = el('div', 'subagent-wrap');
   if (details.mode === 'single' && results.length === 1) {
     var r = results[0];
-    var ic = r.exitCode === -1 ? '\\u23F3' : (r.exitCode === 0 ? '\\u2713' : '\\u2717');
-    var hdiv = document.createElement('div');
-    hdiv.style.fontWeight = '500';
-    hdiv.textContent = ic + ' ';
-    var aName = document.createElement('span');
-    aName.style.color = 'var(--vscode-terminal-ansiGreen, #4ec9b0)';
-    aName.textContent = r.agent;
-    hdiv.appendChild(aName);
-    hdiv.appendChild(document.createTextNode(' (' + r.agentSource + ')'));
-    if (r.stopReason && r.exitCode !== -1) hdiv.appendChild(document.createTextNode(' [' + r.stopReason + ']'));
-    wrap.appendChild(hdiv);
-    if (r.errorMessage) {
-      var errDiv = document.createElement('div');
-      errDiv.style.color = 'var(--vscode-errorForeground)';
-      errDiv.textContent = 'Error: ' + r.errorMessage;
-      wrap.appendChild(errDiv);
-    }
-    var usageStr = appendAgentBody(wrap, r);
+    var body = el('div', 'subagent-body');
+    renderAgentBody(body, r);
+    wrap.appendChild(body);
     if (b.summaryEl) {
-      b.summaryEl.textContent = ic + ' ' + r.agent;
-      if (usageStr) b.summaryEl.textContent += ' \\u00B7 ' + usageStr;
+      b.summaryEl.textContent = r.agent + (subagentTitle(r) ? ' · ' + subagentTitle(r) : '');
     }
   } else if (details.mode === 'parallel') {
-    var running = 0, done = 0;
+    var running = 0, done = 0, fail = 0;
     for (var di = 0; di < results.length; di++) {
       if (results[di].exitCode === -1) running++;
-      else done++;
+      else { done++; if (isFailedSubagent(results[di])) fail++; }
     }
-    var pic = running > 0 ? '\\u23F3' : '\\u2713';
-    var ph = document.createElement('div');
-    ph.style.fontWeight = '500';
-    if (running > 0) ph.textContent = pic + ' parallel ' + done + '/' + results.length + ' done, ' + running + ' running';
-    else ph.textContent = pic + ' parallel ' + done + '/' + results.length + ' tasks';
-    wrap.appendChild(ph);
+    var pic = running > 0 ? '⏳' : (fail > 0 ? '◐' : '✓');
     for (var ri = 0; ri < results.length; ri++) {
       var sr = results[ri];
-      var sdiv = document.createElement('div');
-      sdiv.style.padding = '4px 0';
-      sdiv.style.margin = '2px 0';
-      sdiv.style.borderTop = '1px solid var(--vscode-widget-border,transparent)';
-      var sHead = document.createElement('div');
-      sHead.style.fontWeight = '500';
-      var sric = sr.exitCode === -1 ? '\\u23F3' : (sr.exitCode === 0 ? '\\u2713' : '\\u2717');
-      sHead.textContent = sric + ' ';
-      var saName = document.createElement('span');
-      saName.style.color = 'var(--vscode-terminal-ansiGreen, #4ec9b0)';
-      saName.textContent = sr.agent;
-      sHead.appendChild(saName);
-      sdiv.appendChild(sHead);
-      appendAgentBody(sdiv, sr);
-      wrap.appendChild(sdiv);
+      var sric = sr.exitCode === -1 ? '⏳' : (sr.exitCode === 0 ? '✓' : '✗');
+      var sdet = el('details', 'sub-task');
+      if (isFailedSubagent(sr)) sdet.classList.add('is-failed');
+      if (sr.exitCode === -1) sdet.setAttribute('open', '');
+      var shead = el('summary', 'sub-task-head');
+      var sicon = el('span', 'sub-task-icon');
+      sicon.textContent = sric;
+      var sname = el('span', 'sub-task-agent');
+      sname.textContent = sr.agent;
+      shead.appendChild(sicon);
+      shead.appendChild(sname);
+      if (subagentTitle(sr)) {
+        var stitle = el('span', 'sub-task-title');
+        stitle.textContent = '· ' + subagentTitle(sr);
+        shead.appendChild(stitle);
+      }
+      var sstatus = el('span', 'sub-task-status');
+      sstatus.textContent = sr.exitCode === -1 ? 'running' : (isFailedSubagent(sr) ? 'failed' : 'done');
+      shead.appendChild(sstatus);
+      sdet.appendChild(shead);
+      var sbody = el('div', 'sub-task-body');
+      renderAgentBody(sbody, sr);
+      sdet.appendChild(sbody);
+      wrap.appendChild(sdet);
     }
     var tu = aggregateUsage(results);
     var tus = formatUsage(tu);
     if (tus) {
-      var tud = document.createElement('div');
-      tud.style.opacity = '0.6';
-      tud.style.fontSize = '11px';
-      tud.style.marginTop = '4px';
+      var tud = el('div', 'sub-total');
       tud.textContent = 'Total: ' + tus;
       wrap.appendChild(tud);
     }
     if (b.summaryEl) {
-      b.summaryEl.textContent = pic + ' parallel';
-      if (running > 0) b.summaryEl.textContent += ' ' + done + '/' + results.length + ' running';
-      else if (tus) b.summaryEl.textContent += ' \\u00B7 ' + tus;
+      b.summaryEl.textContent = pic + ' parallel · ' + done + '/' + results.length + (running > 0 ? ' running' : (fail > 0 ? ' (' + fail + ' failed)' : ' done'));
     }
   } else {
     return;
@@ -2107,13 +2174,18 @@ function applyToolFileTarget(b, name, args) {
 function finalizeToolCall(ci, toolCall) {
   var b = ensureBlock(ci, 'toolcall');
   if (toolCall) {
-    if (toolCall.name) { b.name = toolCall.name; b.nameEl.textContent = toolCall.name; }
+    if (toolCall.name) {
+      b.name = toolCall.name;
+      b.nameEl.textContent = toolCall.name;
+      if (b.name === 'subagent') b.el.classList.add('is-subagent');
+    }
     if (toolCall.id) { b.toolCallId = toolCall.id; b.el.setAttribute('data-tcid', toolCall.id); }
     var args = toolCall.arguments;
     if (args !== undefined && args !== null) {
       b.argsText = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
       b._anode = null;
       if (b.name === 'write') renderWriteContent(b.argsEl, args);
+      else if (b.name === 'subagent') b.argsEl.textContent = '';
       else setClamped(b.argsEl, b.argsText);
     }
     applyToolSummary(b, b.name, args);
@@ -2153,13 +2225,13 @@ function startToolExecution(ev) {
     b.toolCallId = tcid;
     b.el.setAttribute('data-tcid', tcid);
   }
-  if (ev.toolName) { b.name = ev.toolName; b.nameEl ? (b.nameEl.textContent = ev.toolName) : null; }
+  if (ev.toolName) { b.name = ev.toolName; b.nameEl ? (b.nameEl.textContent = ev.toolName) : null; if (b.name === 'subagent') b.el.classList.add('is-subagent'); }
   b.el._block = b;
   if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.add('is-running'); }
   if (ev.args !== undefined && ev.args !== null && b.argsEl && !b.argsText) {
     b.argsText = typeof ev.args === 'string' ? ev.args : JSON.stringify(ev.args, null, 2);
     b._anode = null;
-    setClamped(b.argsEl, b.argsText);
+    if (b.name !== 'subagent') setClamped(b.argsEl, b.argsText);
   }
   applyToolSummary(b, b.name, ev.args);
   applyToolFileTarget(b, b.name, ev.args);
