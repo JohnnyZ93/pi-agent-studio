@@ -282,6 +282,13 @@
           "type": "boolean",
           "default": false,
           "description": "Log all RPC traffic (requests, responses, events) and pi stderr to the \"Pi Chat RPC\" Output channel for debugging. Each webview panel is tagged by its panel id prefix."
+        },
+        "pi-agent-studio.chatFontSize": {
+          "type": "number",
+          "default": 13,
+          "minimum": 8,
+          "maximum": 32,
+          "description": "Font size for the webview chat panel. Reopen the panel to apply changes."
         }
       }
     },

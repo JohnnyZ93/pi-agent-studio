@@ -101,7 +101,11 @@ export async function openChatPanel(
     light: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo-light.svg"),
     dark: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo.svg"),
   };
-  panel.webview.html = getChatHtml(homedir(), sep);
+  panel.webview.html = getChatHtml(
+    homedir(),
+    sep,
+    vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+  );
   lockChatEditorGroup();
 
   const args = createRpcShellArgs({
