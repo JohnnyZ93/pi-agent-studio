@@ -199,21 +199,6 @@ function renderTodoLines(todos: Todo[], theme: Theme, width: number): string[] {
   return lines;
 }
 
-function renderTodoLinesPlain(todos: Todo[]): string[] {
-  if (todos.length === 0) return [];
-
-  const done = todos.filter((t) => t.done).length;
-  const total = todos.length;
-  const lines: string[] = [];
-
-  lines.push(`Todos  ${done}/${total} done`);
-  for (const todo of todos) {
-    const check = todo.done ? "✓" : "○";
-    lines.push(`  ${check} #${todo.id} ${todo.text}`);
-  }
-  return lines;
-}
-
 function renderTodoCall(args: TodoArgs, theme: Theme): Text {
   let text = theme.fg("toolTitle", theme.bold("todo ")) + theme.fg("muted", args.action);
   const append = (items: string[], total: number, more: (n: number) => string) => {
@@ -360,7 +345,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     if (ctx.mode === "rpc") {
-      ctx.ui.setWidget(WIDGET_KEY, renderTodoLinesPlain(state.todos));
+      ctx.ui.setWidget(WIDGET_KEY, [JSON.stringify({ todos: state.todos })]);
       return;
     }
 

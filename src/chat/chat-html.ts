@@ -1141,44 +1141,12 @@ function applyWidget(key, lines) {
     widgetEl.style.display = 'block';
     return;
   }
-  var CDONE = String.fromCharCode(0x2713);
-  var COPEN = String.fromCharCode(0x25cb);
-  var header = lines[0] || '';
-  var doneCount = 0, totalCount = 0, headerOk = false;
-  if (header.indexOf('Todos') === 0) {
-    var he = header.indexOf('done');
-    var mid = (he > 5 ? header.slice(5, he) : header.slice(5)).trim();
-    var sl = mid.indexOf('/');
-    if (sl >= 0) {
-      doneCount = parseInt(mid.slice(0, sl), 10) || 0;
-      totalCount = parseInt(mid.slice(sl + 1), 10) || 0;
-      headerOk = true;
-    }
-  }
-  function skipWS(s, p) { while (p < s.length) { var c = s.charCodeAt(p); if (c !== 32 && c !== 9) break; p++; } return p; }
-  var items = [];
-  for (var i = 1; i < lines.length; i++) {
-    var raw = lines[i] == null ? '' : String(lines[i]);
-    var p = skipWS(raw, 0);
-    var ch = raw.charAt(p);
-    if (ch === CDONE || ch === COPEN) {
-      var done = ch === CDONE;
-      p = skipWS(raw, p + 1);
-      var id = '';
-      if (raw.charAt(p) === '#') {
-        var q = p + 1;
-        while (q < raw.length) { var cc = raw.charCodeAt(q); if (cc < 48 || cc > 57) break; q++; }
-        id = raw.slice(p + 1, q);
-        p = q;
-      }
-      p = skipWS(raw, p);
-      items.push({ done: done, id: id, text: raw.slice(p) });
-    } else {
-      var rt = raw.trim();
-      if (rt) items.push({ done: false, id: '', text: rt });
-    }
-  }
-  if (!headerOk && items.length) { totalCount = items.length; doneCount = 0; for (var k = 0; k < items.length; k++) if (items[k].done) doneCount++; }
+  var payload = {};
+  try { payload = JSON.parse(lines[0] || '{}'); } catch (e) {}
+  var items = payload.todos || [];
+  var doneCount = 0;
+  for (var i = 0; i < items.length; i++) if (items[i].done) doneCount++;
+  var totalCount = items.length;
 
   var card = el('div', 'widget-card');
   var head = el('div', 'widget-head');
@@ -1190,7 +1158,7 @@ function applyWidget(key, lines) {
     stats.textContent = doneCount + '/' + totalCount + ' done';
     head.appendChild(stats);
   }
-  if (lines.length > 1) {
+  if (items.length) {
     var clearBtn = el('button', 'widget-clear');
     clearBtn.type = 'button';
     clearBtn.textContent = 'Clear';
