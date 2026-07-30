@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import { isAbsolute, relative, sep } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
 import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.ts";
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
@@ -444,7 +444,7 @@ export async function openChatPanel(
       case "prompt":
         try {
           if (await handleBuiltin(msg.message)) break;
-          await rpc.prompt(msg.message, msg.streamingBehavior);
+          await rpc.prompt(msg.message, msg.streamingBehavior, msg.images);
         } catch (e) {
           panel.webview.postMessage({
             type: "error",
@@ -468,8 +468,12 @@ export async function openChatPanel(
         break;
       case "openFile": {
         try {
-          const filePath = String(msg.filePath ?? "");
+          let filePath = String(msg.filePath ?? "");
           if (!filePath) break;
+          if (!isAbsolute(filePath)) {
+            const base = cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (base) filePath = resolve(base, filePath);
+          }
           const uri = vscode.Uri.file(filePath);
           const document = await vscode.workspace.openTextDocument(uri);
           const editor = await vscode.window.showTextDocument(document, {
@@ -483,10 +487,7 @@ export async function openChatPanel(
             editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
           }
         } catch (e) {
-          panel.webview.postMessage({
-            type: "error",
-            message: e instanceof Error ? e.message : String(e),
-          });
+          toast(e instanceof Error ? e.message : String(e), "error");
         }
         break;
       }

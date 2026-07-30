@@ -192,11 +192,12 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
   return {
     send,
     request,
-    prompt: (message, streamingBehavior) =>
+    prompt: (message, streamingBehavior, images) =>
       request<void>({
         type: "prompt",
         message,
         ...(streamingBehavior ? { streamingBehavior } : {}),
+        ...(images && images.length ? { images } : {}),
       }),
     abort: () => request<void>({ type: "abort" }),
     setModel: (provider, modelId) => request<RpcModel>({ type: "set_model", provider, modelId }),

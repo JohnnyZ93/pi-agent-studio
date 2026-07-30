@@ -86,11 +86,22 @@ export interface RpcResponse {
   error?: string;
 }
 
+/** Image content block for `prompt`/`steer`/`follow_up` commands. */
+export interface RpcImage {
+  type: "image";
+  data: string;
+  mimeType: string;
+}
+
 /** Typed client over a `pi --mode rpc` subprocess. */
 export interface RpcClient {
   send(command: Record<string, unknown>): void;
   request<T = unknown>(command: Record<string, unknown>): Promise<T>;
-  prompt(message: string, streamingBehavior?: "steer" | "followUp"): Promise<void>;
+  prompt(
+    message: string,
+    streamingBehavior?: "steer" | "followUp",
+    images?: RpcImage[],
+  ): Promise<void>;
   abort(): Promise<void>;
   setModel(provider: string, modelId: string): Promise<RpcModel>;
   setThinkingLevel(level: string): Promise<void>;

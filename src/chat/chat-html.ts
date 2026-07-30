@@ -39,6 +39,41 @@ body {
   transition: border-color 0.12s;
 }
 .composer-box:focus-within { border-color: var(--vscode-focusBorder); }
+.attach-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 10px 0;
+}
+.attach-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.1));
+}
+.attach-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.attach-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+}
+.attach-remove:hover { background: var(--vscode-errorForeground, #f48771); }
 .composer-controls-bar {
   display: flex;
   align-items: center;
@@ -241,6 +276,9 @@ body {
 }
 .user-bubble.is-collapsible { max-height: 220px; overflow-y: auto; }
 .user-bubble.is-collapsible.is-expanded { max-height: none; overflow: visible; }
+.user-bubble .bubble-imgs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.user-bubble .bubble-imgs:empty { display: none; }
+.user-bubble .bubble-imgs img { max-height: 160px; width: auto; max-width: 100%; border-radius: 4px; display: block; }
 .expand-btn {
   align-self: flex-end;
   margin-top: 2px;
@@ -887,6 +925,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>
     <div class="composer-box">
+      <div class="attach-preview" id="attach-preview" style="display:none"></div>
       <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands, @ for files)"></textarea>
       <div class="composer-controls-bar">
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
@@ -918,6 +957,7 @@ var retryAttempt = 0;
 var inputHistory = [];
 var historyIndex = -1;
 var historyDraft = '';
+var pendingImages = [];
 
 var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
 var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
@@ -937,6 +977,7 @@ var EMPTY_HTML = '<div class="empty">'
   + '<span class="empty-hint"><kbd>\u2191\u2193</kbd>history</span>'
   + '<span class="empty-hint"><kbd>/</kbd>commands</span>'
   + '<span class="empty-hint"><kbd>@</kbd>files</span>'
+  + '<span class="empty-hint"><kbd>' + (/Mac/i.test(navigator.platform || '') ? '\u2318V' : 'Ctrl+V') + '</kbd>paste image</span>'
   + '<span class="empty-hint"><kbd>Tab</kbd>complete</span>'
   + '</div>'
   + '</div>';
@@ -946,6 +987,7 @@ var queueEl = document.getElementById('queue');
 var inputEl = document.getElementById('input');
 var sendBtn = document.getElementById('send');
 var attachBtn = document.getElementById('attach-btn');
+var attachPreviewEl = document.getElementById('attach-preview');
 attachBtn.innerHTML = ICON_PLUS;
 var infoBtn = document.getElementById('info-btn');
 infoBtn.innerHTML = ICON_INFO;
@@ -1045,7 +1087,7 @@ function updateSendButton() {
     sendBtn.innerHTML = ICON_SEND;
     sendBtn.classList.remove('is-stop');
     sendBtn.title = 'Send message';
-    sendBtn.disabled = !inputEl.value.trim();
+    sendBtn.disabled = !inputEl.value.trim() && !pendingImages.length;
   }
 }
 function setStreaming(b) {
@@ -1207,12 +1249,23 @@ var currentAssistant = null; // { el, blocks: [] }
 var pendingCompactionBlock = null;
 var lastUserBubble = null;
 
-function addUserMessage(text) {
+function addUserMessage(text, images) {
   var empty = messagesEl.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg user');
   var bubble = el('div', 'bubble user-bubble');
-  bubble.textContent = text;
+  if (text) bubble.textContent = text;
+  if (images && images.length) {
+    var wrap = el('div', 'bubble-imgs');
+    for (var i = 0; i < images.length; i++) {
+      var im = images[i];
+      if (!im || !im.data || !im.mimeType) continue;
+      var imgEl = document.createElement('img');
+      imgEl.src = 'data:' + im.mimeType + ';base64,' + im.data;
+      wrap.appendChild(imgEl);
+    }
+    bubble.appendChild(wrap);
+  }
   row.appendChild(bubble);
   messagesEl.appendChild(row);
   lastUserBubble = bubble;
@@ -2116,7 +2169,7 @@ function hydrateOne(m) {
   if (role === 'user') {
     var utext = extractText(m.content);
     pushHistory(utext);
-    var ub = addUserMessage(utext);
+    var ub = addUserMessage(utext, extractImages(m.content));
     if (m && m.timestamp != null) applyUserBubbleTime(ub, m.timestamp);
   } else if (role === 'assistant') {
     startAssistantMessage(m.timestamp);
@@ -2162,6 +2215,16 @@ function extractText(content) {
     return t;
   }
   return '';
+}
+function extractImages(content) {
+  var imgs = [];
+  if (Array.isArray(content)) {
+    for (var i = 0; i < content.length; i++) {
+      var c = content[i];
+      if (c && c.type === 'image' && c.data && c.mimeType) imgs.push({ type: 'image', data: c.data, mimeType: c.mimeType });
+    }
+  }
+  return imgs;
 }
 
 // ---- event dispatch ----
@@ -2504,26 +2567,38 @@ function isLocalCommand(msg) {
 
 function sendPrompt(behavior) {
   var msg = inputEl.value;
-  if (!msg.trim()) return;
-  if (state.isStreaming && isLocalCommand(msg)) return;
+  var imgs = pendingImages.slice();
+  var hasText = !!msg.trim();
+  var hasImgs = imgs.length > 0;
+  if (!hasText && !hasImgs) return;
+  var isLocal = isLocalCommand(msg);
+  if (state.isStreaming && isLocal) return;
+  var sendImgs = (!isLocal && hasImgs)
+    ? imgs.map(function(im) { return { type: 'image', data: im.data, mimeType: im.mimeType }; })
+    : null;
   pushHistory(msg);
   inputEl.value = '';
   autoGrow();
   hideAutocomplete();
   historyIndex = -1;
   historyDraft = '';
+  clearPendingImages();
   if (state.isStreaming) {
-    vscode.postMessage({ type: 'prompt', message: msg, streamingBehavior: behavior || 'steer' });
+    var steerPayload = { type: 'prompt', message: msg, streamingBehavior: behavior || 'steer' };
+    if (sendImgs) steerPayload.images = sendImgs;
+    vscode.postMessage(steerPayload);
   } else {
     autoScroll = true;
-    addUserMessage(msg);
+    addUserMessage(msg, sendImgs);
     scrollToBottom();
-    if (!isLocalCommand(msg)) {
+    if (!isLocal) {
       setStreaming(true);
     } else {
       updateSendButton();
     }
-    vscode.postMessage({ type: 'prompt', message: msg });
+    var payload = { type: 'prompt', message: msg };
+    if (sendImgs) payload.images = sendImgs;
+    vscode.postMessage(payload);
   }
 }
 
@@ -2566,6 +2641,84 @@ function navigateHistory(delta) {
 attachBtn.addEventListener('click', function() {
   if (state.isStreaming) return;
   vscode.postMessage({ type: 'pickResource' });
+});
+function addImageFromFile(file) {
+  var reader = new FileReader();
+  reader.onload = function() {
+    var dataUrl = String(reader.result || '');
+    var marker = ';base64,';
+    var idx = dataUrl.indexOf(marker);
+    if (idx < 0 || dataUrl.indexOf('data:') !== 0) return;
+    var mimeType = dataUrl.slice(5, idx);
+    var data = dataUrl.slice(idx + marker.length);
+    pendingImages.push({ data: data, mimeType: mimeType, dataUrl: dataUrl });
+    renderPendingImages();
+    updateSendButton();
+  };
+  reader.onerror = function() { /* ignore */ };
+  reader.readAsDataURL(file);
+}
+function removePendingImage(idx) {
+  pendingImages.splice(idx, 1);
+  renderPendingImages();
+  updateSendButton();
+}
+function clearPendingImages() {
+  pendingImages = [];
+  renderPendingImages();
+}
+function renderPendingImages() {
+  attachPreviewEl.innerHTML = '';
+  if (!pendingImages.length) { attachPreviewEl.style.display = 'none'; return; }
+  for (var i = 0; i < pendingImages.length; i++) {
+    (function(im, idx) {
+      var thumb = el('div', 'attach-thumb');
+      var img = document.createElement('img');
+      img.src = im.dataUrl;
+      thumb.appendChild(img);
+      var rm = el('button', 'attach-remove');
+      rm.type = 'button';
+      rm.title = 'Remove image';
+      rm.textContent = '\u00d7';
+      rm.addEventListener('click', function() { removePendingImage(idx); });
+      thumb.appendChild(rm);
+      attachPreviewEl.appendChild(thumb);
+    })(pendingImages[i], i);
+  }
+  attachPreviewEl.style.display = 'flex';
+}
+function isImageType(t) { return typeof t === 'string' && t.indexOf('image/') === 0; }
+function dtHasFiles(dt) {
+  if (!dt || !dt.types) return false;
+  for (var i = 0; i < dt.types.length; i++) if (dt.types[i] === 'Files') return true;
+  return false;
+}
+inputEl.addEventListener('paste', function(ev) {
+  var cd = ev.clipboardData;
+  if (!cd || !cd.items) return;
+  var imgItems = [];
+  for (var i = 0; i < cd.items.length; i++) {
+    var it = cd.items[i];
+    if (it.kind === 'file' && isImageType(it.type)) imgItems.push(it);
+  }
+  if (!imgItems.length) return;
+  ev.preventDefault();
+  for (var k = 0; k < imgItems.length; k++) {
+    var file = imgItems[k].getAsFile();
+    if (file) addImageFromFile(file);
+  }
+});
+inputEl.addEventListener('dragover', function(ev) {
+  if (dtHasFiles(ev.dataTransfer)) ev.preventDefault();
+});
+inputEl.addEventListener('drop', function(ev) {
+  if (!ev.dataTransfer || !ev.dataTransfer.files || !ev.dataTransfer.files.length) return;
+  var files = ev.dataTransfer.files;
+  var hasImg = false;
+  for (var i = 0; i < files.length; i++) if (isImageType(files[i].type)) hasImg = true;
+  if (!hasImg) return;
+  ev.preventDefault();
+  for (var j = 0; j < files.length; j++) if (isImageType(files[j].type)) addImageFromFile(files[j]);
 });
 function insertPickedResources(paths) {
   if (!paths || !paths.length) return;
