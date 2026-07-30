@@ -492,7 +492,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 .diff-line.hunk .diff-content { font-style: italic; }
 .tool-block.is-diff .tool-args { display: none; }
 .tool-block.is-subagent .tool-args { display: none; }
-.subagent-wrap { color: var(--vscode-foreground); }
+.subagent-wrap { color: var(--vscode-foreground); white-space: normal; }
 .subagent-body { padding: 2px 0; font-size: 12px; line-height: 1.5; }
 .sub-task {
   border: 1px solid var(--vscode-widget-border, transparent);
@@ -517,17 +517,18 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 .sub-task-status { opacity: 0.6; font-size: 11px; margin-left: auto; flex: 0 0 auto; }
 .sub-task-body { padding: 6px 8px; font-size: 12px; line-height: 1.5; }
 .sub-section-label { color: var(--vscode-descriptionForeground, var(--vscode-foreground)); opacity: 0.7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 2px; }
-.sub-task-text { color: var(--vscode-foreground); opacity: 0.85; margin-bottom: 4px; max-height: 160px; overflow-y: auto; }
+.sub-task-text { color: var(--vscode-foreground); opacity: 0.85; margin-bottom: 8px; max-height: 160px; overflow-y: auto; }
 .sub-toolcall { color: var(--vscode-descriptionForeground, var(--vscode-foreground)); opacity: 0.8; white-space: pre-wrap; word-break: break-word; font-family: var(--vscode-editor-font-family); }
 .sub-toolcall-name { font-weight: 600; opacity: 1; color: var(--vscode-foreground); }
 .sub-final { margin-top: 6px; }
-.sub-md.text-block { font-size: 12px; padding: 0; line-height: 1.0; }
-.sub-md.text-block p, .sub-md.text-block pre, .sub-md.text-block ul, .sub-md.text-block ol, .sub-md.text-block blockquote, .sub-md.text-block table { margin: 0 0 5px; }
-.sub-md.text-block li { margin: 1px 0; }
+.sub-md.text-block { font-size: 12px; padding: 0; line-height: 1.5; }
+.sub-md.text-block p, .sub-md.text-block pre, .sub-md.text-block ul, .sub-md.text-block ol, .sub-md.text-block blockquote, .sub-md.text-block table { margin: 0 0 8px; }
+.sub-md.text-block li { margin: 2px 0; }
 .sub-md.text-block > :last-child { margin-bottom: 0; }
 .sub-error { color: var(--vscode-errorForeground, #f48771); margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
 .sub-empty { opacity: 0.6; font-style: italic; }
-.sub-usage { opacity: 0.6; font-size: 11px; margin-top: 6px; }
+.sub-usage { opacity: 0.75; font-size: 11px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--vscode-widget-border, transparent); }
+.sub-usage-model { color: var(--vscode-terminal-ansiGreen, #4ec9b0); font-weight: 500; }
 .sub-total { opacity: 0.6; font-size: 11px; margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--vscode-widget-border, transparent); }
 .code-block {
   margin: 0;
@@ -2021,6 +2022,18 @@ function renderSubMd(target, text) {
 }
 function renderAgentBody(parent, r) {
   var failed = isFailedSubagent(r);
+  var usageStr = formatUsage(r.usage, r.model);
+  if (usageStr) {
+    var uDiv = el('div', 'sub-usage');
+    var usageStats = formatUsage(r.usage, null);
+    if (usageStats) uDiv.appendChild(document.createTextNode(usageStats + (r.model ? ' · ' : '')));
+    if (r.model) {
+      var mSpan = el('span', 'sub-usage-model');
+      mSpan.textContent = r.model;
+      uDiv.appendChild(mSpan);
+    }
+    parent.appendChild(uDiv);
+  }
   if (r && r.task) {
     var tLabel = el('div', 'sub-section-label');
     tLabel.textContent = 'Task';
@@ -2030,15 +2043,21 @@ function renderAgentBody(parent, r) {
     parent.appendChild(tBody);
   }
   var items = getDisplayItems(r.messages || []);
-  var hasCalls = false;
+  var callItems = [];
   for (var i = 0; i < items.length; i++) {
-    if (items[i].type === 'toolCall') {
-      hasCalls = true;
+    if (items[i].type === 'toolCall') callItems.push(items[i]);
+  }
+  var hasCalls = callItems.length > 0;
+  if (hasCalls) {
+    var sLabel = el('div', 'sub-section-label');
+    sLabel.textContent = 'Steps';
+    parent.appendChild(sLabel);
+    for (var i = 0; i < callItems.length; i++) {
       var cdiv = el('div', 'sub-toolcall');
-      var tcName = items[i].name || '';
-      var tcSum = formatToolSummary(tcName, items[i].args);
+      var tcName = callItems[i].name || '';
+      var tcSum = formatToolSummary(tcName, callItems[i].args);
       if (!tcSum) {
-        var astr = JSON.stringify(items[i].args || {});
+        var astr = JSON.stringify(callItems[i].args || {});
         tcSum = astr.length > 50 ? astr.slice(0, 50) + '…' : astr;
       }
       cdiv.appendChild(document.createTextNode('→ '));
@@ -2056,6 +2075,9 @@ function renderAgentBody(parent, r) {
   }
   var final = getFinalOutput(r.messages || []);
   if (final) {
+    var fLabel = el('div', 'sub-section-label');
+    fLabel.textContent = 'Result';
+    parent.appendChild(fLabel);
     var mdDiv = el('div', 'sub-final sub-md text-block');
     renderSubMd(mdDiv, final.trim());
     parent.appendChild(mdDiv);
@@ -2063,12 +2085,6 @@ function renderAgentBody(parent, r) {
     var empty = el('div', 'sub-empty');
     empty.textContent = r && r.exitCode === -1 ? '(running…)' : '(no output)';
     parent.appendChild(empty);
-  }
-  var usageStr = formatUsage(r.usage, r.model);
-  if (usageStr) {
-    var uDiv = el('div', 'sub-usage');
-    uDiv.textContent = usageStr;
-    parent.appendChild(uDiv);
   }
   return usageStr;
 }
