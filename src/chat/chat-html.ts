@@ -1064,6 +1064,7 @@ function formatTime(ts) {
   return hr + ':' + mm + ' ' + ampm;
 }
 var autoScroll = true;
+var programmaticScroll = false;
 var scrollBottomBtn = document.getElementById('scroll-bottom-btn');
 var STICK_THRESHOLD = 48;
 function isAtBottom() {
@@ -1074,8 +1075,12 @@ function updateScrollBtn() {
   else scrollBottomBtn.classList.add('show');
 }
 messagesEl.addEventListener('scroll', function() {
+  if (programmaticScroll) { programmaticScroll = false; return; }
   autoScroll = isAtBottom();
   updateScrollBtn();
+});
+['wheel', 'keydown', 'mousedown', 'touchstart'].forEach(function(ev) {
+  messagesEl.addEventListener(ev, function() { programmaticScroll = false; }, true);
 });
 scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
@@ -1084,6 +1089,7 @@ function scheduleScroll() {
   scrollRAF = requestAnimationFrame(function() {
     scrollRAF = null;
     if (!autoScroll) return;
+    programmaticScroll = true;
     messagesEl.scrollTop = messagesEl.scrollHeight;
     for (var i = 0; i < pendingTexts.length; i++) {
       var tb = pendingTexts[i];
@@ -1101,6 +1107,7 @@ function scheduleScroll() {
 function scrollToBottom() {
   autoScroll = true;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+  programmaticScroll = true;
   messagesEl.scrollTop = messagesEl.scrollHeight;
   updateScrollBtn();
 }
