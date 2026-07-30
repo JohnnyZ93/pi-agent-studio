@@ -1118,36 +1118,58 @@ messagesEl.addEventListener('scroll', function() {
   autoScroll = isAtBottom();
   updateScrollBtn();
 });
-['wheel', 'keydown', 'mousedown', 'touchstart'].forEach(function(ev) {
+messagesEl.addEventListener('wheel', function(e) {
+  programmaticScroll = false;
+  if (e.deltaY < 0) {
+    autoScroll = false;
+    stickUntil = 0;
+    if (stickRAF) { cancelAnimationFrame(stickRAF); stickRAF = null; }
+    if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+    updateScrollBtn();
+  }
+}, true);
+['keydown', 'mousedown', 'touchstart'].forEach(function(ev) {
   messagesEl.addEventListener(ev, function() { programmaticScroll = false; }, true);
 });
+setInterval(function() {
+  if (typeof console !== 'undefined' && console.debug) console.debug('[pi-scroll] auto=' + autoScroll + ' top=' + Math.round(messagesEl.scrollTop) + ' sh=' + messagesEl.scrollHeight + ' ch=' + messagesEl.clientHeight + ' prog=' + programmaticScroll + ' stick=' + !!stickRAF + ' scroll=' + !!scrollRAF);
+}, 1000);
 scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
+var stickTimers = [];
+function forceStickBottom() {
+  programmaticScroll = true;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  for (var i = 0; i < pendingTexts.length; i++) {
+    var tb = pendingTexts[i];
+    if (tb && tb.textEl) tb.textEl.scrollTop = tb.textEl.scrollHeight;
+  }
+  if (currentAssistant) {
+    var blks = currentAssistant.blocks;
+    for (var k = 0; k < blks.length; k++) {
+      var tk = blks[k];
+      if (tk && tk.type === 'thinking' && tk._tnode && tk.textEl) tk.textEl.scrollTop = tk.textEl.scrollHeight;
+    }
+  }
+}
 function scheduleScroll() {
   if (scrollRAF) return;
   scrollRAF = requestAnimationFrame(function() {
     scrollRAF = null;
     if (!autoScroll) return;
-    programmaticScroll = true;
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    for (var i = 0; i < pendingTexts.length; i++) {
-      var tb = pendingTexts[i];
-      if (tb && tb.textEl) tb.textEl.scrollTop = tb.textEl.scrollHeight;
-    }
-    if (currentAssistant) {
-      var blks = currentAssistant.blocks;
-      for (var k = 0; k < blks.length; k++) {
-        var tk = blks[k];
-        if (tk && tk.type === 'thinking' && tk._tnode && tk.textEl) tk.textEl.scrollTop = tk.textEl.scrollHeight;
-      }
-    }
+    forceStickBottom();
   });
 }
 function scrollToBottom() {
   autoScroll = true;
+  programmaticScroll = false;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
-  programmaticScroll = true;
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  for (var i = 0; i < stickTimers.length; i++) clearTimeout(stickTimers[i]);
+  stickTimers = [];
+  forceStickBottom();
+  [60, 180, 400].forEach(function(ms) {
+    stickTimers.push(setTimeout(function() { if (autoScroll) forceStickBottom(); }, ms));
+  });
   updateScrollBtn();
 }
 function setStatus(t) { statusEl.textContent = t || ''; }
@@ -2009,16 +2031,9 @@ function subagentTitle(r) {
   if (r && r.task) return r.task.length > 60 ? r.task.slice(0, 60) + '…' : r.task;
   return '';
 }
-var subMdCache = Object.create(null);
 function renderSubMd(target, text) {
   target._piMd = text;
-  var html = subMdCache[text];
-  if (html === undefined) {
-    try { html = md.render(text); } catch (e) { html = null; }
-    subMdCache[text] = html;
-  }
-  if (html === null) target.textContent = text;
-  else target.innerHTML = html;
+  try { target.innerHTML = md.render(text); } catch (e) { target.textContent = text; }
 }
 function renderAgentBody(parent, r) {
   var failed = isFailedSubagent(r);
@@ -2331,7 +2346,7 @@ function hydrateMessages(list) {
   isHydrating = true;
   setStatus('Loading history...');
   var i = 0;
-  var CHUNK = 30;
+  var CHUNK = 8;
   function step() {
     var end = Math.min(i + CHUNK, list.length);
     for (; i < end; i++) hydrateOne(list[i]);
@@ -2413,7 +2428,7 @@ function handleAssistantMessageEvent(amev) {
   else if (t === 'text_delta') { appendTextDelta(ci, amev.delta || ''); }
   else if (t === 'thinking_start') { var tb = ensureBlock(ci, 'thinking'); tb.el.classList.add('is-running'); }
   else if (t === 'thinking_delta') { appendThinkingDelta(ci, amev.delta || ''); }
-  else if (t === 'toolcall_start') { collapseThinking(); ensureBlock(ci, 'toolcall'); }
+  else if (t === 'toolcall_start') { collapseThinking(); var tcb = ensureBlock(ci, 'toolcall'); if (tcb.statusEl) { tcb.statusEl.textContent = ''; tcb.statusEl.classList.add('is-running'); } }
   else if (t === 'toolcall_delta') { appendToolCallDelta(ci, amev.delta || ''); }
   else if (t === 'toolcall_end') { finalizeToolCall(ci, amev.toolCall); }
 }
