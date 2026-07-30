@@ -466,6 +466,30 @@ export async function openChatPanel(
           // ignore
         }
         break;
+      case "openFile": {
+        try {
+          const filePath = String(msg.filePath ?? "");
+          if (!filePath) break;
+          const uri = vscode.Uri.file(filePath);
+          const document = await vscode.workspace.openTextDocument(uri);
+          const editor = await vscode.window.showTextDocument(document, {
+            preview: true,
+            preserveFocus: false,
+          });
+          const line = Number(msg.line);
+          if (Number.isFinite(line) && line > 0) {
+            const pos = new vscode.Position(line - 1, 0);
+            editor.selection = new vscode.Selection(pos, pos);
+            editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+          }
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
+        }
+        break;
+      }
       case "setModel":
         try {
           await rpc.setModel(msg.provider, msg.modelId);
@@ -609,6 +633,19 @@ export async function openChatPanel(
           cancelled: msg.cancelled,
         });
         break;
+      case "reload": {
+        try {
+          const msgs = await rpc.getMessages();
+          if (!disposed) panel.webview.postMessage({ type: "messages", messages: msgs });
+          void sendContextUsage();
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
+        }
+        break;
+      }
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;

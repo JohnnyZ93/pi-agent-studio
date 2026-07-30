@@ -79,11 +79,21 @@ body {
   pointer-events: none;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
-.select-wrap { position: relative; display: inline-flex; align-items: center; }
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.12s;
+}
+.select-wrap:hover { background: var(--vscode-toolbar-hoverBackground); }
+.select-wrap:focus-within { background: var(--vscode-toolbar-hoverBackground); }
 .select-wrap::after {
   content: "";
   position: absolute;
-  right: 5px;
+  right: 9px;
   top: 50%;
   margin-top: -2px;
   width: 0; height: 0;
@@ -95,22 +105,20 @@ body {
 }
 .select-borderless {
   min-width: 0;
-  max-width: 200px;
   background: transparent;
   color: var(--vscode-foreground);
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: 12px;
   font-family: inherit;
-  padding: 3px 16px 3px 6px;
+  padding: 3px 22px 3px 10px;
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
 }
-.thinking-select.select-borderless { max-width: 92px; }
-.select-borderless:hover { background: var(--vscode-toolbar-hoverBackground); }
-.select-borderless:focus { background: var(--vscode-toolbar-hoverBackground); }
+.model-select.select-borderless { width: auto; max-width: none; }
+.thinking-select.select-borderless { width: auto; max-width: none; }
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -142,6 +150,18 @@ body {
 }
 .toolbar button:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground); }
 .toolbar button:disabled { opacity: 0.4; cursor: default; }
+.toolbar .icon-btn {
+  padding: 0;
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.55;
+  border: none;
+  width: 24px;
+  height: 24px;
+}
+.toolbar .icon-btn svg { width: 15px; height: 15px; display: block; }
+.toolbar .icon-btn:hover:not(:disabled) { opacity: 1; }
+.toolbar .icon-btn:disabled { opacity: 0.35; }
 .toolbar .session-info {
   font-size: 12px;
   opacity: 0.85;
@@ -350,6 +370,7 @@ body {
 .tool-head::-webkit-details-marker { display: none; }
 .tool-head:before { content: "\\25BC"; font-size: 9px; opacity: 0.6; }
 .tool-block:not([open]) > .tool-head:before { content: "\\25B6"; }
+body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: underline; }
 .tool-name { font-weight: 600; font-family: var(--vscode-editor-font-family); }
 .tool-summary { font-family: var(--vscode-editor-font-family); color: var(--vscode-foreground); opacity: 0.9; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-status { opacity: 0.6; font-size: 11px; margin-left: auto; }
@@ -854,6 +875,8 @@ body {
   <div class="toolbar">
     <span class="session-info" id="session-info"></span>
     <span class="status" id="status"></span>
+    <button id="info-btn" class="icon-btn" type="button" title="Session info"></button>
+    <button id="refresh-btn" class="icon-btn" type="button" title="Reload messages"></button>
   </div>
   <div class="messages-wrap">
     <div class="messages" id="messages"></div>
@@ -869,7 +892,7 @@ body {
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
         <div class="composer-spacer"></div>
         <span class="ctx-ring" id="ctx-ring" title="Context usage"><svg viewBox="0 0 16 16"><circle class="ctx-ring-track" cx="8" cy="8" r="6"></circle><circle class="ctx-ring-prog" id="ctx-ring-prog" cx="8" cy="8" r="6" pathLength="100"></circle></svg></span>
-        <div class="select-wrap"><select id="model-select" class="select-borderless" title="Model"></select></div>
+        <div class="select-wrap"><select id="model-select" class="select-borderless model-select" title="Model"></select></div>
         <div class="select-wrap"><select id="thinking-select" class="select-borderless thinking-select" title="Thinking level"></select></div>
         <button id="send" class="icon-btn send-btn" type="button" title="Send message"></button>
       </div>
@@ -901,6 +924,8 @@ var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stro
 var ICON_STOP = '<svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.4" fill="currentColor"/></svg>';
 var ICON_TODO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5l1.5 1.5L6.5 3.5"/><path d="M2.5 10l1.5 1.5L6.5 8.5"/><path d="M9 4.5h4.5"/><path d="M9 10h4.5"/></svg>';
 var ICON_CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>';
+var ICON_INFO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 7.2v4"/><path d="M8 4.8h.01"/></svg>';
+var ICON_REFRESH = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6.5 6.5 0 0 1 4.5 1.8L14 5.3"/><path d="M14 2v3.3h-3.3"/><path d="M14 8a6 6 0 0 1-6 6 6.5 6.5 0 0 1-4.5-1.8L2 10.7"/><path d="M2 14v-3.3h3.3"/></svg>';
 var EMPTY_HTML = '<div class="empty">'
   + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
   + '<div class="empty-line">There are many agent harnesses</div>'
@@ -922,6 +947,17 @@ var inputEl = document.getElementById('input');
 var sendBtn = document.getElementById('send');
 var attachBtn = document.getElementById('attach-btn');
 attachBtn.innerHTML = ICON_PLUS;
+var infoBtn = document.getElementById('info-btn');
+infoBtn.innerHTML = ICON_INFO;
+var refreshBtn = document.getElementById('refresh-btn');
+refreshBtn.innerHTML = ICON_REFRESH;
+infoBtn.addEventListener('click', function() {
+  vscode.postMessage({ type: 'prompt', message: '/session' });
+});
+refreshBtn.addEventListener('click', function() {
+  if (state.isStreaming) return;
+  vscode.postMessage({ type: 'reload' });
+});
 var modelSelect = document.getElementById('model-select');
 var ctxRing = document.getElementById('ctx-ring');
 var ctxRingProg = document.getElementById('ctx-ring-prog');
@@ -1017,6 +1053,7 @@ function setStreaming(b) {
   if (!b) finalizeTextBlocks();
   updateSendButton();
   attachBtn.disabled = b;
+  refreshBtn.disabled = b;
   if (!b && !statusEl.textContent) setStatus('');
 }
 function applyContextUsage(usage, cost) {
@@ -1356,13 +1393,21 @@ function createBlock(type) {
   head.appendChild(name);
   head.appendChild(summary);
   head.appendChild(st);
-  var args = el('pre', 'tool-args');
-  var result = el('pre', 'tool-result');
+  var argsPre = el('pre', 'tool-args');
+  var resultPre = el('pre', 'tool-result');
   wrap.appendChild(head);
-  wrap.appendChild(args);
-  wrap.appendChild(result);
-  head.addEventListener('click', function() { wrap._userToggled = true; });
-  return { type: 'toolcall', el: wrap, nameEl: name, summaryEl: summary, statusEl: st, argsEl: args, resultEl: result, toolCallId: null, name: 'tool', argsText: '' };
+  wrap.appendChild(argsPre);
+  wrap.appendChild(resultPre);
+  var b = { type: 'toolcall', el: wrap, nameEl: name, summaryEl: summary, statusEl: st, argsEl: argsPre, resultEl: resultPre, toolCallId: null, name: 'tool', argsText: '', filePath: null, fileLine: null };
+  head.addEventListener('click', function(ev) {
+    wrap._userToggled = true;
+    if ((ev.ctrlKey || ev.metaKey) && b.filePath) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      vscode.postMessage({ type: 'openFile', filePath: b.filePath, line: b.fileLine != null ? b.fileLine : null });
+    }
+  });
+  return b;
 }
 
 function renderMarkdown(target, text) {
@@ -1893,6 +1938,34 @@ function applyToolSummary(b, name, args) {
   if (typeof args === 'string') { try { parsed = JSON.parse(args); } catch (e) { parsed = null; } }
   b.summaryEl.textContent = formatToolSummary(name || b.name || '', parsed);
 }
+function expandHomePath(p) {
+  if (typeof p !== 'string' || !p) return '';
+  if (p.charAt(0) === '~' && (p.length === 1 || p.charAt(1) === PI_SEP)) {
+    return (PI_HOME || '') + p.slice(1);
+  }
+  return p;
+}
+function applyToolFileTarget(b, name, args) {
+  if (!b || !b.el) return;
+  b.filePath = null;
+  b.fileLine = null;
+  b.el.removeAttribute('data-has-file');
+  if (!args) return;
+  var parsed = args;
+  if (typeof args === 'string') { try { parsed = JSON.parse(args); } catch (e) { parsed = null; } }
+  if (!parsed || typeof parsed !== 'object') return;
+  if (name !== 'read' && name !== 'write' && name !== 'edit') return;
+  var fp = parsed.file_path != null ? parsed.file_path : parsed.path;
+  if (typeof fp !== 'string' || !fp) return;
+  fp = expandHomePath(fp);
+  if (!fp) return;
+  b.filePath = fp;
+  if (name === 'read' && parsed.offset != null) {
+    var ln = parseInt(parsed.offset, 10);
+    if (!isNaN(ln) && ln > 0) b.fileLine = ln;
+  }
+  b.el.setAttribute('data-has-file', '');
+}
 function finalizeToolCall(ci, toolCall) {
   var b = ensureBlock(ci, 'toolcall');
   if (toolCall) {
@@ -1906,6 +1979,7 @@ function finalizeToolCall(ci, toolCall) {
       else setClamped(b.argsEl, b.argsText);
     }
     applyToolSummary(b, b.name, args);
+    applyToolFileTarget(b, b.name, args);
   }
 }
 
@@ -1950,6 +2024,7 @@ function startToolExecution(ev) {
     setClamped(b.argsEl, b.argsText);
   }
   applyToolSummary(b, b.name, ev.args);
+  applyToolFileTarget(b, b.name, ev.args);
   scheduleScroll();
 }
 function updateToolExecution(ev) {
@@ -2175,6 +2250,17 @@ function handleEvent(event) {
 function modelLabel(m) {
   return (m.name || m.id) + (m.provider ? ' [' + m.provider + ']' : '');
 }
+var modelMeasurer = document.createElement('span');
+modelMeasurer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:var(--vscode-font-family);font-size:12px;';
+document.body.appendChild(modelMeasurer);
+function fitSelectToText(sel, extra) {
+  var opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  modelMeasurer.textContent = opt.textContent || opt.value || '';
+  sel.style.width = (modelMeasurer.offsetWidth + extra) + 'px';
+}
+function fitModelSelect() { fitSelectToText(modelSelect, 34); }
+function fitThinkingSelect() { fitSelectToText(thinkingSelect, 34); }
 function renderModels() {
   var prev = state.model ? (state.model.provider + '/' + state.model.id) : '';
   modelSelect.innerHTML = '';
@@ -2193,6 +2279,7 @@ function renderModels() {
     o.value = '';
     modelSelect.appendChild(o);
   }
+  fitModelSelect();
 }
 function renderThinking() {
   thinkingSelect.innerHTML = '';
@@ -2204,6 +2291,7 @@ function renderThinking() {
     if (levels[i] === state.thinkingLevel) opt.selected = true;
     thinkingSelect.appendChild(opt);
   }
+  fitThinkingSelect();
 }
 function applyState(s) {
   if (!s) return;
@@ -2772,9 +2860,11 @@ modelSelect.addEventListener('change', function() {
   var idx = Number(modelSelect.value);
   var m = models[idx];
   if (m) vscode.postMessage({ type: 'setModel', provider: m.provider, modelId: m.id });
+  fitModelSelect();
 });
 thinkingSelect.addEventListener('change', function() {
   vscode.postMessage({ type: 'setThinking', level: thinkingSelect.value });
+  fitThinkingSelect();
 });
 sendBtn.addEventListener('click', function() {
   if (state.isStreaming) { vscode.postMessage({ type: 'abort' }); return; }
@@ -2880,6 +2970,23 @@ modelSelect.addEventListener('mouseenter', function() {
   showTooltip(modelSelect, m ? modelLabel(m) : '');
 });
 modelSelect.addEventListener('mouseleave', hideTooltip);
+var OPEN_FILE_HINT = /Mac/i.test(navigator.platform || '') ? '\u2318 Click to open file' : 'Ctrl+Click to open file';
+function toolHeadOfFile(target) {
+  if (!target || !target.closest) return null;
+  var node = target.closest('.tool-block[data-has-file] > .tool-head');
+  return node || null;
+}
+messagesEl.addEventListener('mouseover', function(ev) {
+  var head = toolHeadOfFile(ev.target);
+  if (head) showTooltip(head, OPEN_FILE_HINT);
+});
+messagesEl.addEventListener('mouseout', function(ev) {
+  if (toolHeadOfFile(ev.target) && !toolHeadOfFile(ev.relatedTarget)) hideTooltip();
+});
+
+document.addEventListener('keydown', function(e) { if (e.ctrlKey || e.metaKey) document.body.classList.add('ctrl-key'); });
+document.addEventListener('keyup', function(e) { if (!e.ctrlKey && !e.metaKey) document.body.classList.remove('ctrl-key'); });
+window.addEventListener('blur', function() { document.body.classList.remove('ctrl-key'); });
 
 autoGrow();
 updateSendButton();
