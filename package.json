@@ -187,6 +187,11 @@
         },
         {
           "type": "webview",
+          "id": "pi-agent-studio.prompts",
+          "name": "Prompt Templates"
+        },
+        {
+          "type": "webview",
           "id": "pi-agent-studio.settings",
           "name": "Settings",
           "visibility": "collapsed"

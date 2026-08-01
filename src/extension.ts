@@ -9,6 +9,7 @@ import { createSessionsViewProvider } from "./sessions/sessions-sidebar.ts";
 import { createModelsViewProvider } from "./models/models-sidebar.ts";
 import { ensureModelsJsonExists } from "./models/models-config.ts";
 import { createAgentsViewProvider } from "./agents/agents-sidebar.ts";
+import { createPromptsViewProvider } from "./prompts/prompts-sidebar.ts";
 import { createSettingsViewProvider } from "./settings/settings-sidebar.ts";
 import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
@@ -146,6 +147,10 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.agents",
       createAgentsViewProvider(extensionUri),
+    ),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.prompts",
+      createPromptsViewProvider(),
     ),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.settings",
