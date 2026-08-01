@@ -256,6 +256,10 @@ body {
   flex-direction: column;
   gap: 12px;
 }
+.messages-inner:has(.empty) {
+  height: 100%;
+  justify-content: center;
+}
 .msg { display: flex; flex-direction: column; gap: 6px; max-width: 100%; flex-shrink: 0; }
 .msg.user { align-items: flex-end; }
 .msg.assistant { align-items: stretch; }
