@@ -110,8 +110,6 @@ messagesEl.addEventListener('wheel', function(e) {
   programmaticScroll = false;
   if (e.deltaY < 0) {
     autoScroll = false;
-    for (var i = 0; i < stickTimers.length; i++) clearTimeout(stickTimers[i]);
-    stickTimers = [];
     if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
     updateScrollBtn();
   }
@@ -119,12 +117,8 @@ messagesEl.addEventListener('wheel', function(e) {
 ['keydown', 'mousedown', 'touchstart'].forEach(function(ev) {
   messagesEl.addEventListener(ev, function() { programmaticScroll = false; }, true);
 });
-setInterval(function() {
-  if (typeof console !== 'undefined' && console.debug) console.debug('[pi-scroll] auto=' + autoScroll + ' top=' + Math.round(messagesEl.scrollTop) + ' sh=' + messagesEl.scrollHeight + ' ch=' + messagesEl.clientHeight + ' prog=' + programmaticScroll + ' stick=' + stickTimers.length + ' scroll=' + !!scrollRAF);
-}, 1000);
 scrollBottomBtn.addEventListener('click', scrollToBottom);
 var scrollRAF = null;
-var stickTimers = [];
 function forceStickBottom() {
   programmaticScroll = true;
   messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -152,12 +146,7 @@ function scrollToBottom() {
   autoScroll = true;
   programmaticScroll = false;
   if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
-  for (var i = 0; i < stickTimers.length; i++) clearTimeout(stickTimers[i]);
-  stickTimers = [];
   forceStickBottom();
-  [60, 180, 400].forEach(function(ms) {
-    stickTimers.push(setTimeout(function() { if (autoScroll) forceStickBottom(); }, ms));
-  });
   updateScrollBtn();
 }
 if (typeof ResizeObserver !== 'undefined' && messagesInner) {
