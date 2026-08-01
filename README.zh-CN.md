@@ -25,7 +25,8 @@
 - **Slash 命令** —— `/vscode-selection` 与 `/vscode-diagnostics` 将当前选区或诊断以用户消息的形式注入对话；其余编辑器能力刻意不对模型开放
 - **AI 驱动的 Git 提交信息** —— 基于 pi 从暂存区变更生成语义化 commit message，支持 14 种语言与自定义提示模板
 - **会话恢复** —— 按工作区持久化 pi 会话，IDE 重启后通过 `--session` 自动续接
-- **侧边栏视图** —— 可视化管理面板：`Sessions`（新建/恢复/切换会话）、`Models`（Providers / OAuth / API Keys）与 `Settings`（环境信息、系统提示覆盖/追加），均为 webview 实现，直接读写 `~/.pi/agent/*.json`
+- **侧边栏视图** —— 可视化管理面板：`Sessions`（新建/恢复/切换会话，含实时状态图标）、`Agents`（subagent 定义）、`Prompt Templates`（提示词模板）、`Models`（Providers / OAuth / API Keys）与 `Settings`（环境信息、系统提示覆盖/追加），均为 webview 实现，直接读写 `~/.pi/agent/*.json`
+- **危险命令审批** —— 内置 permission gate，拦截 `rm -rf`、`sudo` 等危险 bash 命令，执行前需人工批准；支持 `AskForApproval` / `FullAccess` 模式与自定义危险模式
 - **编辑器标题栏按钮** —— 编辑器标题栏快捷打开 pi
 - **自动检测 pi 二进制** —— 自动从常见路径定位（`~/.bun/bin`、`~/.local/bin`、`~/.npm-global/bin`；Windows 上额外探测 `%APPDATA%/npm`、`%LOCALAPPDATA%/pnpm`）
 
@@ -74,10 +75,11 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 侧边栏
 
-活动栏中的 **Pi** 图标会展开包含三个 webview 的侧边栏：
+活动栏中的 **Pi** 图标会展开包含五个 webview 的侧边栏：
 
-- **Sessions** -- 按工作区显示会话列表；多根工作区时显示下拉切换
+- **Sessions** -- 按工作区显示会话列表，带实时运行 / 空闲状态图标；多根工作区时显示下拉切换
 - **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
+- **Prompt Templates** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 / 打开 pi 提示词模板（带 YAML frontmatter 的 markdown）
 - **Models** —— 三个标签页：
   - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider
   - **OAuth** —— 通过内置 `AuthStorage` 登录支持 OAuth 的 Provider
@@ -103,6 +105,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - **todo** -- `todo` LLM 工具，配输入框上方的实时列表 widget，以及 `/todos`、`/todo-clear` 命令
 - **questionnaire** -- 让 Agent 提出结构化问题（webview 模式下渲染为原生表单）
 - **subagent** -- 将任务委派给专门 Agent（内置 `explore`、`general`，可自定义）；在 **Agents** 侧边栏管理
+- **permission-gate** -- 拦截危险 bash 命令（匹配 `pi-agent-studio.permission.dangerousPatterns`，如 `rm -rf`、`sudo`），执行前需人工批准；可通过 `/permission` 按会话切换模式
 - **btw** -- `/btw` 提问旁路问题，不污染主对话上下文
 
 ### LLM 工具（1 个）
@@ -139,18 +142,21 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 配置项
 
-| 设置项                                | 类型      | 默认值       | 说明                                                                                 |
-| ------------------------------------- | --------- | ------------ | ------------------------------------------------------------------------------------ |
-| `pi-agent-studio.path`                | `string`  | `""`         | pi 二进制的绝对路径（留空则自动检测）                                                |
-| `pi-agent-studio.env`                 | `object`  | `{}`         | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                             |
-| `pi-agent-studio.args`                | `array`   | `[]`         | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                             |
-| `pi-agent-studio.commitLanguage`      | `string`  | `"English"`  | 生成 Git commit message 的语言（支持 14 种语言）                                     |
-| `pi-agent-studio.commitMessagePrompt` | `string`  | `""`         | commit message 生成的自定义系统提示                                                  |
-| `pi-agent-studio.commitModel`         | `string`  | `""`         | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）               |
-| `pi-agent-studio.statusBar`           | `boolean` | `true`       | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                          |
-| `pi-agent-studio.ui`                  | `string`  | `"terminal"` | `Pi: Open` 的界面：`terminal`（TUI）或 `webview`（聊天面板）                         |
-| `pi-agent-studio.disabledTools`       | `array`   | `[]`         | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent` |
-| `pi-agent-studio.rpcTrace`            | `boolean` | `false`      | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                |
+| 设置项                                         | 类型      | 默认值             | 说明                                                                                 |
+| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                         | `string`  | `""`               | pi 二进制的绝对路径（留空则自动检测）                                                |
+| `pi-agent-studio.env`                          | `object`  | `{}`               | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                             |
+| `pi-agent-studio.args`                         | `array`   | `[]`               | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                             |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | 生成 Git commit message 的语言（支持 14 种语言）                                     |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | commit message 生成的自定义系统提示                                                  |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`               | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）               |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                          |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | `Pi: Open` 的界面：`terminal`（TUI）或 `webview`（聊天面板）                         |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent` |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                    |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | `["\\brm\\s+(-rf?  | --recursive)", "\\bsudo\\b", "\\b(chmod                                              | chown)\\b.\*777"]` | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值） |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | webview 聊天面板字体大小（范围 8–32）                                                |
 
 ## 从源码构建
 

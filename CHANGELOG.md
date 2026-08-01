@@ -2,6 +2,15 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.2] - 2026-08-01
+
+- **Permission gate**: added a new `permission-gate` bridge extension that intercepts dangerous bash commands (`rm -rf`, `sudo`, `chmod/chown 777`, …) and requires explicit approval before execution. Configure via `pi-agent-studio.permission.mode` (`AskForApproval` / `FullAccess`) and `pi-agent-studio.permission.dangerousPatterns`; switch the mode per session with the `/permission` slash command. The webview chat panel shows the current mode in the composer and renders Allow/Block buttons on permission dialogs.
+- **Prompt Templates sidebar**: new sidebar view to manage pi prompt templates in user and project scopes — create, edit, delete, and open template markdown files (with YAML frontmatter) directly from the IDE.
+- **Session status tracking**: sessions sidebar and chat panel titles now show running/idle status icons, tracked live via the bridge across terminal and webview sessions.
+- **Chat UI**: intermediate work segments between user turns are collapsed into a single collapsible block (turn count + total duration), keeping the final assistant message prominent.
+- **Chat UI**: tool call results now show line counts for `write`, added/removed line stats for `edit`, and hide the `read` args after successful execution.
+- **Chat UI**: added configurable font size via `pi-agent-studio.chatFontSize` (default 13, range 8–32); all interface text scales from a single CSS custom property.
+
 ## [1.1.1] - 2026-07-29
 
 - **Chat UI**: added image attachment support — paste or drag-and-drop images into the composer with inline preview.

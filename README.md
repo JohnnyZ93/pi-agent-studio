@@ -25,7 +25,7 @@ English | [简体中文](README.zh-CN.md)
 - **Slash commands** — `/vscode-selection` and `/vscode-diagnostics` inject the current editor selection or diagnostics into the conversation, with the rest of the editor surface intentionally kept off-limits to the model
 - **AI-powered Git commit messages** — Generate semantic commit messages from staged changes using pi, with support for 14 languages and custom prompt templates
 - **Session restoration** — Per-workspace pi sessions are persisted and relaunched with `--session` after IDE reload
-- **Sidebar views** — Visual management panel: `Sessions` (new/restore/switch), `Models` (Providers / OAuth / API Keys), and `Settings` (env info, system prompt override/append) — all webviews backed by direct `~/.pi/agent/*.json` I/O
+- **Sidebar views** — Visual management panel: `Sessions` (new/restore/switch), `Agents` (subagent definitions), `Prompt Templates` (user/project prompt files), `Models` (Providers / OAuth / API Keys), and `Settings` (env info, system prompt override/append) — all webviews backed by direct `~/.pi/agent/*.json` I/O
 - **Status bar / title bar buttons** — Pi button on the editor title bar for quick access
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`; on Windows `%APPDATA%/npm`, `%LOCALAPPDATA%/pnpm`)
 
@@ -74,10 +74,11 @@ The **Pi: Open** command is also wired to the editor title bar for one-click acc
 
 ## Sidebar
 
-The **Pi** activity bar icon opens a sidebar with three webviews:
+The **Pi** activity bar icon opens a sidebar with five webviews:
 
-- **Sessions** - Per-workspace session list; dropdown when multiple workspace folders exist
+- **Sessions** - Per-workspace session list with live running/idle status icons; dropdown when multiple workspace folders exist
 - **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
+- **Prompt Templates** - Create / edit / delete / open pi prompt templates (markdown with YAML frontmatter) in user and project scopes
 - **Models** — Three tabs:
   - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`
   - **OAuth** — Sign in to providers that support OAuth, managed through the bundled `AuthStorage`
@@ -103,6 +104,7 @@ Beyond the editor bridge, the extension bundles a few pi extensions that add age
 - **todo** - a `todo` LLM tool with a live list widget above the composer, plus `/todos` and `/todo-clear` commands
 - **questionnaire** - lets the agent ask structured questions (rendered as a native web form in webview mode)
 - **subagent** - delegate tasks to specialized agents (`explore`, `general`, plus your own); managed from the **Agents** sidebar
+- **permission-gate** - intercepts dangerous bash commands (matching `pi-agent-studio.permission.dangerousPatterns`, e.g. `rm -rf`, `sudo`) and requires approval before execution; switch per session via `/permission`
 - **btw** - `/btw` asks a side question without altering the main conversation context
 
 ### LLM tool (1)
@@ -139,18 +141,21 @@ Example:
 
 ## Configuration
 
-| Setting                               | Type      | Default      | Description                                                                                 |
-| ------------------------------------- | --------- | ------------ | ------------------------------------------------------------------------------------------- |
-| `pi-agent-studio.path`                | `string`  | `""`         | Absolute path to the pi binary (auto-detected if empty)                                     |
-| `pi-agent-studio.env`                 | `object`  | `{}`         | Environment variables merged into the pi terminal (bridge vars win on key collision)        |
-| `pi-agent-studio.args`                | `array`   | `[]`         | Extra CLI args appended after `--extension` and before any caller-supplied extra args       |
-| `pi-agent-studio.commitLanguage`      | `string`  | `"English"`  | Language for generated Git commit messages (14 languages supported)                         |
-| `pi-agent-studio.commitMessagePrompt` | `string`  | `""`         | Custom system prompt for commit message generation                                          |
-| `pi-agent-studio.commitModel`         | `string`  | `""`         | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)   |
-| `pi-agent-studio.statusBar`           | `boolean` | `true`       | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer             |
-| `pi-agent-studio.ui`                  | `string`  | `"terminal"` | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                               |
-| `pi-agent-studio.disabledTools`       | `array`   | `[]`         | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent` |
-| `pi-agent-studio.rpcTrace`            | `boolean` | `false`      | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                           |
+| Setting                                        | Type      | Default            | Description                                                                                 |
+| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                     |
+| `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)        |
+| `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args       |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                         |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                          |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)   |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer             |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                               |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent` |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                           |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`    |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | `["\\brm\\s+(-rf?  | --recursive)", "\\bsudo\\b", "\\b(chmod                                                     | chown)\\b.\*777"]` | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                            |
 
 ## Building from source
 
