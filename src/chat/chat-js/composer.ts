@@ -789,7 +789,7 @@ window.addEventListener('message', function(e) {
       setStreaming(false);
       var eb = el('div', 'error-banner');
       eb.textContent = d.message || 'Error';
-      messagesEl.appendChild(eb);
+      messagesInner.appendChild(eb);
       scrollToBottom();
       break;
     default: break;

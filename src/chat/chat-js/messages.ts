@@ -8,7 +8,7 @@ var btwStatusActive = false;
 var lastUserBubble = null;
 
 function addUserMessage(text, images) {
-  var empty = messagesEl.querySelector('.empty');
+  var empty = messagesInner.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg user');
   var bubble = el('div', 'bubble user-bubble');
@@ -25,7 +25,7 @@ function addUserMessage(text, images) {
     bubble.appendChild(wrap);
   }
   row.appendChild(bubble);
-  messagesEl.appendChild(row);
+  messagesInner.appendChild(row);
   lastUserBubble = bubble;
 
   if (bubble.scrollHeight > 240) {
@@ -54,7 +54,7 @@ function applyUserBubbleTime(bubble, ts) {
 }
 
 function addCompactionMessage(m) {
-  var empty = messagesEl.querySelector('.empty');
+  var empty = messagesInner.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg compaction');
   var det = el('details', 'compaction-block');
@@ -69,11 +69,11 @@ function addCompactionMessage(m) {
   renderMarkdown(body, (m && typeof m.summary === 'string') ? m.summary : '');
   det.appendChild(body);
   row.appendChild(det);
-  messagesEl.appendChild(row);
+  messagesInner.appendChild(row);
   scheduleScroll();
 }
 function addCompactionPlaceholder() {
-  var empty = messagesEl.querySelector('.empty');
+  var empty = messagesInner.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg compaction');
   var det = el('details', 'compaction-block');
@@ -90,7 +90,7 @@ function addCompactionPlaceholder() {
   body.textContent = 'Summarizing conversation\u2026';
   det.appendChild(body);
   row.appendChild(det);
-  messagesEl.appendChild(row);
+  messagesInner.appendChild(row);
   pendingCompactionBlock = row;
   scheduleScroll();
 }
@@ -105,7 +105,7 @@ function setBtwLoading(b) {
   updateSendButton();
 }
 function addBtwPlaceholder(question, model) {
-  var empty = messagesEl.querySelector('.empty');
+  var empty = messagesInner.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg btw');
   var det = el('details', 'btw-block');
@@ -125,7 +125,7 @@ function addBtwPlaceholder(question, model) {
   body.textContent = 'Answering' + (model ? ' with ' + model : '') + '\u2026';
   det.appendChild(body);
   row.appendChild(det);
-  messagesEl.appendChild(row);
+  messagesInner.appendChild(row);
   pendingBtwBlock = row;
   setBtwStatus('Answering /btw' + (model ? ' with ' + model : '') + '\u2026');
   scheduleScroll();
@@ -159,7 +159,7 @@ function showBtwError(message) {
   setBtwStatus(null);
   var eb = el('div', 'error-banner');
   eb.textContent = message || 'Error';
-  messagesEl.appendChild(eb);
+  messagesInner.appendChild(eb);
   scrollToBottom();
 }
 function handleBtw(lines) {
@@ -175,10 +175,10 @@ function handleBtw(lines) {
 }
 
 function startAssistantMessage(ts) {
-  var empty = messagesEl.querySelector('.empty');
+  var empty = messagesInner.querySelector('.empty');
   if (empty) empty.remove();
   var row = el('div', 'msg assistant');
-  messagesEl.appendChild(row);
+  messagesInner.appendChild(row);
   row._piTs = ts != null ? ts : null;
   currentAssistant = { el: row, blocks: [], ts: ts != null ? ts : null };
   scheduleScroll();
@@ -927,7 +927,7 @@ function finalizeToolCall(ci, toolCall) {
 }
 
 function findToolBlock(toolCallId) {
-  var children = messagesEl.querySelectorAll('.tool-block[data-tcid="' + cssEscape(toolCallId) + '"]');
+  var children = messagesInner.querySelectorAll('.tool-block[data-tcid="' + cssEscape(toolCallId) + '"]');
   if (children.length) {
     for (var i = 0; i < children.length; i++) {
       var c = children[i];
@@ -1047,7 +1047,7 @@ function endToolExecution(ev) {
 var isHydrating = false;
 // ---- hydrate from get_messages ----
 function hydrateMessages(list) {
-  messagesEl.innerHTML = '';
+  messagesInner.innerHTML = '';
   pendingCompactionBlock = null;
   pendingBtwBlock = null;
   btwAbortId = null;
@@ -1227,12 +1227,12 @@ function wrapWorkSegment(userRow) {
   scheduleScroll();
 }
 function wrapLastWorkSegment() {
-  var rows = messagesEl.querySelectorAll('.msg.user');
+  var rows = messagesInner.querySelectorAll('.msg.user');
   if (!rows.length) return;
   wrapWorkSegment(rows[rows.length - 1]);
 }
 function wrapAllWorkSegments() {
-  var rows = messagesEl.querySelectorAll('.msg.user');
+  var rows = messagesInner.querySelectorAll('.msg.user');
   var n = rows.length;
   for (var i = 0; i < n; i++) {
     if (i === n - 1 && state.isStreaming) continue;
@@ -1309,7 +1309,7 @@ function handleEvent(event) {
         var rfe = event.finalError || 'Unknown error';
         var reb = el('div', 'error-banner');
         reb.textContent = 'Error: Retry failed after ' + event.attempt + ' attempts: ' + rfe;
-        messagesEl.appendChild(reb);
+        messagesInner.appendChild(reb);
         scrollToBottom();
       }
       break;

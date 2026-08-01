@@ -250,6 +250,8 @@ body {
   min-height: 0;
   overflow-y: auto;
   padding: 12px;
+}
+.messages-inner {
   display: flex;
   flex-direction: column;
   gap: 12px;

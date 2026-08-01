@@ -36,6 +36,7 @@ var EMPTY_HTML = '<div class="empty">'
   + '</div>'
   + '</div>';
 var messagesEl = document.getElementById('messages');
+var messagesInner = document.getElementById('messages-inner');
 var widgetEl = document.getElementById('widget');
 var queueEl = document.getElementById('queue');
 var inputEl = document.getElementById('input');
@@ -159,6 +160,10 @@ function scrollToBottom() {
   });
   updateScrollBtn();
 }
+if (typeof ResizeObserver !== 'undefined' && messagesInner) {
+  var stickRO = new ResizeObserver(function() { if (autoScroll) scheduleScroll(); });
+  stickRO.observe(messagesInner);
+}
 function setStatus(t) { statusEl.textContent = t || ''; }
 function updateSendButton() {
   if (state.isStreaming || state.isBtwLoading) {
@@ -211,7 +216,7 @@ function rebuildCtxRingTooltip() {
 }
 
 function clearMessages() {
-  messagesEl.innerHTML = EMPTY_HTML;
+  messagesInner.innerHTML = EMPTY_HTML;
 }
 
 function applyWidget(key, lines) {
