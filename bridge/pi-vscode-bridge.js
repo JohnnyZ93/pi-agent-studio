@@ -236,11 +236,11 @@ export default function (pi) {
     void refreshStatus(ctx);
   });
 
-  pi.on("agent_start", async (_event, ctx) => {
+  pi.on("agent_start", async (_event, _ctx) => {
     reportStatus("running");
   });
 
-  pi.on("agent_settled", async (_event, ctx) => {
+  pi.on("agent_settled", async (_event, _ctx) => {
     reportStatus("idle");
     void callBridge("showNotification", { message: "Pi: Task Completed!", type: "info" }).catch(
       () => {},
