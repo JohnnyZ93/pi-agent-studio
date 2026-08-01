@@ -64,6 +64,7 @@ var sessionCost = null;
 var latestCacheHitPct = null;
 var prevTurn = null;
 var thinkingSelect = document.getElementById('thinking-select');
+var permissionSelect = document.getElementById('permission-select');
 var statusEl = document.getElementById('status');
 var sessionInfoEl = document.getElementById('session-info');
 var acEl = document.getElementById('autocomplete');

@@ -5,6 +5,7 @@ import {
   BRIDGE_EXTENSION_PATH,
   BTW_EXTENSION_PATH,
   BUILTIN_AGENTS_DIR,
+  PERMISSION_GATE_EXTENSION_PATH,
   QUESTIONNAIRE_EXTENSION_PATH,
   SUBAGENT_EXTENSION_PATH,
   TODO_EXTENSION_PATH,
@@ -116,6 +117,8 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
   ];
   const args = options.sessionFile
     ? [
@@ -137,9 +140,12 @@ export function createPiEnvironment(
   const config = vscode.workspace.getConfiguration("pi-agent-studio");
   const statusBar = config.get<boolean>("statusBar") ?? true;
   const disabledTools = config.get<string[]>("disabledTools") ?? [];
+  const permissionMode = config.get<string>("permission.mode") ?? "AskForApproval";
+  const dangerousPatterns = config.get<string[]>("permission.dangerousPatterns") ?? [];
   const env: Record<string, string> = {
     PI_VSCODE_STATUS_BAR: statusBar ? "1" : "0",
     PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
+    PI_VSCODE_PERMISSION: JSON.stringify({ mode: permissionMode, patterns: dangerousPatterns }),
   };
   if (bridgeConfig) {
     env.PI_VSCODE_BRIDGE_URL = bridgeConfig.url;
@@ -169,6 +175,8 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, SUBAGENT_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile

@@ -157,6 +157,9 @@ body {
 }
 .model-select.select-borderless { width: auto; max-width: none; }
 .thinking-select.select-borderless { width: auto; max-width: none; }
+.permission-select.select-borderless { width: auto; max-width: none; }
+.permission-select.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
+.permission-select.permission-danger { color: var(--vscode-errorForeground); }
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -690,7 +693,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   flex-direction: column;
   gap: 10px;
 }
-.dialog h3 { margin: 0; font-size: var(--chat-fs-14); }
+.dialog h3 { margin: 0; font-size: var(--chat-fs-14); white-space: pre-wrap; word-break: break-word; }
 .dialog p { margin: 0; opacity: 0.85; white-space: pre-wrap; word-break: break-word; }
 .toast {
   position: fixed;
@@ -771,6 +774,8 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   font-family: inherit;
 }
 .dialog .opt-btn:hover { background: var(--vscode-list-hoverBackground); }
+.dialog .opt-btn.opt-allow { color: var(--vscode-errorForeground); }
+.dialog .opt-btn.opt-block { color: var(--vscode-testing-iconPassed, #89d185); }
 .dialog .dialog-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 4px; }
 .dialog .btn {
   padding: 5px 14px;

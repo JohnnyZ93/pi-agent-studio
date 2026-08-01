@@ -20,6 +20,7 @@ export function getChatHtmlTemplate(): string {
       <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands, @ for files)"></textarea>
       <div class="composer-controls-bar">
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
+        <div class="select-wrap"><select id="permission-select" class="select-borderless permission-select" title="Permission mode"></select></div>
         <div class="composer-spacer"></div>
         <span class="ctx-ring" id="ctx-ring" title="Context usage"><svg viewBox="0 0 16 16"><circle class="ctx-ring-track" cx="8" cy="8" r="6"></circle><circle class="ctx-ring-prog" id="ctx-ring-prog" cx="8" cy="8" r="6" pathLength="100"></circle></svg></span>
         <div class="select-wrap"><select id="model-select" class="select-borderless model-select" title="Model"></select></div>

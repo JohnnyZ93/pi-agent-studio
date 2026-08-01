@@ -284,6 +284,31 @@
           "default": [],
           "description": "LLM tools registered by bundled extensions to disable (blocklist). Defaults to none (all enabled)."
         },
+        "pi-agent-studio.permission.mode": {
+          "type": "string",
+          "enum": [
+            "AskForApproval",
+            "FullAccess"
+          ],
+          "default": "AskForApproval",
+          "enumDescriptions": [
+            "Prompt before running bash commands that match permission.dangerousPatterns.",
+            "No gating — all bash commands run without confirmation."
+          ],
+          "description": "Permission mode for dangerous bash commands. AskForApproval prompts before matched commands run; FullAccess disables gating."
+        },
+        "pi-agent-studio.permission.dangerousPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "\\brm\\s+(-rf?|--recursive)",
+            "\\bsudo\\b",
+            "\\b(chmod|chown)\\b.*777"
+          ],
+          "description": "Case-insensitive regexes marking a bash command as dangerous (requires approval in AskForApproval mode). User config fully replaces the defaults; an empty array gates nothing."
+        },
         "pi-agent-studio.rpcTrace": {
           "type": "boolean",
           "default": false,

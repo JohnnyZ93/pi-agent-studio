@@ -14,6 +14,7 @@ function fitSelectToText(sel, extra) {
 }
 function fitModelSelect() { fitSelectToText(modelSelect, 34); }
 function fitThinkingSelect() { fitSelectToText(thinkingSelect, 34); }
+function fitPermissionSelect() { fitSelectToText(permissionSelect, 34); }
 function renderModels() {
   var prev = state.model ? (state.model.provider + '/' + state.model.id) : '';
   modelSelect.innerHTML = '';
@@ -45,6 +46,22 @@ function renderThinking() {
     thinkingSelect.appendChild(opt);
   }
   fitThinkingSelect();
+}
+function renderPermission() {
+  permissionSelect.innerHTML = '';
+  var modes = ['AskForApproval', 'FullAccess'];
+  for (var i = 0; i < modes.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = modes[i];
+    opt.textContent = modes[i];
+    permissionSelect.appendChild(opt);
+  }
+  fitPermissionSelect();
+  updatePermissionColor(permissionSelect.value);
+}
+function updatePermissionColor(mode) {
+  permissionSelect.classList.toggle('permission-safe', mode === 'AskForApproval');
+  permissionSelect.classList.toggle('permission-danger', mode === 'FullAccess');
 }
 function applyState(s) {
   if (!s) return;
@@ -602,7 +619,9 @@ function showDialog(request) {
   var box = el('div', 'dialog');
   var method = request.method;
   var title = request.title || (method === 'confirm' ? 'Confirm' : 'Input required');
-  var h = el('h3'); h.textContent = title; box.appendChild(h);
+  var h = el('h3'); h.textContent = title;
+  var isPermission = method === 'select' && String(request.title || '').indexOf('Dangerous Command:') === 0;
+  box.appendChild(h);
   if (request.message) { var p = el('p'); p.textContent = String(request.message); box.appendChild(p); }
 
   var inputField = null;
@@ -618,6 +637,10 @@ function showDialog(request) {
       (function(opt) {
         var btn = el('button', 'opt-btn');
         btn.textContent = String(opt);
+        if (isPermission) {
+          if (String(opt) === 'Allow') btn.classList.add('opt-allow');
+          else if (String(opt) === 'Block') btn.classList.add('opt-block');
+        }
         btn.addEventListener('click', function() { respond(request.id, { value: String(opt) }); });
         list.appendChild(btn);
       })(request.options[i]);
@@ -709,6 +732,12 @@ thinkingSelect.addEventListener('change', function() {
   vscode.postMessage({ type: 'setThinking', level: thinkingSelect.value });
   fitThinkingSelect();
 });
+permissionSelect.addEventListener('change', function() {
+  var v = permissionSelect.value;
+  fitPermissionSelect();
+  updatePermissionColor(v);
+  vscode.postMessage({ type: 'setPermission', mode: v });
+});
 sendBtn.addEventListener('click', function() {
   if (state.isStreaming) { vscode.postMessage({ type: 'abort' }); return; }
   if (state.isBtwLoading && btwAbortId) { vscode.postMessage({ type: 'btwAbort', id: btwAbortId }); return; }
@@ -762,6 +791,11 @@ window.addEventListener('message', function(e) {
     case 'sessionInfo': sessionInfoEl.textContent = d.label || ''; break;
     case 'models': models = d.models || []; renderModels(); break;
     case 'thinkingLevels': thinkingLevels = d.levels || []; renderThinking(); break;
+    case 'permissionMode':
+      permissionSelect.value = d.mode || 'AskForApproval';
+      fitPermissionSelect();
+      updatePermissionColor(permissionSelect.value);
+      break;
     case 'commands': commands = d.commands || []; break;
     case 'messages': queueState.steering = []; queueState.followUp = []; renderQueue(); hydrateMessages(d.messages); break;
     case 'event': handleEvent(d.event); break;
@@ -838,5 +872,6 @@ window.addEventListener('blur', function() { document.body.classList.remove('ctr
 autoGrow();
 updateSendButton();
 applyContextUsage(null);
-clearMessages();`;
+clearMessages();
+renderPermission();`;
 }

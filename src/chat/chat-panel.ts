@@ -435,6 +435,12 @@ export async function openChatPanel(
       ]);
       sessionName = st.sessionName;
       panel.webview.postMessage({ type: "state", state: st });
+      panel.webview.postMessage({
+        type: "permissionMode",
+        mode:
+          vscode.workspace.getConfiguration("pi-agent-studio").get<string>("permission.mode") ??
+          "AskForApproval",
+      });
       panel.webview.postMessage({ type: "models", models });
       panel.webview.postMessage({ type: "thinkingLevels", levels });
       panel.webview.postMessage({ type: "commands", commands: mergeBuiltinCommands(cmds) });
@@ -706,6 +712,11 @@ export async function openChatPanel(
       }
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
+        break;
+      case "setPermission":
+        void rpc
+          .prompt(`/permission ${String(msg.mode ?? "")}`, streaming ? "steer" : undefined)
+          .catch(() => {});
         break;
       case "btwAbort":
         rpc.respondExtensionUi(msg.id, { confirmed: true });
