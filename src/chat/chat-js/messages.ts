@@ -895,6 +895,7 @@ function applyToolFileTarget(b, name, args) {
 }
 function finalizeToolCall(ci, toolCall) {
   var b = ensureBlock(ci, 'toolcall');
+  b.el._block = b;
   if (toolCall) {
     if (toolCall.name) {
       b.name = toolCall.name;
@@ -906,8 +907,17 @@ function finalizeToolCall(ci, toolCall) {
     if (args !== undefined && args !== null) {
       b.argsText = typeof args === 'string' ? args : JSON.stringify(args, null, 2);
       b._anode = null;
-      if (b.name === 'write') renderWriteContent(b.argsEl, args);
-      else if (b.name === 'subagent') b.argsEl.textContent = '';
+      if (b.name === 'write') {
+        renderWriteContent(b.argsEl, args);
+        var wparsed = args;
+        if (typeof args === 'string') { try { wparsed = JSON.parse(args); } catch (e) { wparsed = null; } }
+        var wcontent = wparsed && typeof wparsed.content === 'string' ? wparsed.content : '';
+        if (wcontent) {
+          var wlines = wcontent.split(String.fromCharCode(10));
+          while (wlines.length && wlines[wlines.length - 1] === '') wlines.pop();
+          b._writeLineCount = wlines.length;
+        }
+      } else if (b.name === 'subagent') b.argsEl.textContent = '';
       else setClamped(b.argsEl, b.argsText);
     }
     applyToolSummary(b, b.name, args);
@@ -994,11 +1004,30 @@ function endToolExecution(ev) {
   if (b.name === 'edit' && !ev.isError && r && r.details && typeof r.details.diff === 'string') {
     b.el.classList.add('is-diff');
     renderToolDiff(b.resultEl, r.details.diff);
+    var diffLines = r.details.diff.split(String.fromCharCode(10));
+    var added = 0, removed = 0;
+    for (var di = 0; di < diffLines.length; di++) {
+      var ch = diffLines[di].charAt(0);
+      if (ch === '+' && diffLines[di].charAt(1) !== '+') added++;
+      else if (ch === '-' && diffLines[di].charAt(1) !== '-') removed++;
+    }
+    if (b.summaryEl && (added > 0 || removed > 0)) {
+      var sumHtml = b.summaryEl.textContent;
+      if (added > 0) sumHtml += ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' + added + '</span>';
+      if (removed > 0) sumHtml += ' <span style="color:var(--vscode-gitDecoration-deletedResourceForeground, #f48771)">-' + removed + '</span>';
+      b.summaryEl.innerHTML = sumHtml;
+    }
     scheduleScroll();
     return;
   }
+  if (b.name === 'read' && !ev.isError) {
+    if (b.argsEl) b.argsEl.style.display = 'none';
+  }
   if (b.name === 'write' && !ev.isError) {
     if (b.resultEl) { b.resultEl._piMd = null; b.resultEl.textContent = ''; }
+    if (b._writeLineCount > 0 && b.summaryEl) {
+      b.summaryEl.innerHTML = b.summaryEl.textContent + ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' + b._writeLineCount + '</span>';
+    }
     if (!b.el._userToggled) b.el.removeAttribute('open');
     scheduleScroll();
     return;
