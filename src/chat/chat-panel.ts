@@ -10,6 +10,7 @@ import type { ExtensionUiRequest, RpcClient, RpcEvent, RpcSessionStats } from ".
 import { createRpcClient } from "./rpc-client.ts";
 import { mergeBuiltinCommands, parseBuiltin } from "./builtin-commands.ts";
 import { readPiChangelog } from "./pi-changelog.ts";
+import { sessionStatusRegistry } from "../session-status-registry.ts";
 
 export interface ChatPanelHandle {
   panel: vscode.WebviewPanel;
@@ -122,6 +123,22 @@ export async function openChatPanel(
   let branchResolved = false;
   let streaming = false;
 
+  function updatePanelTitle(running: boolean): void {
+    if (disposed) return;
+    panel.title =
+      (running ? "🔵 " : "🟢 ") + CHAT_PANEL_TITLE + (sessionName ? ` \u2014 ${sessionName}` : "");
+  }
+
+  function syncRegistryStatus(running: boolean): void {
+    if (disposed || !handle.sessionFile) return;
+    sessionStatusRegistry.upsert({
+      sessionFile: handle.sessionFile,
+      status: running ? "running" : "idle",
+      source: "chat",
+      panelId,
+    });
+  }
+
   const rpc = await createRpcClient({
     piPath,
     args,
@@ -131,8 +148,15 @@ export async function openChatPanel(
     handlers: {
       onEvent: (event) => {
         if (disposed) return;
-        if (event.type === "agent_start") streaming = true;
-        else if (event.type === "agent_settled") streaming = false;
+        if (event.type === "agent_start") {
+          streaming = true;
+          updatePanelTitle(true);
+          syncRegistryStatus(true);
+        } else if (event.type === "agent_settled") {
+          streaming = false;
+          updatePanelTitle(false);
+          syncRegistryStatus(false);
+        }
         panel.webview.postMessage({ type: "event", event });
         if (event.type === "agent_settled") {
           if (needsSessionFile) {
@@ -151,6 +175,8 @@ export async function openChatPanel(
       onExtensionUiRequest: (req) => handleExtUiRequest(req),
       onExit: (code) => {
         if (disposed) return;
+        updatePanelTitle(false);
+        if (handle.sessionFile) sessionStatusRegistry.remove(handle.sessionFile);
         disposed = true;
         panel.webview.postMessage({
           type: "error",
@@ -170,7 +196,15 @@ export async function openChatPanel(
     sessionFile: opts.sessionFile,
   };
   activePanels.set(panelId, handle);
-  if (opts.sessionFile) sessionToPanel.set(opts.sessionFile, panelId);
+  if (opts.sessionFile) {
+    sessionToPanel.set(opts.sessionFile, panelId);
+    sessionStatusRegistry.upsert({
+      sessionFile: opts.sessionFile,
+      status: "idle",
+      source: "chat",
+      panelId,
+    });
+  }
 
   function applySessionFile(sessionFile: string | undefined, name?: string): void {
     sessionName = name;
@@ -182,11 +216,13 @@ export async function openChatPanel(
     needsSessionFile = false;
     if (handle.sessionFile && handle.sessionFile !== sessionFile) {
       sessionToPanel.delete(handle.sessionFile);
+      sessionStatusRegistry.remove(handle.sessionFile);
     }
     handle.sessionFile = sessionFile;
     sessionToPanel.set(sessionFile, panelId);
     opts.tracker.update(panelId, sessionFile);
-    panel.title = CHAT_PANEL_TITLE + (sessionName ? ` \u2014 ${sessionName}` : "");
+    updatePanelTitle(streaming);
+    syncRegistryStatus(streaming);
     void sendSessionInfo();
   }
 
@@ -405,8 +441,12 @@ export async function openChatPanel(
       applySessionFile(st.sessionFile, st.sessionName);
       const messages = await rpc.getMessages();
       panel.webview.postMessage({ type: "messages", messages });
-      if (st.isStreaming)
+      if (st.isStreaming) {
+        streaming = true;
+        updatePanelTitle(true);
+        syncRegistryStatus(true);
         panel.webview.postMessage({ type: "event", event: { type: "agent_start" } });
+      }
       void sendContextUsage();
     } catch (e) {
       panel.webview.postMessage({
@@ -676,7 +716,10 @@ export async function openChatPanel(
   panel.onDidDispose(() => {
     disposed = true;
     activePanels.delete(panelId);
-    if (handle.sessionFile) sessionToPanel.delete(handle.sessionFile);
+    if (handle.sessionFile) {
+      sessionToPanel.delete(handle.sessionFile);
+      sessionStatusRegistry.remove(handle.sessionFile);
+    }
     opts.tracker.removePanel(panelId);
     void rpc.dispose();
   });

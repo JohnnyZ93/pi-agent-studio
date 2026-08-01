@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
 import type { SessionTracker } from "../sessions.ts";
@@ -10,6 +10,7 @@ import { openChatPanel } from "../chat/chat-panel.ts";
 import type { ChatTracker } from "../chat/chat-tracker.ts";
 import { filterAndSortSessions } from "./session-search.ts";
 import { getSessionsHtml } from "./sessions-sidebar-html.ts";
+import { sessionStatusRegistry } from "../session-status-registry.ts";
 
 export interface SessionDir {
   /** Absolute path of the cwd. Used as cache key and as the cwd for new sessions. */
@@ -151,9 +152,39 @@ export function createSessionsViewProvider(
         if (webviewView.visible) void refreshAll();
       });
 
+      const statusSub = sessionStatusRegistry.onChanged((entries) => {
+        if (!webviewView.visible) return;
+        webviewView.webview.postMessage({
+          type: "statusUpdate",
+          entries: entries.map((e) => ({ path: e.sessionFile, status: e.status })),
+        });
+      });
+
+      const sessionsRoot = join(getAgentDir(), "sessions");
+      const watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(vscode.Uri.file(sessionsRoot), "**/*.jsonl"),
+      );
+      let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+      const scheduleRefresh = () => {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = undefined;
+          if (webviewView.visible) void refreshAll();
+        }, 300);
+      };
+      const createSub = watcher.onDidCreate(scheduleRefresh);
+      const deleteSub = watcher.onDidDelete(scheduleRefresh);
+      const changeSub = watcher.onDidChange(scheduleRefresh);
+
       webviewView.onDidDispose(() => {
         folderSub.dispose();
         visSub.dispose();
+        statusSub();
+        createSub.dispose();
+        deleteSub.dispose();
+        changeSub.dispose();
+        if (refreshTimer) clearTimeout(refreshTimer);
+        watcher.dispose();
       });
 
       webviewView.webview.onDidReceiveMessage(async (msg) => {
@@ -206,12 +237,14 @@ export function createSessionsViewProvider(
 }
 
 function serializeSession(s: SessionInfo) {
+  const entry = sessionStatusRegistry.get(s.path);
   return {
     path: s.path,
     name: s.name || "",
     firstMessage: s.firstMessage || "",
     messageCount: s.messageCount || 0,
     modified: s.modified instanceof Date ? s.modified.toISOString() : (s.modified ?? ""),
+    ...(entry ? { isOpen: true, status: entry.status } : {}),
   };
 }
 

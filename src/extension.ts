@@ -27,9 +27,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const sessions = createSessionTracker(context);
   const chatTracker = createChatTracker(context);
-  const bridge = await createBridge(context, (terminalId, sessionFile) => {
-    sessions.update(terminalId, sessionFile);
-  });
+  const bridge = await createBridge(
+    context,
+    (terminalId, sessionFile) => {
+      sessions.update(terminalId, sessionFile);
+    },
+    (terminalId) => sessions.findSessionFileByTerminalId(terminalId),
+  );
   bridgeConfig = { url: bridge.url, token: bridge.token };
   bridgeDispose = () => bridge.dispose();
   context.subscriptions.push({

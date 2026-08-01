@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { sessionStatusRegistry } from "../session-status-registry.ts";
 import {
   captureSelection,
   captureSelectionStatus,
@@ -95,6 +96,8 @@ export async function handleRpc(
       return showNotification(params);
     case "reportTerminalSession":
       return reportTerminalSession(params, state);
+    case "reportSessionStatus":
+      return reportSessionStatus(params, state);
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }
@@ -104,6 +107,24 @@ function reportTerminalSession(params: Record<string, unknown>, state: BridgeSta
   const terminalId = readRequiredString(params.terminalId, "terminalId");
   const sessionFile = readRequiredString(params.sessionFile, "sessionFile");
   state.reportTerminalSession(terminalId, sessionFile);
+  return { received: true };
+}
+
+function reportSessionStatus(params: Record<string, unknown>, state: BridgeState) {
+  const terminalId = readRequiredString(params.terminalId, "terminalId");
+  const status = readRequiredString(params.status, "status") as "running" | "idle" | "closed";
+  const sessionFile = state.findTerminalSession(terminalId);
+  if (!sessionFile) return { received: true };
+  if (status === "closed") {
+    sessionStatusRegistry.remove(sessionFile);
+  } else {
+    sessionStatusRegistry.upsert({
+      sessionFile,
+      status: status === "running" ? "running" : "idle",
+      source: "terminal",
+      terminalId,
+    });
+  }
   return { received: true };
 }
 

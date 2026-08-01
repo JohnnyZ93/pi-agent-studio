@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import * as vscode from "vscode";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
+import { sessionStatusRegistry } from "./session-status-registry.ts";
 
 const SESSIONS_KEY = "pi-agent-studio.terminalSessions";
 
@@ -12,6 +13,7 @@ export interface SessionTracker {
   track(terminal: vscode.Terminal, terminalId: string): void;
   onClose(terminal: vscode.Terminal): void;
   findTerminalBySessionFile(sessionFile: string): vscode.Terminal | undefined;
+  findSessionFileByTerminalId(terminalId: string): string | undefined;
   restore(extensionUri: vscode.Uri, bridgeConfig: { url: string; token: string }): Promise<void>;
 }
 
@@ -41,8 +43,10 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
       if (!id) return;
       const map = read();
       if (!(id in map)) return;
+      const sessionFile = map[id];
       delete map[id];
       void write(map);
+      if (sessionFile) sessionStatusRegistry.remove(sessionFile);
     },
     findTerminalBySessionFile(sessionFile) {
       const map = read();
@@ -52,6 +56,9 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
         if (terminal && terminal.exitStatus === undefined) return terminal;
       }
       return undefined;
+    },
+    findSessionFileByTerminalId(terminalId) {
+      return read()[terminalId];
     },
     async restore(extensionUri, bridgeConfig) {
       const map = read();

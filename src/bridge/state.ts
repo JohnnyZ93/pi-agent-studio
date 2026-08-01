@@ -7,6 +7,7 @@ const MAX_CODE_ACTIONS = 100;
 export function createBridgeState(
   initialSelection: BridgeState["latestSelection"],
   onTerminalSession?: (terminalId: string, sessionFile: string) => void,
+  findTerminalSession?: (terminalId: string) => string | undefined,
 ): BridgeState {
   return {
     latestSelection: initialSelection,
@@ -30,6 +31,9 @@ export function createBridgeState(
     },
     reportTerminalSession(terminalId, sessionFile) {
       onTerminalSession?.(terminalId, sessionFile);
+    },
+    findTerminalSession(terminalId) {
+      return findTerminalSession?.(terminalId);
     },
   };
 }

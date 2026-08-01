@@ -12,10 +12,12 @@ const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
 export async function createBridge(
   context: vscode.ExtensionContext,
   onTerminalSession?: (terminalId: string, sessionFile: string) => void,
+  findTerminalSession?: (terminalId: string) => string | undefined,
 ): Promise<BridgeContext> {
   const state = createBridgeState(
     captureSelection(vscode.window.activeTextEditor),
     onTerminalSession,
+    findTerminalSession,
   );
   const dirtyState = new Map<string, boolean>();
   const token = randomUUID();

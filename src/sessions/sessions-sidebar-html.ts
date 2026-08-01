@@ -24,6 +24,10 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 .session-name { font-weight:500; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:60px; }
 .session-meta { font-size:11px; opacity:0.6; display:flex; gap:8px; }
 .session-preview { font-size:11px; opacity:0.5; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.session-status { display:inline-block; width:12px; height:12px; margin-right:6px; vertical-align:middle; flex-shrink:0; }
+.session-status svg.spin { animation: pi-spin 0.8s linear infinite; transform-origin:center; color:var(--vscode-charts-blue); }
+.session-status .dot { display:block; width:8px; height:8px; border-radius:50%; background:var(--vscode-charts-green); margin:2px; }
+@keyframes pi-spin { to { transform: rotate(360deg); } }
 .session-actions { position:absolute; right:8px; top:50%; transform:translateY(-50%); display:flex; gap:2px; opacity:0; transition:opacity 0.1s; }
 .session-item:hover .session-actions { opacity:1; }
 .session-actions button { padding:2px 6px; cursor:pointer; background:transparent; border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:11px; color:var(--vscode-foreground); }
@@ -208,6 +212,27 @@ function escHtml(s) { var d = document.createElement('div'); d.textContent = Str
 function safeId(s) { return btoa(unescape(encodeURIComponent(s))).replace(/=/g, ''); }
 function truncate(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '\u2026' : s; }
 
+function statusIconHtml(status) {
+  if (status === 'running') {
+    return '<svg class="spin" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="14 14" stroke-linecap="round"/></svg>';
+  }
+  return '<span class="dot"></span>';
+}
+
+function applyStatusUpdate(entries) {
+  var map = {};
+  for (var i = 0; i < entries.length; i++) map[entries[i].path] = entries[i].status;
+  var els = document.querySelectorAll('.session-status');
+  for (var j = 0; j < els.length; j++) {
+    var p = els[j].getAttribute('data-status-path');
+    if (map[p]) {
+      els[j].innerHTML = statusIconHtml(map[p]);
+    } else {
+      els[j].innerHTML = '';
+    }
+  }
+}
+
 function formatTime(iso) {
   try {
     var d = new Date(iso);
@@ -244,7 +269,8 @@ function renderAll() {
       continue;
     }
     html += '<div class="session-item" id="item-' + id + '" data-action="open" data-path="' + pathAttr + '">';
-    html += '<div class="session-name">' + escHtml(s.name || s.firstMessage || 'Untitled') + '</div>';
+    var statusIcon = (s.isOpen && s.status) ? statusIconHtml(s.status) : '';
+    html += '<div class="session-name"><span class="session-status" data-status-path="' + pathAttr + '">' + statusIcon + '</span>' + escHtml(s.name || s.firstMessage || 'Untitled') + '</div>';
     html += '<div class="session-meta"><span>' + formatTime(s.modified) + '</span><span>' + s.messageCount + ' msgs</span></div>';
     html += '<div class="session-preview">' + escHtml(s.firstMessage || '') + '</div>';
     html += '<div class="session-actions">';
@@ -322,6 +348,9 @@ window.addEventListener('message', function(e) {
       if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
     }
     renderAll();
+  }
+  if (e.data.type === 'statusUpdate') {
+    applyStatusUpdate(e.data.entries || []);
   }
 });
 </script>

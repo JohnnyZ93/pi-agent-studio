@@ -216,9 +216,16 @@ export default function (pi) {
     } catch {}
   };
 
+  const reportStatus = (status) => {
+    const terminalId = process.env.PI_VSCODE_TERMINAL_ID;
+    if (!terminalId) return;
+    void callBridge("reportSessionStatus", { terminalId, status }).catch(() => {});
+  };
+
   pi.on("session_start", async (_event, ctx) => {
     startStatusUpdates(ctx);
     await reportTerminalSession(ctx);
+    reportStatus("idle");
   });
 
   pi.on("input", async (_event, ctx) => {
@@ -229,7 +236,12 @@ export default function (pi) {
     void refreshStatus(ctx);
   });
 
-  pi.on("agent_settled", async () => {
+  pi.on("agent_start", async (_event, ctx) => {
+    reportStatus("running");
+  });
+
+  pi.on("agent_settled", async (_event, ctx) => {
+    reportStatus("idle");
     void callBridge("showNotification", { message: "Pi: Task Completed!", type: "info" }).catch(
       () => {},
     );
@@ -237,6 +249,7 @@ export default function (pi) {
 
   pi.on("session_shutdown", async (_event, ctx) => {
     stopStatusUpdates(ctx);
+    reportStatus("closed");
   });
 
   // ── LLM tools (gated by PI_VSCODE_DISABLED_TOOLS blocklist) ──

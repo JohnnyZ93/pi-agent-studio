@@ -1012,6 +1012,8 @@ function endToolExecution(ev) {
       if (ch === '+' && diffLines[di].charAt(1) !== '+') added++;
       else if (ch === '-' && diffLines[di].charAt(1) !== '-') removed++;
     }
+    b.el.setAttribute('data-added', String(added));
+    b.el.setAttribute('data-removed', String(removed));
     if (b.summaryEl && (added > 0 || removed > 0)) {
       var sumHtml = b.summaryEl.textContent;
       if (added > 0) sumHtml += ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' + added + '</span>';
@@ -1026,6 +1028,7 @@ function endToolExecution(ev) {
   }
   if (b.name === 'write' && !ev.isError) {
     if (b.resultEl) { b.resultEl._piMd = null; b.resultEl.textContent = ''; }
+    b.el.setAttribute('data-added', String(b._writeLineCount || 0));
     if (b._writeLineCount > 0 && b.summaryEl) {
       b.summaryEl.innerHTML = b.summaryEl.textContent + ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' + b._writeLineCount + '</span>';
     }
@@ -1151,11 +1154,17 @@ function formatDuration(ms) {
   if (m > 0) return m + 'm ' + sec + 's';
   return sec + 's';
 }
-function formatWorkTitle(turns, startTs, endTs) {
+function formatWorkTitle(turns, startTs, endTs, added, removed) {
   var t = turns + ' Turn' + (turns === 1 ? '' : 's');
   if (typeof startTs === 'number' && typeof endTs === 'number' && endTs >= startTs) {
     var d = formatDuration(endTs - startTs);
     if (d) t += '  \u00B7  Worked for ' + d;
+  }
+  if (added > 0 || removed > 0) {
+    t += '  \u00B7  ';
+    if (added > 0) t += '<span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' + added + '</span>';
+    if (added > 0 && removed > 0) t += ' ';
+    if (removed > 0) t += '<span style="color:var(--vscode-gitDecoration-deletedResourceForeground, #f48771)">-' + removed + '</span>';
   }
   return t;
 }
@@ -1206,9 +1215,19 @@ function wrapWorkSegment(userRow) {
     for (var c = 0; c < ch.length; c++) { if (keep.indexOf(ch[c]) === -1) { hasWork = true; break; } }
   }
   if (!hasWork) return;
+  var added = 0, removed = 0;
+  for (var si = 0; si < seg.length; si++) {
+    var tbs = seg[si].querySelectorAll('.tool-block');
+    for (var ti = 0; ti < tbs.length; ti++) {
+      var da = tbs[ti].getAttribute('data-added');
+      var dr = tbs[ti].getAttribute('data-removed');
+      if (da) added += parseInt(da, 10) || 0;
+      if (dr) removed += parseInt(dr, 10) || 0;
+    }
+  }
   var det = el('details', 'work-block');
   var summ = el('summary', 'work-head');
-  summ.textContent = formatWorkTitle(turns, startTs, endTs);
+  summ.innerHTML = formatWorkTitle(turns, startTs, endTs, added, removed);
   det.appendChild(summ);
   var body = el('div', 'work-body');
   det.appendChild(body);
@@ -1300,10 +1319,10 @@ function handleEvent(event) {
       break;
     case 'auto_retry_start':
       retryAttempt = event.attempt;
-      setStatus('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026');
+      showToast('Retrying ' + event.attempt + '/' + event.maxAttempts + '\u2026', undefined, true);
       break;
     case 'auto_retry_end':
-      setStatus('');
+      hideToast();
       retryAttempt = 0;
       if (event.success === false) {
         var rfe = event.finalError || 'Unknown error';
