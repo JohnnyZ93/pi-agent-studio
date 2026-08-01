@@ -156,7 +156,7 @@ function renderDetail(a) {
   }
   h += '<div class="form-group"><label>Name</label><div class="readonly-field"><code>' + escH(a.name) + '</code></div></div>';
   h += renderTextField('f-desc', 'Description', a.description || '', 'Short description');
-  h += renderTextField('f-tools', 'Tools', (a.tools || []).join(', '), 'bash, read, grep, find');
+  h += renderTextField('f-tools', 'Tools', (a.tools || []).join(', '), 'bash, read, write, edit');
   h += renderModelSelect(a.model || '');
   h += renderTextareaField('f-prompt', 'System Prompt (body)', a.systemPrompt || '', 'Agent system prompt');
   h += renderDisableCheckbox(a.disableModelInvocation);
@@ -178,7 +178,7 @@ function renderNewForm() {
   h += '<div class="form-group"><label>Scope</label><select id="f-scope"><option value="user">user (~/.pi/agent/agents)</option>${projectOpt}</select></div>';
   h += '<div class="form-group"><label>Name</label><input id="f-name-inp" value="" placeholder="my-agent" /></div>';
   h += renderTextField('f-desc', 'Description', '', 'Short description');
-  h += renderTextField('f-tools', 'Tools', '', 'bash, read, grep, find');
+  h += renderTextField('f-tools', 'Tools', '', 'bash, read, write, edit');
   h += renderModelSelect('');
   h += renderTextareaField('f-prompt', 'System Prompt (body)', '', 'Agent system prompt');
   h += renderDisableCheckbox(false);
