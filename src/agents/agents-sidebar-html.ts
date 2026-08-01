@@ -57,7 +57,7 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .delete-confirm .btn-cancel{background:transparent;color:var(--pi-error-text);text-decoration:underline}
 </style></head>
 <body>
-<div class="header"><strong>Agents</strong><div class="header-actions"><button data-action="new" title="New Agent">+</button><button data-action="refresh" title="Refresh">↻</button></div></div>
+<div class="header"><strong>🤖 Agents</strong><div class="header-actions"><button data-action="new" title="New Agent">+</button><button data-action="refresh" title="Refresh">↻</button></div></div>
 <div id="error-toast" class="error-toast"></div>
 <div class="main" id="main"></div>
 <script>

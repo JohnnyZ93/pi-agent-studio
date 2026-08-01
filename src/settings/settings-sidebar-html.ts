@@ -51,7 +51,7 @@ textarea:focus { border-color:var(--vscode-focusBorder); }
 </style></head>
 <body>
 <div class="header">
-  <strong>Settings</strong>
+  <strong>⚙️ Settings</strong>
   <div class="header-actions">
     <button id="btn-open-settings-json" data-action="open-settings-json" title="Open ~/.pi/agent/settings.json">📝</button>
     <button data-action="refresh" title="Refresh">↻</button>

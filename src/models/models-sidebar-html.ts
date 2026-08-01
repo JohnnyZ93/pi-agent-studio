@@ -78,7 +78,7 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .delete-confirm .btn-cancel{background:transparent;color:var(--pi-error-text);text-decoration:underline}
 </style></head>
 <body>
-<div class="header"><strong>Models</strong><div class="header-actions"><button id="btn-open-models-json" data-action="open-file" title="Open ${escHtml(modelsPath)}">📝</button><button data-action="refresh" title="Refresh">↻</button></div></div>
+<div class="header"><strong>🧠 Models</strong><div class="header-actions"><button id="btn-open-models-json" data-action="open-file" title="Open ${escHtml(modelsPath)}">📝</button><button data-action="refresh" title="Refresh">↻</button></div></div>
 <div id="error-toast" class="error-toast"></div>
 <div class="tabs">
   <div class="tab active" data-tab="providers">Providers</div>
