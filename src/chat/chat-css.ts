@@ -417,6 +417,27 @@ body {
 .btw-body > :last-child { margin-bottom: 0; }
 .btw-loading-text { opacity: 0.7; font-size: var(--chat-fs-12); }
 
+.work-block {
+  background: transparent;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.work-head {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-size: var(--chat-fs-12);
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+.work-head::-webkit-details-marker { display: none; }
+.work-head:before { content: "▶"; font-size: var(--chat-fs-9); opacity: 0.6; }
+.work-block[open] > .work-head:before { content: "▼"; }
+.work-body { display: flex; flex-direction: column; gap: 12px; padding-left: 16px; }
+
 .tool-block {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-left: 3px solid var(--vscode-charts-blue, #3794ff);

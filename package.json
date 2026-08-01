@@ -54,6 +54,7 @@
     "@types/vscode": "^1.110.0",
     "@typescript/native-preview": "^7.0.0-dev.20260320.1",
     "@vscode/vsce": "^3.7.1",
+    "jsdom": "^30.0.1",
     "ovsx": "^0.10.9",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",

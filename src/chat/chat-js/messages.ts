@@ -179,6 +179,7 @@ function startAssistantMessage(ts) {
   if (empty) empty.remove();
   var row = el('div', 'msg assistant');
   messagesEl.appendChild(row);
+  row._piTs = ts != null ? ts : null;
   currentAssistant = { el: row, blocks: [], ts: ts != null ? ts : null };
   scheduleScroll();
 }
@@ -1071,7 +1072,7 @@ function hydrateMessages(list) {
     var end = Math.min(i + CHUNK, list.length);
     for (; i < end; i++) hydrateOne(list[i]);
     if (i < list.length) requestAnimationFrame(step);
-    else { isHydrating = false; setStatus(''); scrollToBottom(); seedCacheBaseline(list); }
+    else { isHydrating = false; setStatus(''); scrollToBottom(); seedCacheBaseline(list); wrapAllWorkSegments(); }
   }
   requestAnimationFrame(step);
 }
@@ -1139,6 +1140,106 @@ function extractImages(content) {
   return imgs;
 }
 
+function formatDuration(ms) {
+  if (typeof ms !== 'number' || !isFinite(ms) || ms < 0) return '';
+  var s = Math.round(ms / 1000);
+  if (s < 1) return ms > 0 ? '<1s' : '0s';
+  var h = Math.floor(s / 3600);
+  var m = Math.floor((s % 3600) / 60);
+  var sec = s % 60;
+  if (h > 0) return h + 'h ' + m + 'm ' + sec + 's';
+  if (m > 0) return m + 'm ' + sec + 's';
+  return sec + 's';
+}
+function formatWorkTitle(turns, startTs, endTs) {
+  var t = turns + ' Turn' + (turns === 1 ? '' : 's');
+  if (typeof startTs === 'number' && typeof endTs === 'number' && endTs >= startTs) {
+    var d = formatDuration(endTs - startTs);
+    if (d) t += '  \u00B7  Worked for ' + d;
+  }
+  return t;
+}
+// Collapse the work (thinking / tool calls / intermediate text) between a user
+// message and the final assistant text of its segment into one <details> block.
+function wrapWorkSegment(userRow) {
+  if (!userRow || !userRow.parentNode) return;
+  var parent = userRow.parentNode;
+  var first = userRow.nextElementSibling;
+  if (first && first.classList.contains('work-block')) return;
+  var seg = [];
+  var node = first;
+  while (node) {
+    if (node.classList.contains('work-block')) break;
+    if (node.classList.contains('msg') && node.classList.contains('user')) break;
+    seg.push(node);
+    node = node.nextElementSibling;
+  }
+  if (!seg.length) return;
+  var assistantRows = [];
+  for (var i = 0; i < seg.length; i++) {
+    if (seg[i].classList.contains('msg') && seg[i].classList.contains('assistant')) assistantRows.push(seg[i]);
+  }
+  if (!assistantRows.length) return;
+  var turns = assistantRows.length;
+  var lastRow = assistantRows[assistantRows.length - 1];
+  var endTs = lastRow._piTs;
+  var ub = userRow.querySelector('.user-bubble');
+  var startTs = ub && ub._piTs != null ? ub._piTs : null;
+  var finalText = null;
+  var kids = lastRow.children;
+  for (var k = kids.length - 1; k >= 0; k--) {
+    if (kids[k].classList.contains('text-block')) { finalText = kids[k]; break; }
+  }
+  var keep = [];
+  if (finalText) {
+    keep.push(finalText);
+    var n1 = finalText.nextElementSibling;
+    if (n1 && n1.classList.contains('expand-btn')) { keep.push(n1); n1 = n1.nextElementSibling; }
+    if (n1 && n1.classList.contains('msg-time')) keep.push(n1);
+  }
+  var hasWork = false;
+  for (var s = 0; s < seg.length; s++) {
+    if (seg[s] !== lastRow) { hasWork = true; break; }
+  }
+  if (!hasWork && finalText) {
+    var ch = lastRow.children;
+    for (var c = 0; c < ch.length; c++) { if (keep.indexOf(ch[c]) === -1) { hasWork = true; break; } }
+  }
+  if (!hasWork) return;
+  var det = el('details', 'work-block');
+  var summ = el('summary', 'work-head');
+  summ.textContent = formatWorkTitle(turns, startTs, endTs);
+  det.appendChild(summ);
+  var body = el('div', 'work-body');
+  det.appendChild(body);
+  parent.insertBefore(det, seg[0]);
+  for (var s2 = 0; s2 < seg.length; s2++) {
+    var sr = seg[s2];
+    if (finalText && sr === lastRow) {
+      var children = Array.prototype.slice.call(sr.children);
+      for (var c2 = 0; c2 < children.length; c2++) {
+        if (keep.indexOf(children[c2]) === -1) body.appendChild(children[c2]);
+      }
+    } else {
+      body.appendChild(sr);
+    }
+  }
+  scheduleScroll();
+}
+function wrapLastWorkSegment() {
+  var rows = messagesEl.querySelectorAll('.msg.user');
+  if (!rows.length) return;
+  wrapWorkSegment(rows[rows.length - 1]);
+}
+function wrapAllWorkSegments() {
+  var rows = messagesEl.querySelectorAll('.msg.user');
+  var n = rows.length;
+  for (var i = 0; i < n; i++) {
+    if (i === n - 1 && state.isStreaming) continue;
+    wrapWorkSegment(rows[i]);
+  }
+}
+
 // ---- event dispatch ----
 function handleAssistantMessageEvent(amev) {
   if (!amev || typeof amev !== 'object') return;
@@ -1156,7 +1257,7 @@ function handleEvent(event) {
   if (!event || typeof event !== 'object') return;
   switch (event.type) {
     case 'agent_start': setStreaming(true); break;
-    case 'agent_settled': setStreaming(false); retryAttempt = 0; break;
+    case 'agent_settled': setStreaming(false); retryAttempt = 0; wrapLastWorkSegment(); break;
     case 'message_start':
       if (event.message && event.message.role === 'assistant') startAssistantMessage(event.message.timestamp);
       else if (event.message && event.message.role === 'user') {
