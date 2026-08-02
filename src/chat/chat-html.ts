@@ -78,6 +78,7 @@
 //     - Wire-up: all event listeners, window.addEventListener('message')
 //     - Initialization: autoGrow, updateSendButton, applyContextUsage(null), clearMessages
 
+import fs from "node:fs";
 import mditSrc from "./vendor/markdown-it.min.js?raw";
 import { getChatCss } from "./chat-css.ts";
 import { getChatHtmlTemplate } from "./chat-html-template.ts";
@@ -86,13 +87,30 @@ import { getMessagesJs } from "./chat-js/messages.ts";
 import { getComposerJs } from "./chat-js/composer.ts";
 import { getRewindJs } from "./chat-js/rewind.ts";
 
-export function getChatHtml(home?: string, sep?: string, fontSize?: number): string {
+let codiconBase64Cache: string | null = null;
+function loadCodiconBase64(ttfPath?: string): string {
+  if (codiconBase64Cache !== null) return codiconBase64Cache;
+  codiconBase64Cache = "";
+  if (ttfPath) {
+    try {
+      codiconBase64Cache = fs.readFileSync(ttfPath).toString("base64");
+    } catch {}
+  }
+  return codiconBase64Cache;
+}
+
+export function getChatHtml(
+  home?: string,
+  sep?: string,
+  fontSize?: number,
+  codiconTtfPath?: string,
+): string {
   return /* html */ `<!DOCTYPE html>
 <html lang="en" style="height:100%;margin:0;padding:0">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-${getChatCss(fontSize)}
+${getChatCss(fontSize, loadCodiconBase64(codiconTtfPath))}
 </head>
 ${getChatHtmlTemplate()}
 <script>

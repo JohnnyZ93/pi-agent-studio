@@ -41,10 +41,12 @@ function addUserMessage(text, images) {
   }
 
   var timeEl = el('span', 'msg-time');
-  row.appendChild(timeEl);
   bubble._piTimeEl = timeEl;
+  var metaEl = el('div', 'bubble-meta');
+  metaEl.appendChild(timeEl);
+  row.appendChild(metaEl);
 
-  appendUserActions(row, bubble, text);
+  appendUserActions(row, bubble, text, metaEl);
 
   scheduleScroll();
   return bubble;
@@ -182,7 +184,7 @@ function startAssistantMessage(ts) {
   var row = el('div', 'msg assistant');
   messagesInner.appendChild(row);
   row._piTs = ts != null ? ts : null;
-  currentAssistant = { el: row, blocks: [], ts: ts != null ? ts : null };
+  currentAssistant = { el: row, blocks: [], ts: ts != null ? ts : null, model: '', timeEl: null };
   scheduleScroll();
 }
 
@@ -199,7 +201,27 @@ function collapseThinking() {
 function endAssistantMessage() {
   collapseThinking();
   finalizeTextBlocks();
-  if (currentAssistant) { currentAssistant = null; }
+  if (currentAssistant) {
+    currentAssistant.el._piModel = currentAssistant.model || '';
+    currentAssistant.el._piTimeEl = currentAssistant.timeEl || null;
+    currentAssistant.el._piHasToolCall = assistantHasToolCalls();
+    currentAssistant = null;
+  }
+  applyLastAssistantModel();
+}
+function applyLastAssistantModel() {
+  var rows = messagesInner.querySelectorAll('.msg.assistant');
+  for (var j = 0; j < rows.length; j++) {
+    var rr = rows[j];
+    if (!rr._piTimeEl) continue;
+    var ts = rr._piTs != null ? rr._piTs : null;
+    var timeStr = ts != null ? formatTime(ts) : '';
+    if (!rr._piHasToolCall && rr._piModel) {
+      rr._piTimeEl.textContent = rr._piModel + ' · ' + timeStr;
+    } else {
+      rr._piTimeEl.textContent = timeStr;
+    }
+  }
 }
 
 function assistantHasToolCalls() {
@@ -256,6 +278,7 @@ function ensureBlock(ci, type) {
   if (b.timeEl) {
     if (currentAssistant.ts != null) b.timeEl.textContent = formatTime(currentAssistant.ts);
     currentAssistant.el.appendChild(b.timeEl);
+    currentAssistant.timeEl = b.timeEl;
   }
   return b;
 }
@@ -1077,7 +1100,7 @@ function hydrateMessages(list) {
     var end = Math.min(i + CHUNK, list.length);
     for (; i < end; i++) hydrateOne(list[i]);
     if (i < list.length) requestAnimationFrame(step);
-    else { isHydrating = false; setStatus(''); scrollToBottom(); seedCacheBaseline(list); wrapAllWorkSegments(); }
+    else { isHydrating = false; setStatus(''); scrollToBottom(); seedCacheBaseline(list); wrapAllWorkSegments(); applyLastAssistantModel(); }
   }
   requestAnimationFrame(step);
 }
@@ -1091,6 +1114,7 @@ function hydrateOne(m) {
     if (m && m.timestamp != null) applyUserBubbleTime(ub, m.timestamp);
   } else if (role === 'assistant') {
     startAssistantMessage(m.timestamp);
+    currentAssistant.model = m.model || '';
     var content = m.content;
     if (Array.isArray(content)) {
       for (var k = 0; k < content.length; k++) {
@@ -1294,6 +1318,7 @@ function handleEvent(event) {
       if (event.message && event.message.role === 'assistant') {
         var amsg = event.message;
         var asr = amsg.stopReason;
+        if (currentAssistant) currentAssistant.model = amsg.model || '';
         applyAssistantStopError(asr, amsg.errorMessage, retryAttempt);
         endAssistantMessage();
         if (asr && asr !== 'error') {

@@ -450,6 +450,7 @@ export default function (pi: ExtensionAPI) {
     fileIds.clear();
     nextRewindId = 1;
     sweepStaleSnapshots(sessionId);
+    refreshWidget(ctx);
   });
 
   pi.on("tool_call", async (event, ctx) => {
@@ -505,10 +506,6 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_before_tree", async (event, ctx) => {
     return maybeRevert(ctx, event.preparation.targetId, "Rewind to this message");
-  });
-
-  pi.on("session_before_fork", async (event, ctx) => {
-    return maybeRevert(ctx, event.entryId, "Fork from this message");
   });
 
   pi.on("session_shutdown", async () => {

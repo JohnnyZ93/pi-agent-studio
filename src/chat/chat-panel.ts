@@ -128,6 +128,7 @@ export async function openChatPanel(
     homedir(),
     sep,
     vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+    vscode.Uri.joinPath(opts.extensionUri, "assets", "fonts", "codicon.ttf").fsPath,
   );
   lockChatEditorGroup();
 
@@ -696,7 +697,10 @@ export async function openChatPanel(
             break;
           }
           const revText = messageText(revEntry.message?.content);
+          const beforeLeaf = revEntriesData.leafId;
           await rpc.prompt(`/pi-vscode-tree ${revEntry.id}`);
+          const afterEntries = await rpc.getEntries();
+          if (afterEntries.leafId === beforeLeaf) break;
           const revSt = await rpc.getState();
           applySessionFile(revSt.sessionFile, revSt.sessionName);
           panel.webview.postMessage({ type: "state", state: revSt });

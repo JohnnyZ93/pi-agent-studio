@@ -1,27 +1,35 @@
 export function getRewindJs(): string {
   return `// ---- rewind: widget, per-message actions, custom dialogs ----
 var ICON_COPY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5"/></svg>';
-var ICON_FORK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13.5v-8"/><path d="M4 5.5c0-2.5 8-2.5 8 0"/><path d="M12 5.5v8"/><path d="M4 2.5v1"/><path d="M12 2.5v1"/></svg>';
-var ICON_REVERT = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5V2.5h3"/><path d="M4 2.5c2.5-1.8 8-0.6 8 4 0 4.5-6 6-9 3.5"/></svg>';
+var ICON_FORK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="8" r="1.5"/><path d="M4.5 5v6"/><path d="M6 8h4"/></svg>';
+var ICON_REVERT = '<span class="codicon codicon-discard"></span>';
 var ICON_CHEVRON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5L10 8l-4.5 4.5"/></svg>';
-var ICON_ACCEPT = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>';
-var ICON_REVERT_FILE = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A4.7 4.7 0 0 1 11.5 7"/><path d="M9 3.5l2.5 3.5L14 3.5"/><path d="M12 13.5A4.7 4.7 0 0 1 4.5 7"/><path d="M7 16l-2.5-3.5L7 9"/></svg>';
+var ICON_ACCEPT = '<span class="codicon codicon-check"></span>';
+var ICON_REVERT_FILE = '<span class="codicon codicon-discard"></span>';
 
 var rewindWidgetEl = document.getElementById('rewind-widget');
 var rewindCollapsed = true;
 
-function formatRewindCounts(f) {
-  if (f.added == null && f.removed == null) return '-';
-  var out = '';
-  if (f.added != null && f.added > 0) out += '+' + f.added;
-  if (f.removed != null && f.removed > 0) out += (out ? '/' : '') + '-' + f.removed;
-  return out || '\\u00B10';
+function tipBtn(btn, text) {
+  btn.addEventListener('mouseenter', function() { showTooltip(btn, text); });
+  btn.addEventListener('mouseleave', hideTooltip);
+  return btn;
 }
-function formatRewindTotals(t) {
-  var out = '';
-  if (t && t.added > 0) out += '+' + t.added;
-  if (t && t.removed > 0) out += (out ? '/' : '') + '-' + t.removed;
-  return out ? out : '\\u00B10';
+
+function appendCounts(parent, added, removed) {
+  var hasAdd = added != null && added > 0;
+  var hasRem = removed != null && removed > 0;
+  if (hasAdd) {
+    var a = el('span', 'rewind-add');
+    a.textContent = '+' + added;
+    parent.appendChild(a);
+  }
+  if (hasRem) {
+    var r = el('span', 'rewind-removed');
+    r.textContent = '-' + removed;
+    parent.appendChild(r);
+  }
+  if (!hasAdd && !hasRem) parent.textContent = '-';
 }
 
 function applyRewindWidget(lines) {
@@ -48,7 +56,6 @@ function applyRewindWidget(lines) {
 
   var chev = el('span', 'rewind-chevron');
   chev.innerHTML = ICON_CHEVRON;
-  chev.title = rewindCollapsed ? 'Expand' : 'Collapse';
   chev.addEventListener('click', function() {
     rewindCollapsed = !rewindCollapsed;
     applyRewindWidget(lines);
@@ -56,33 +63,31 @@ function applyRewindWidget(lines) {
   head.appendChild(chev);
 
   var title = el('span', 'rewind-title');
-  title.textContent = '已修改文件 (' + files.length + ')';
+  title.textContent = 'Modified files (' + files.length + ')';
   head.appendChild(title);
 
   var totalsEl = el('span', 'rewind-totals');
-  totalsEl.textContent = formatRewindTotals(totals);
+  appendCounts(totalsEl, totals.added, totals.removed);
   head.appendChild(totalsEl);
 
   var headActions = el('span', 'rewind-head-actions');
-  var acceptAll = el('button', 'rewind-btn');
+  var acceptAll = el('button', 'rewind-btn rewind-accept');
   acceptAll.type = 'button';
-  acceptAll.title = 'Accept all changes (baseline = current state)';
-  acceptAll.innerHTML = ICON_ACCEPT + '<span>全部接受</span>';
+  acceptAll.innerHTML = ICON_ACCEPT + '<span>Accept all</span>';
   acceptAll.addEventListener('click', function() {
     if (state.isStreaming) { showToast('Stop the agent before changing files.', 'error'); return; }
     vscode.postMessage({ type: 'rewindAccept' });
   });
   headActions.appendChild(acceptAll);
 
-  var revertAll = el('button', 'rewind-btn');
+  var revertAll = el('button', 'rewind-btn rewind-revert');
   revertAll.type = 'button';
-  revertAll.title = 'Revert all files to their accepted baseline';
-  revertAll.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A4.7 4.7 0 0 1 11.5 7"/><path d="M9 3.5l2.5 3.5L14 3.5"/><path d="M7 13.5A4.7 4.7 0 0 1 4.5 15"/><path d="M5 16l-2.5-3.5L5 9"/></svg><span>全部回退</span>';
+  revertAll.innerHTML = ICON_REVERT_FILE + '<span>Revert all</span>';
   revertAll.addEventListener('click', function() {
     if (state.isStreaming) { showToast('Stop the agent before reverting.', 'error'); return; }
-    showRewindConfirm('回退全部 ' + files.length + ' 个文件', function() {
+    showRewindConfirm('Revert all ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '?', 'Files will be restored to their last accepted state. Conversation history is not affected.', function() {
       vscode.postMessage({ type: 'rewindRevert' });
-    });
+    }, 'Confirm revert');
   });
   headActions.appendChild(revertAll);
   head.appendChild(headActions);
@@ -95,7 +100,6 @@ function applyRewindWidget(lines) {
       var row = el('div', 'rewind-row');
       var fileEl = el('span', 'rewind-file');
       fileEl.textContent = shortenToolPath(f.absPath) || f.basename;
-      fileEl.title = f.absPath;
       fileEl.addEventListener('click', function(f) {
         return function() {
           vscode.postMessage({
@@ -110,14 +114,13 @@ function applyRewindWidget(lines) {
       row.appendChild(fileEl);
 
       var counts = el('span', 'rewind-counts');
-      counts.textContent = formatRewindCounts(f);
+      appendCounts(counts, f.added, f.removed);
       row.appendChild(counts);
 
       var rowActions = el('span', 'rewind-row-actions');
-      var accBtn = el('button', 'rewind-btn');
+      var accBtn = el('button', 'rewind-btn rewind-accept');
       accBtn.type = 'button';
-      accBtn.title = 'Accept this file (baseline = current state)';
-      accBtn.innerHTML = ICON_ACCEPT + '<span>接受</span>';
+      accBtn.innerHTML = ICON_ACCEPT + '<span>Accept</span>';
       accBtn.addEventListener('click', function(id) {
         return function() {
           if (state.isStreaming) { showToast('Stop the agent before changing files.', 'error'); return; }
@@ -126,10 +129,9 @@ function applyRewindWidget(lines) {
       }(f.id));
       rowActions.appendChild(accBtn);
 
-      var revBtn = el('button', 'rewind-btn');
+      var revBtn = el('button', 'rewind-btn rewind-revert');
       revBtn.type = 'button';
-      revBtn.title = 'Revert this file to its accepted baseline';
-      revBtn.innerHTML = ICON_REVERT_FILE + '<span>回退</span>';
+      revBtn.innerHTML = ICON_REVERT_FILE + '<span>Revert</span>';
       revBtn.addEventListener('click', function(id) {
         return function() {
           if (state.isStreaming) { showToast('Stop the agent before reverting.', 'error'); return; }
@@ -147,12 +149,12 @@ function applyRewindWidget(lines) {
   rewindWidgetEl.appendChild(card);
 }
 
-function appendUserActions(row, bubble, text) {
+function appendUserActions(row, bubble, text, metaEl) {
   if (!row || !bubble) return;
   var actions = el('div', 'bubble-actions');
   var copyBtn = el('button', 'icon-btn');
   copyBtn.type = 'button';
-  copyBtn.title = 'Copy';
+  tipBtn(copyBtn, 'Copy');
   copyBtn.innerHTML = ICON_COPY;
   copyBtn.addEventListener('click', function() {
     vscode.postMessage({ type: 'copy', text: text || '' });
@@ -161,19 +163,21 @@ function appendUserActions(row, bubble, text) {
 
   var forkBtn = el('button', 'icon-btn');
   forkBtn.type = 'button';
-  forkBtn.title = 'Fork from here';
+  tipBtn(forkBtn, 'Fork');
   forkBtn.innerHTML = ICON_FORK;
   forkBtn.addEventListener('click', function() {
     var ts = bubble._piTs;
     if (state.isStreaming) return;
     if (ts == null) { showToast('Message not ready yet.', 'info'); return; }
-    vscode.postMessage({ type: 'fork', ts: ts });
+    showRewindConfirm('Fork from this message?', 'Create a new branch from this message. Current file changes are kept.', function() {
+      vscode.postMessage({ type: 'fork', ts: ts });
+    }, 'Fork');
   });
   actions.appendChild(forkBtn);
 
   var revertBtn = el('button', 'icon-btn');
   revertBtn.type = 'button';
-  revertBtn.title = 'Revert here';
+  tipBtn(revertBtn, 'Revert');
   revertBtn.innerHTML = ICON_REVERT;
   revertBtn.addEventListener('click', function() {
     var ts = bubble._piTs;
@@ -183,7 +187,8 @@ function appendUserActions(row, bubble, text) {
   });
   actions.appendChild(revertBtn);
 
-  row.appendChild(actions);
+  if (metaEl) metaEl.insertBefore(actions, metaEl.firstChild);
+  else row.appendChild(actions);
 }
 
 function renderRewindDialog(box, request) {
@@ -195,53 +200,53 @@ function renderRewindDialog(box, request) {
   if (!isFinite(affected)) affected = 0;
 
   var h = box.querySelector('h3');
-  if (h) h.textContent = '回退确认';
+  if (h) h.textContent = 'Revert';
   if (label) {
     var p = el('p');
     p.textContent = label;
     box.appendChild(p);
   }
   var p2 = el('p');
-  p2.textContent = '受影响文件 ' + affected + (affected === 1 ? ' 个' : ' 个');
+  p2.textContent = affected + ' file' + (affected === 1 ? '' : 's') + ' affected';
   box.appendChild(p2);
 
   var actions = el('div', 'dialog-actions');
   var msgOnly = el('button', 'btn btn-secondary');
-  msgOnly.textContent = '仅回退消息';
+  msgOnly.textContent = 'Revert message only';
   msgOnly.addEventListener('click', function() { respond(request.id, { value: 'message-only' }); });
   actions.appendChild(msgOnly);
 
   var msgAndCode = el('button', 'btn btn-primary');
-  msgAndCode.textContent = '回退消息+代码';
+  msgAndCode.textContent = 'Revert message + code';
   msgAndCode.addEventListener('click', function() { respond(request.id, { value: 'message+code' }); });
   actions.appendChild(msgAndCode);
 
   var cancel = el('button', 'btn btn-secondary');
-  cancel.textContent = '取消';
+  cancel.textContent = 'Cancel';
   cancel.addEventListener('click', function() { respond(request.id, { cancelled: true }); });
   actions.appendChild(cancel);
 
   box.appendChild(actions);
 }
 
-function showRewindConfirm(text, onConfirm) {
+function showRewindConfirm(title, description, onConfirm, confirmText) {
   overlayEl.innerHTML = '';
   var box = el('div', 'dialog rewind-dialog');
   var h = el('h3');
-  h.textContent = text || '回退确认';
+  h.textContent = title || 'Confirm';
   box.appendChild(h);
   var p = el('p');
-  p.textContent = '将把文件恢复到上一次接受时的状态，不会影响对话历史。';
+  p.textContent = description || '';
   box.appendChild(p);
   var actions = el('div', 'dialog-actions');
   var cancel = el('button', 'btn btn-secondary');
-  cancel.textContent = '取消';
+  cancel.textContent = 'Cancel';
   cancel.addEventListener('click', function() {
     overlayEl.style.display = 'none';
     overlayEl.innerHTML = '';
   });
   var confirm = el('button', 'btn btn-primary');
-  confirm.textContent = '确认回退';
+  confirm.textContent = confirmText || 'Confirm';
   confirm.addEventListener('click', function() {
     confirm.disabled = true;
     overlayEl.style.display = 'none';

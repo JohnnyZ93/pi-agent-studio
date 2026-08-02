@@ -11,8 +11,8 @@ export function getChatHtmlTemplate(): string {
     <div class="messages" id="messages"><div class="messages-inner" id="messages-inner"></div></div>
     <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
   </div>
-  <div id="widget" class="widget" style="display:none"></div>
   <div id="rewind-widget" class="rewind-widget" style="display:none"></div>
+  <div id="widget" class="widget" style="display:none"></div>
   <div id="queue" class="queue" style="display:none"></div>
   <div class="composer">
     <div class="autocomplete" id="autocomplete" style="display:none"></div>

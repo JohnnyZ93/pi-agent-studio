@@ -484,6 +484,10 @@ messagesEl.addEventListener('contextmenu', function(ev) {
   var node = ev.target;
   while (node && node !== messagesEl && node !== document) {
     if (node.classList && node.classList.contains('user-bubble')) { userTs = node._piTs != null ? node._piTs : null; break; }
+    if (node.classList && node.classList.contains('bubble-meta')) {
+      var ub = node.parentNode ? node.parentNode.querySelector('.user-bubble') : null;
+      if (ub) { userTs = ub._piTs != null ? ub._piTs : null; break; }
+    }
     if (node.classList && node.classList.contains('msg') && node.classList.contains('user')) break;
     node = node.parentNode;
   }
@@ -864,12 +868,25 @@ function toolHeadOfFile(target) {
   var node = target.closest('.tool-block[data-has-file] > .tool-head');
   return node || null;
 }
+var fileHintHead = null;
+var fileHintTimer = null;
 messagesEl.addEventListener('mouseover', function(ev) {
   var head = toolHeadOfFile(ev.target);
-  if (head) showTooltip(head, OPEN_FILE_HINT);
+  if (head !== fileHintHead) {
+    if (fileHintTimer) { clearTimeout(fileHintTimer); fileHintTimer = null; }
+    hideTooltip();
+    fileHintHead = head;
+    if (head) {
+      fileHintTimer = setTimeout(function() { showTooltip(head, OPEN_FILE_HINT); }, 500);
+    }
+  }
 });
 messagesEl.addEventListener('mouseout', function(ev) {
-  if (toolHeadOfFile(ev.target) && !toolHeadOfFile(ev.relatedTarget)) hideTooltip();
+  if (fileHintHead && !toolHeadOfFile(ev.relatedTarget)) {
+    if (fileHintTimer) { clearTimeout(fileHintTimer); fileHintTimer = null; }
+    fileHintHead = null;
+    hideTooltip();
+  }
 });
 
 document.addEventListener('keydown', function(e) { if (e.ctrlKey || e.metaKey) document.body.classList.add('ctrl-key'); });

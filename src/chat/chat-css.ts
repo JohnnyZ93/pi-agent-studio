@@ -1,5 +1,22 @@
-export function getChatCss(fontSize?: number): string {
+export function getChatCss(fontSize?: number, codiconBase64?: string): string {
   return /* css */ `<style>
+@font-face {
+  font-family: "codicon";
+  font-display: block;
+  src: url(data:font/truetype;base64,${codiconBase64 ?? ""}) format("truetype");
+}
+.codicon {
+  font: normal normal normal 16px/1 codicon;
+  display: inline-block;
+  text-decoration: none;
+  text-rendering: auto;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+.codicon-discard::before { content: "\\eae2"; }
+.codicon-check::before { content: "\\eab2"; }
 :root {
   --chat-fs: ${fontSize || 13}px;
   --chat-fs-8:  calc(var(--chat-fs) * 8 / 13);
@@ -176,6 +193,7 @@ body {
   flex-shrink: 0;
 }
 .icon-btn svg { width: 16px; height: 16px; display: block; }
+.icon-btn .codicon { font-size: 14px; line-height: 1; }
 .icon-btn:hover:not(:disabled) { background: var(--vscode-toolbar-hoverBackground); }
 .icon-btn:disabled { opacity: 0.4; cursor: default; }
 .toolbar button {
@@ -1011,7 +1029,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 
 .rewind-widget { flex-shrink: 0; padding: 0 8px 6px; }
 .rewind-widget.is-collapsed .rewind-body { display: none; }
-.rewind-widget .widget-card { border-left: 3px solid var(--vscode-charts-orange, var(--vscode-charts-yellow, #cca700)); }
 .rewind-head { display: flex; align-items: center; gap: 6px; font-size: var(--chat-fs-12); }
 .rewind-chevron {
   display: inline-flex;
@@ -1029,7 +1046,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 .rewind-widget.is-collapsed .rewind-chevron { transform: rotate(0deg); }
 .rewind-widget:not(.is-collapsed) .rewind-chevron { transform: rotate(90deg); }
 .rewind-title { font-weight: 600; flex: 0 0 auto; white-space: nowrap; }
-.rewind-totals { font-size: var(--chat-fs-11); opacity: 0.7; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.rewind-totals { font-size: var(--chat-fs-11); font-variant-numeric: tabular-nums; flex: 0 0 auto; display: inline-flex; gap: 4px; }
 .rewind-head-actions { display: inline-flex; gap: 4px; margin-left: auto; flex: 0 0 auto; }
 .rewind-btn {
   display: inline-flex;
@@ -1046,7 +1063,10 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   white-space: nowrap;
 }
 .rewind-btn svg { width: 12px; height: 12px; display: block; }
+.rewind-btn .codicon { font-size: 11px; line-height: 1; }
 .rewind-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+.rewind-btn.rewind-accept:hover { color: var(--vscode-gitDecoration-addedResourceForeground, #3fb950); }
+.rewind-btn.rewind-revert:hover { color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149); }
 .rewind-body { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
 .rewind-row {
   display: flex;
@@ -1073,19 +1093,19 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   font-variant-numeric: tabular-nums;
   font-size: var(--chat-fs-11);
   white-space: nowrap;
+  display: inline-flex;
+  gap: 4px;
   color: var(--vscode-descriptionForeground, var(--vscode-foreground));
-  opacity: 0.85;
 }
+.rewind-add { color: var(--vscode-gitDecoration-addedResourceForeground, #3fb950); }
+.rewind-removed { color: var(--vscode-gitDecoration-deletedResourceForeground, #f85149); }
 .rewind-row-actions { display: inline-flex; gap: 2px; flex: 0 0 auto; }
-.msg.user .bubble-actions {
-  display: none;
-  gap: 2px;
-  margin-top: 2px;
-  align-self: flex-end;
-}
-.msg.user:hover .bubble-actions { display: inline-flex; }
-.msg.user .bubble-actions .icon-btn { width: 22px; height: 22px; opacity: 0.6; }
+.bubble-meta { display: flex; align-items: center; gap: 4px; align-self: flex-end; min-height: 22px; }
+.msg.user .bubble-actions { display: inline-flex; gap: 2px; visibility: hidden; }
+.msg.user:hover .bubble-actions { visibility: visible; }
+.msg.user .bubble-actions .icon-btn { width: 20px; height: 20px; padding: 2px; opacity: 0.55; }
 .msg.user .bubble-actions .icon-btn:hover { opacity: 1; }
-.rewind-dialog .dialog-actions { justify-content: center; gap: 8px; }
+.rewind-dialog .dialog-actions { flex-direction: column; align-items: stretch; gap: 8px; }
+.rewind-dialog .dialog-actions .btn { width: 100%; }
 </style>`;
 }
