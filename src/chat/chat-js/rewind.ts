@@ -1,9 +1,9 @@
 export function getRewindJs(): string {
   return `// ---- rewind: widget, per-message actions, custom dialogs ----
-var ICON_COPY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5"/></svg>';
-var ICON_FORK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="3.5" r="1.5"/><circle cx="4.5" cy="12.5" r="1.5"/><circle cx="11.5" cy="8" r="1.5"/><path d="M4.5 5v6"/><path d="M6 8h4"/></svg>';
+var ICON_COPY = '<span class="codicon codicon-copy"></span>';
+var ICON_FORK = '<span class="codicon codicon-repo-forked"></span>';
 var ICON_REVERT = '<span class="codicon codicon-discard"></span>';
-var ICON_CHEVRON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5L10 8l-4.5 4.5"/></svg>';
+var ICON_CHEVRON = '<span class="codicon codicon-chevron-right"></span>';
 var ICON_ACCEPT = '<span class="codicon codicon-check"></span>';
 var ICON_REVERT_FILE = '<span class="codicon codicon-discard"></span>';
 

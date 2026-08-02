@@ -13,13 +13,13 @@ var historyIndex = -1;
 var historyDraft = '';
 var pendingImages = [];
 
-var ICON_PLUS = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>';
-var ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V4M4.5 7.5L8 4l3.5 3.5"/></svg>';
-var ICON_STOP = '<svg viewBox="0 0 16 16"><rect x="4.5" y="4.5" width="7" height="7" rx="1.4" fill="currentColor"/></svg>';
-var ICON_TODO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5l1.5 1.5L6.5 3.5"/><path d="M2.5 10l1.5 1.5L6.5 8.5"/><path d="M9 4.5h4.5"/><path d="M9 10h4.5"/></svg>';
-var ICON_CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-6.5"/></svg>';
-var ICON_INFO = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 7.2v4"/><path d="M8 4.8h.01"/></svg>';
-var ICON_REFRESH = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8a6 6 0 0 1 6-6 6.5 6.5 0 0 1 4.5 1.8L14 5.3"/><path d="M14 2v3.3h-3.3"/><path d="M14 8a6 6 0 0 1-6 6 6.5 6.5 0 0 1-4.5-1.8L2 10.7"/><path d="M2 14v-3.3h3.3"/></svg>';
+var ICON_PLUS = '<span class="codicon codicon-add"></span>';
+var ICON_SEND = '<span class="codicon codicon-send"></span>';
+var ICON_STOP = '<span class="codicon codicon-debug-stop"></span>';
+var ICON_TODO = '<span class="codicon codicon-checklist"></span>';
+var ICON_CHECK = '<span class="codicon codicon-check"></span>';
+var ICON_INFO = '<span class="codicon codicon-info"></span>';
+var ICON_REFRESH = '<span class="codicon codicon-refresh"></span>';
 var EMPTY_HTML = '<div class="empty">'
   + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
   + '<div class="empty-line">There are many agent harnesses</div>'
@@ -65,6 +65,7 @@ var latestCacheHitPct = null;
 var prevTurn = null;
 var thinkingSelect = document.getElementById('thinking-select');
 var permissionSelect = document.getElementById('permission-select');
+var permissionIcon = document.getElementById('permission-icon');
 var statusEl = document.getElementById('status');
 var sessionInfoEl = document.getElementById('session-info');
 var acEl = document.getElementById('autocomplete');

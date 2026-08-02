@@ -60,8 +60,20 @@ function renderPermission() {
   updatePermissionColor(permissionSelect.value);
 }
 function updatePermissionColor(mode) {
-  permissionSelect.classList.toggle('permission-safe', mode === 'AskForApproval');
-  permissionSelect.classList.toggle('permission-danger', mode === 'FullAccess');
+  var safe = mode === 'AskForApproval';
+  permissionSelect.classList.toggle('permission-safe', safe);
+  permissionSelect.classList.toggle('permission-danger', !safe);
+  var desc = safe
+    ? 'Ask for approval before running commands'
+    : 'Full access: run commands without asking';
+  permissionSelect.title = desc;
+  if (permissionIcon) {
+    permissionIcon.classList.toggle('codicon-shield', safe);
+    permissionIcon.classList.toggle('codicon-unlock', !safe);
+    permissionIcon.classList.toggle('permission-safe', safe);
+    permissionIcon.classList.toggle('permission-danger', !safe);
+    permissionIcon.title = desc;
+  }
 }
 function applyState(s) {
   if (!s) return;

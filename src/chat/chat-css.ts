@@ -17,6 +17,18 @@ export function getChatCss(fontSize?: number, codiconBase64?: string): string {
 }
 .codicon-discard::before { content: "\\eae2"; }
 .codicon-check::before { content: "\\eab2"; }
+.codicon-add::before { content: "\\ea60"; }
+.codicon-send::before { content: "\\ec0f"; }
+.codicon-debug-stop::before { content: "\\ead7"; }
+.codicon-checklist::before { content: "\\eab3"; }
+.codicon-info::before { content: "\\ea74"; }
+.codicon-refresh::before { content: "\\eb37"; }
+.codicon-copy::before { content: "\\ebcc"; }
+.codicon-repo-forked::before { content: "\\ea63"; }
+.codicon-chevron-right::before { content: "\\eab6"; }
+.codicon-chevron-down::before { content: "\\eab4"; }
+.codicon-shield::before { content: "\\eb53"; }
+.codicon-unlock::before { content: "\\eb74"; }
 :root {
   --chat-fs: ${fontSize || 13}px;
   --chat-fs-8:  calc(var(--chat-fs) * 8 / 13);
@@ -177,6 +189,10 @@ body {
 .permission-select.select-borderless { width: auto; max-width: none; }
 .permission-select.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
 .permission-select.permission-danger { color: var(--vscode-errorForeground); }
+.permission-wrap .permission-select { padding-left: 4px; }
+.permission-icon { font-size: 12px; line-height: 1; margin-left: 8px; pointer-events: none; flex-shrink: 0; }
+.permission-icon.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
+.permission-icon.permission-danger { color: var(--vscode-errorForeground); }
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -219,6 +235,7 @@ body {
   height: 24px;
 }
 .toolbar .icon-btn svg { width: 15px; height: 15px; display: block; }
+.toolbar .icon-btn .codicon { font-size: 13px; line-height: 1; }
 .toolbar .icon-btn:hover:not(:disabled) { opacity: 1; }
 .toolbar .icon-btn:disabled { opacity: 0.35; }
 .toolbar .session-info {
@@ -266,6 +283,7 @@ body {
 .scroll-bottom-btn.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
 .scroll-bottom-btn:hover { transform: scale(1.12); }
 .scroll-bottom-btn svg { width: 16px; height: 16px; display: block; }
+.scroll-bottom-btn .codicon { font-size: 14px; line-height: 1; }
 .messages {
   flex: 1;
   min-height: 0;
@@ -885,6 +903,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   flex: 0 0 auto;
 }
 .widget-title svg { width: 14px; height: 14px; display: block; opacity: 0.9; }
+.widget-title .codicon { font-size: 12px; line-height: 1; opacity: 0.9; }
 .widget-stats {
   font-size: var(--chat-fs-11);
   opacity: 0.7;
@@ -943,6 +962,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   transition: background 0.15s, border-color 0.15s;
 }
 .todo-check svg { width: 11px; height: 11px; display: block; }
+.todo-check .codicon { font-size: 10px; line-height: 1; }
 .todo-item.is-done .todo-check {
   background: var(--vscode-charts-green, #4ec9b0);
   border-color: var(--vscode-charts-green, #4ec9b0);
@@ -1043,6 +1063,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   opacity: 0.7;
 }
 .rewind-chevron svg { width: 14px; height: 14px; display: block; }
+.rewind-chevron .codicon { font-size: 12px; line-height: 1; }
 .rewind-widget.is-collapsed .rewind-chevron { transform: rotate(0deg); }
 .rewind-widget:not(.is-collapsed) .rewind-chevron { transform: rotate(90deg); }
 .rewind-title { font-weight: 600; flex: 0 0 auto; white-space: nowrap; }

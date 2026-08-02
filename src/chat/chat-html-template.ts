@@ -9,7 +9,7 @@ export function getChatHtmlTemplate(): string {
   </div>
   <div class="messages-wrap">
     <div class="messages" id="messages"><div class="messages-inner" id="messages-inner"></div></div>
-    <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M4.5 7.5L8 11l3.5-3.5"/></svg></button>
+    <button class="scroll-bottom-btn" id="scroll-bottom-btn" type="button" title="Scroll to bottom"><span class="codicon codicon-chevron-down"></span></button>
   </div>
   <div id="rewind-widget" class="rewind-widget" style="display:none"></div>
   <div id="widget" class="widget" style="display:none"></div>
@@ -21,7 +21,7 @@ export function getChatHtmlTemplate(): string {
       <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands, @ for files)"></textarea>
       <div class="composer-controls-bar">
         <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
-        <div class="select-wrap"><select id="permission-select" class="select-borderless permission-select" title="Permission mode"></select></div>
+        <div class="select-wrap permission-wrap"><span class="codicon permission-icon" id="permission-icon"></span><select id="permission-select" class="select-borderless permission-select" title="Permission mode"></select></div>
         <div class="composer-spacer"></div>
         <span class="ctx-ring" id="ctx-ring" title="Context usage"><svg viewBox="0 0 16 16"><circle class="ctx-ring-track" cx="8" cy="8" r="6"></circle><circle class="ctx-ring-prog" id="ctx-ring-prog" cx="8" cy="8" r="6" pathLength="100"></circle></svg></span>
         <div class="select-wrap"><select id="model-select" class="select-borderless model-select" title="Model"></select></div>
