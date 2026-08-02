@@ -217,7 +217,8 @@ function applyLastAssistantModel() {
     var ts = rr._piTs != null ? rr._piTs : null;
     var timeStr = ts != null ? formatTime(ts) : '';
     if (!rr._piHasToolCall && rr._piModel) {
-      rr._piTimeEl.textContent = rr._piModel + ' · ' + timeStr;
+      var icon = getModelIcon(rr._piModel);
+      rr._piTimeEl.innerHTML = modelIconHtml(icon) + ' ' + escHtml(rr._piModel) + ' · ' + timeStr;
     } else {
       rr._piTimeEl.textContent = timeStr;
     }

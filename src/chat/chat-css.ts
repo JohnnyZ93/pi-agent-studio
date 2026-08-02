@@ -192,6 +192,32 @@ body {
 .model-select.select-borderless { width: auto; max-width: none; }
 .thinking-select.select-borderless { width: auto; max-width: none; }
 .permission-select.select-borderless { width: auto; max-width: none; }
+.model-wrap .model-select { padding-left: 4px; }
+.model-icon-slot {
+  display: none;
+  align-items: center;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.model-icon-slot:not(:empty) { display: inline-flex; }
+.model-icon-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  vertical-align: -0.125em;
+  line-height: 1;
+}
+.model-icon-avatar svg {
+  display: block;
+  width: 0.75em;
+  height: 0.75em;
+  flex-shrink: 0;
+}
 .permission-select.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
 .permission-select.permission-danger { color: var(--vscode-errorForeground); }
 .permission-wrap .permission-select { padding-left: 4px; }
@@ -328,6 +354,7 @@ body {
   flex-shrink: 0;
   align-self: flex-end;
 }
+.msg-time .model-icon-avatar { vertical-align: -0.2em; margin-right: 2px; }
 
 .bubble {
   max-width: 85%;

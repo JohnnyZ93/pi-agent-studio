@@ -36,8 +36,8 @@
   "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "rolldown -c rolldown.config.ts",
-    "dev": "rolldown -c rolldown.config.ts -w",
+    "build": "node scripts/extract-model-icons.mjs && rolldown -c rolldown.config.ts",
+    "dev": "node scripts/extract-model-icons.mjs && rolldown -c rolldown.config.ts -w",
     "package": "pnpm build && pnpx @vscode/vsce package --no-dependencies",
     "install-local": "pnpm package && code --install-extension *.vsix",
     "release": "node scripts/release.ts",
@@ -50,9 +50,11 @@
     "@earendil-works/pi-coding-agent": "^0.82.1"
   },
   "devDependencies": {
+    "@lobehub/icons": "^5.15.0",
     "@types/node": "^25.5.0",
     "@types/vscode": "^1.110.0",
     "@typescript/native-preview": "^7.0.0-dev.20260320.1",
+    "@vscode/codicons": "0.0.46-24",
     "@vscode/vsce": "^3.7.1",
     "jsdom": "^30.0.1",
     "ovsx": "^0.10.9",

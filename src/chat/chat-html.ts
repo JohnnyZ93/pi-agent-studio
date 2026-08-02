@@ -44,9 +44,12 @@
 //     assets/fonts/codicon.ttf (base64-embedded into the webview by
 //     loadCodiconBase64). Each button sets innerHTML to a constant
 //     `<span class="codicon codicon-<glyph>"></span>`; <glyph> MUST be a name
-//     that exists in the font's `post` table. The rename-session button uses
-//     `codicon-rename` (verified present). Always confirm a glyph name in the
-//     ttf before referencing it.
+//     that exists in the font's `post` table. <glyph> names are the CSS class
+//     names from the official @vscode/codicons codicon.css; the `::before`
+//     codepoints are auto-generated into codicon-map.ts by
+//     scripts/generate-codicons.mjs (run before every build). Referencing a
+//     glyph not shipped by @vscode/codicons fails the build. Always confirm a
+//     glyph name in the ttf after bumping @vscode/codicons.
 //
 //   chat-js/core.ts
 //     - acquireVsCodeApi() + markdown-it init
@@ -101,6 +104,7 @@ import mditSrc from "./vendor/markdown-it.min.js?raw";
 import { getChatCss } from "./chat-css.ts";
 import { getChatHtmlTemplate } from "./chat-html-template.ts";
 import { getCoreJs } from "./chat-js/core.ts";
+import { getModelIconsJs } from "./chat-js/model-icons.ts";
 import { getMessagesJs } from "./chat-js/messages.ts";
 import { getComposerJs } from "./chat-js/composer.ts";
 import { getRewindJs } from "./chat-js/rewind.ts";
@@ -138,6 +142,9 @@ ${mditSrc}
 <script>
 // ---- core: state, DOM refs, helpers, scroll, widget, queue ----
 ${getCoreJs(home, sep)}
+
+// ---- model brand icons (composer + message timestamps) ----
+${getModelIconsJs()}
 
 // ---- messages: message DOM, tool rendering, hydrate, events ----
 ${getMessagesJs()}

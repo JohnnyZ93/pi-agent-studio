@@ -34,6 +34,17 @@ function renderModels() {
     modelSelect.appendChild(o);
   }
   fitModelSelect();
+  updateModelIcon();
+}
+function updateModelIcon() {
+  var slot = document.getElementById('model-icon');
+  if (!slot) return;
+  var idx = Number(modelSelect.value);
+  var m = models[idx];
+  if (!m) { slot.innerHTML = ''; return; }
+  var icon = getModelIcon(m.name || m.id || '');
+  slot.innerHTML = modelIconHtml(icon);
+  slot.setAttribute('title', m.name || m.id || '');
 }
 function renderThinking() {
   thinkingSelect.innerHTML = '';
@@ -750,6 +761,7 @@ modelSelect.addEventListener('change', function() {
   var m = models[idx];
   if (m) vscode.postMessage({ type: 'setModel', provider: m.provider, modelId: m.id });
   fitModelSelect();
+  updateModelIcon();
 });
 thinkingSelect.addEventListener('change', function() {
   vscode.postMessage({ type: 'setThinking', level: thinkingSelect.value });
