@@ -19,6 +19,7 @@
 
 - **原生终端 TUI** -- Pi 运行在 VS Code 集成终端（PTY）中。无 shell 层、无引号黑魔法--pi 二进制直接启动（默认模式）
 - **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
+- **模型品牌图标** —— 聊天面板在 composer 模型下拉框旁和消息时间戳的模型名前显示圆形品牌头像（OpenAI、Claude、Gemini、DeepSeek、Qwen、Grok …），按模型 id 前缀匹配（覆盖 30+ 厂商）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
 - **实时 VS Code 状态栏** —— pi 终端底部状态条实时显示当前文件、光标 / 选区、语言、未保存标记和诊断数量

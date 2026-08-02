@@ -19,6 +19,7 @@ English | [简体中文](README.zh-CN.md)
 
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
 - **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
+- **Model brand icons** — The chat panel shows circular vendor brand avatars (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …) next to the model dropdown in the composer and beside model names in message timestamps, matched by model id prefix (30+ vendors)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
 - **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area

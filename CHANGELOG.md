@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.5] - 2026-08-02
+
+- **Chat UI**: the composer model dropdown and message timestamps now show **vendor brand avatars** (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …). A new build-time script extracts SVG paths from `@lobehub/icons` into a generated icon table, and the webview renders a circular brand avatar per model via prefix matching on the model id (30+ vendors covered).
+- **Chat UI**: replaced the composer control tooltips with **custom tooltip overlays** — smart positioning that flips below the target when there is no room above and clamps to the viewport edges.
+- **Permission gate**: refined the default `dangerousPatterns` — added more destructive operations (`dd`, `Set-ItemProperty`/`Set-Acl`, `sed -e/-f` and `sed` in-place edits, `find -delete/-exec`, `sort -o`, `git branch -D/-m`, pipe-to-shell via `Invoke-WebRequest`/`irm`/`iwr`/`iex`, …) and fixed `taskkill`/`spps` detection, so more risky commands require approval out of the box.
+
 ## [1.1.4] - 2026-08-02
 
 - **Chat UI**: the todo list widget above the composer is now **collapsible** — a chevron toggle remembers its expand/collapse state across renders, and the Clear action switched to a codicon glyph with tooltip and aria-label.
