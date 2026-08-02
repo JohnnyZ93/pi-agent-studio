@@ -13,6 +13,7 @@ var inputHistory = [];
 var historyIndex = -1;
 var historyDraft = '';
 var pendingImages = [];
+var sendBtnTip = '';
 
 var ICON_PLUS = '<span class="codicon codicon-add"></span>';
 var ICON_SEND = '<span class="codicon codicon-send"></span>';
@@ -205,12 +206,12 @@ function updateSendButton() {
   if (state.isStreaming || state.isBtwLoading) {
     sendBtn.innerHTML = ICON_STOP;
     sendBtn.classList.add('is-stop');
-    sendBtn.title = state.isBtwLoading ? 'Stop /btw' : 'Stop generation';
+    sendBtnTip = state.isBtwLoading ? 'Stop /btw' : 'Stop generation';
     sendBtn.disabled = false;
   } else {
     sendBtn.innerHTML = ICON_SEND;
     sendBtn.classList.remove('is-stop');
-    sendBtn.title = 'Send message';
+    sendBtnTip = 'Send message';
     sendBtn.disabled = !inputEl.value.trim() && !pendingImages.length;
   }
 }

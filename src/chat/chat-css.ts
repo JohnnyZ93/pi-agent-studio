@@ -162,19 +162,6 @@ body {
 }
 .select-wrap:hover { background: var(--vscode-toolbar-hoverBackground); }
 .select-wrap:focus-within { background: var(--vscode-toolbar-hoverBackground); }
-.select-wrap::after {
-  content: "";
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  margin-top: -2px;
-  width: 0; height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 4px solid currentColor;
-  opacity: 0.55;
-  pointer-events: none;
-}
 .select-borderless {
   min-width: 0;
   background: transparent;
@@ -183,7 +170,7 @@ body {
   border-radius: 999px;
   font-size: var(--chat-fs-12);
   font-family: inherit;
-  padding: 3px 22px 3px 10px;
+  padding: 3px 10px;
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
@@ -218,11 +205,9 @@ body {
   height: 0.75em;
   flex-shrink: 0;
 }
-.permission-select.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
 .permission-select.permission-danger { color: var(--vscode-errorForeground); }
 .permission-wrap .permission-select { padding-left: 4px; }
 .permission-icon { font-size: 12px; line-height: 1; margin-left: 8px; pointer-events: none; flex-shrink: 0; }
-.permission-icon.permission-safe { color: var(--vscode-testing-iconPassed, #89d185); }
 .permission-icon.permission-danger { color: var(--vscode-errorForeground); }
 .icon-btn {
   display: inline-flex;

@@ -22,13 +22,13 @@ export function getChatHtmlTemplate(): string {
       <div class="attach-preview" id="attach-preview" style="display:none"></div>
       <textarea id="input" rows="1" placeholder="Ask anything\u2026  (use / for commands, @ for files)"></textarea>
       <div class="composer-controls-bar">
-        <button id="attach-btn" class="icon-btn" type="button" title="Add file or folder"></button>
-        <div class="select-wrap permission-wrap"><span class="codicon permission-icon" id="permission-icon"></span><select id="permission-select" class="select-borderless permission-select" title="Permission mode"></select></div>
+        <button id="attach-btn" class="icon-btn" type="button"></button>
+        <div class="select-wrap permission-wrap"><span class="codicon permission-icon" id="permission-icon"></span><select id="permission-select" class="select-borderless permission-select"></select></div>
         <div class="composer-spacer"></div>
         <span class="ctx-ring" id="ctx-ring" title="Context usage"><svg viewBox="0 0 16 16"><circle class="ctx-ring-track" cx="8" cy="8" r="6"></circle><circle class="ctx-ring-prog" id="ctx-ring-prog" cx="8" cy="8" r="6" pathLength="100"></circle></svg></span>
-        <div class="select-wrap model-wrap"><span class="model-icon-slot" id="model-icon"></span><select id="model-select" class="select-borderless model-select" title="Model"></select></div>
-        <div class="select-wrap"><select id="thinking-select" class="select-borderless thinking-select" title="Thinking level"></select></div>
-        <button id="send" class="icon-btn send-btn" type="button" title="Send message"></button>
+        <div class="select-wrap model-wrap"><span class="model-icon-slot" id="model-icon"></span><select id="model-select" class="select-borderless model-select"></select></div>
+        <div class="select-wrap"><select id="thinking-select" class="select-borderless thinking-select"></select></div>
+        <button id="send" class="icon-btn send-btn" type="button"></button>
       </div>
     </div>
   </div>

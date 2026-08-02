@@ -32,6 +32,6 @@ function modelIconHtml(icon, cls) {
     svg += '<path d="' + icon.paths[i] + '"></path>';
   }
   svg += '</svg>';
-  return '<span class="model-icon-avatar' + (cls ? ' ' + cls : '') + '" style="background:' + icon.color + '" title="' + escHtml(icon.title) + '">' + svg + '</span>';
+  return '<span class="model-icon-avatar' + (cls ? ' ' + cls : '') + '" style="background:' + icon.color + '">' + svg + '</span>';
 }`;
 }

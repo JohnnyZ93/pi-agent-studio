@@ -1,7 +1,7 @@
 export function getComposerJs(): string {
   return `// ---- controls ----
 function modelLabel(m) {
-  return (m.name || m.id) + (m.provider ? ' [' + m.provider + ']' : '');
+  return (m.name || m.id) + (m.provider ? ' · ' + m.provider : '');
 }
 var modelMeasurer = document.createElement('span');
 modelMeasurer.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-family:var(--vscode-font-family);font-size: var(--chat-fs-12);';
@@ -12,9 +12,9 @@ function fitSelectToText(sel, extra) {
   modelMeasurer.textContent = opt.textContent || opt.value || '';
   sel.style.width = (modelMeasurer.offsetWidth + extra) + 'px';
 }
-function fitModelSelect() { fitSelectToText(modelSelect, 34); }
-function fitThinkingSelect() { fitSelectToText(thinkingSelect, 34); }
-function fitPermissionSelect() { fitSelectToText(permissionSelect, 34); }
+function fitModelSelect() { fitSelectToText(modelSelect, 16); }
+function fitThinkingSelect() { fitSelectToText(thinkingSelect, 22); }
+function fitPermissionSelect() { fitSelectToText(permissionSelect, 16); }
 function renderModels() {
   var prev = state.model ? (state.model.provider + '/' + state.model.id) : '';
   modelSelect.innerHTML = '';
@@ -44,7 +44,6 @@ function updateModelIcon() {
   if (!m) { slot.innerHTML = ''; return; }
   var icon = getModelIcon(m.name || m.id || '');
   slot.innerHTML = modelIconHtml(icon);
-  slot.setAttribute('title', m.name || m.id || '');
 }
 function renderThinking() {
   thinkingSelect.innerHTML = '';
@@ -58,6 +57,7 @@ function renderThinking() {
   }
   fitThinkingSelect();
 }
+var permissionTip = '';
 function renderPermission() {
   permissionSelect.innerHTML = '';
   var modes = ['AskForApproval', 'FullAccess'];
@@ -74,16 +74,14 @@ function updatePermissionColor(mode) {
   var safe = mode === 'AskForApproval';
   permissionSelect.classList.toggle('permission-safe', safe);
   permissionSelect.classList.toggle('permission-danger', !safe);
-  var desc = safe
+  permissionTip = safe
     ? 'Ask for approval before running commands'
     : 'Full access: run commands without asking';
-  permissionSelect.title = desc;
   if (permissionIcon) {
     permissionIcon.classList.toggle('codicon-shield', safe);
     permissionIcon.classList.toggle('codicon-unlock', !safe);
     permissionIcon.classList.toggle('permission-safe', safe);
     permissionIcon.classList.toggle('permission-danger', !safe);
-    permissionIcon.title = desc;
   }
 }
 function applyState(s) {
@@ -890,11 +888,18 @@ function hideTooltip() { ctxTooltip.style.display = 'none'; }
 ctxRing.addEventListener('mouseenter', function() { showTooltip(ctxRing, ctxRingText); });
 ctxRing.addEventListener('mouseleave', hideTooltip);
 modelSelect.addEventListener('mouseenter', function() {
-  var idx = Number(modelSelect.value);
-  var m = models[idx];
-  showTooltip(modelSelect, m ? modelLabel(m) : '');
+  showTooltip(modelSelect, 'Model');
 });
 modelSelect.addEventListener('mouseleave', hideTooltip);
+var permissionWrap = document.querySelector('.permission-wrap');
+permissionWrap.addEventListener('mouseenter', function() { showTooltip(permissionWrap, permissionTip); });
+permissionWrap.addEventListener('mouseleave', hideTooltip);
+thinkingSelect.addEventListener('mouseenter', function() { showTooltip(thinkingSelect, 'Thinking level'); });
+thinkingSelect.addEventListener('mouseleave', hideTooltip);
+sendBtn.addEventListener('mouseenter', function() { showTooltip(sendBtn, sendBtnTip); });
+sendBtn.addEventListener('mouseleave', hideTooltip);
+attachBtn.addEventListener('mouseenter', function() { showTooltip(attachBtn, 'Add file or folder'); });
+attachBtn.addEventListener('mouseleave', hideTooltip);
 var OPEN_FILE_HINT = /Mac/i.test(navigator.platform || '') ? '\u2318 Click to open file' : 'Ctrl+Click to open file';
 function toolHeadOfFile(target) {
   if (!target || !target.closest) return null;
