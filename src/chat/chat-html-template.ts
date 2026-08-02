@@ -3,9 +3,11 @@ export function getChatHtmlTemplate(): string {
 <div class="app">
   <div class="toolbar">
     <span class="session-info" id="session-info"></span>
+    <input id="name-input" class="name-input" type="text" style="display:none" />
     <span class="status" id="status"></span>
-    <button id="info-btn" class="icon-btn" type="button" title="Session info"></button>
-    <button id="refresh-btn" class="icon-btn" type="button" title="Reload messages"></button>
+    <button id="name-btn" class="icon-btn" type="button"></button>
+    <button id="info-btn" class="icon-btn" type="button"></button>
+    <button id="refresh-btn" class="icon-btn" type="button"></button>
   </div>
   <div class="messages-wrap">
     <div class="messages" id="messages"><div class="messages-inner" id="messages-inner"></div></div>

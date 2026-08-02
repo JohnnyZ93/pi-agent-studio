@@ -23,6 +23,7 @@ export function getChatCss(fontSize?: number, codiconBase64?: string): string {
 .codicon-checklist::before { content: "\\eab3"; }
 .codicon-info::before { content: "\\ea74"; }
 .codicon-refresh::before { content: "\\eb37"; }
+.codicon-edit::before { content: "\\ea73"; }
 .codicon-copy::before { content: "\\ebcc"; }
 .codicon-repo-forked::before { content: "\\ea63"; }
 .codicon-chevron-right::before { content: "\\eab6"; }
@@ -251,6 +252,20 @@ body {
   flex: 1 1 auto;
   min-width: 0;
 }
+.name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--chat-fs-12);
+  font-family: inherit;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+  border-radius: 3px;
+  padding: 1px 6px;
+  height: 22px;
+  outline: none;
+}
+.name-input:focus { border-color: var(--vscode-focusBorder); }
 .toolbar .status {
   font-size: var(--chat-fs-11);
   opacity: 0.7;

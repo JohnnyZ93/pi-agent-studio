@@ -357,6 +357,22 @@ export async function openChatPanel(
     return lines.join("\n");
   }
 
+  async function applySessionName(name: string): Promise<void> {
+    try {
+      await rpc.setSessionName(name);
+    } catch (e) {
+      if (String(e instanceof Error ? e.message : e).includes("set_session_name")) {
+        toast("Setting the session name requires a newer pi. Please upgrade.", "error");
+        return;
+      }
+      throw e;
+    }
+    const st = await rpc.getState();
+    applySessionFile(st.sessionFile, name);
+    panel.webview.postMessage({ type: "state", state: st });
+    toast(`Session name set: ${name}`, "success");
+  }
+
   async function handleBuiltin(message: string): Promise<boolean> {
     const parsed = parseBuiltin(message);
     if (!parsed) return false;
@@ -394,19 +410,7 @@ export async function openChatPanel(
             toast("Usage: /name <name>");
             break;
           }
-          try {
-            await rpc.setSessionName(args);
-          } catch (e) {
-            if (String(e instanceof Error ? e.message : e).includes("set_session_name")) {
-              toast("Setting the session name requires a newer pi. Please upgrade.", "error");
-              break;
-            }
-            throw e;
-          }
-          const st = await rpc.getState();
-          applySessionFile(st.sessionFile, args);
-          panel.webview.postMessage({ type: "state", state: st });
-          toast(`Session name set: ${args}`, "success");
+          await applySessionName(args);
           break;
         }
         case "changelog": {
@@ -589,6 +593,16 @@ export async function openChatPanel(
           panel.webview.postMessage({ type: "state", state: st });
         } catch {
           // ignore
+        }
+        break;
+      case "setSessionName":
+        try {
+          await applySessionName(String(msg.name ?? ""));
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
         }
         break;
       case "pickResource": {

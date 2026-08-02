@@ -120,7 +120,8 @@ function applyRewindWidget(lines) {
       var rowActions = el('span', 'rewind-row-actions');
       var accBtn = el('button', 'rewind-btn rewind-accept');
       accBtn.type = 'button';
-      accBtn.innerHTML = ICON_ACCEPT + '<span>Accept</span>';
+      accBtn.innerHTML = ICON_ACCEPT;
+      tipBtn(accBtn, 'Accept');
       accBtn.addEventListener('click', function(id) {
         return function() {
           if (state.isStreaming) { showToast('Stop the agent before changing files.', 'error'); return; }
@@ -131,7 +132,8 @@ function applyRewindWidget(lines) {
 
       var revBtn = el('button', 'rewind-btn rewind-revert');
       revBtn.type = 'button';
-      revBtn.innerHTML = ICON_REVERT_FILE + '<span>Revert</span>';
+      revBtn.innerHTML = ICON_REVERT_FILE;
+      tipBtn(revBtn, 'Revert');
       revBtn.addEventListener('click', function(id) {
         return function() {
           if (state.isStreaming) { showToast('Stop the agent before reverting.', 'error'); return; }

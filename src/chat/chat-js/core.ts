@@ -6,7 +6,7 @@ var models = [];
 var thinkingLevels = [];
 var commands = [];
 var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
-var state = { model: null, thinkingLevel: 'medium', isStreaming: false, isBtwLoading: false, sessionFile: null };
+var state = { model: null, thinkingLevel: 'medium', isStreaming: false, isBtwLoading: false, sessionFile: null, sessionName: '' };
 var retryAttempt = 0;
 var todoCollapsed = false;
 var inputHistory = [];
@@ -21,6 +21,7 @@ var ICON_TODO = '<span class="codicon codicon-checklist"></span>';
 var ICON_CHECK = '<span class="codicon codicon-check"></span>';
 var ICON_INFO = '<span class="codicon codicon-info"></span>';
 var ICON_REFRESH = '<span class="codicon codicon-refresh"></span>';
+var ICON_EDIT = '<span class="codicon codicon-edit"></span>';
 var EMPTY_HTML = '<div class="empty">'
   + '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>'
   + '<div class="empty-line">There are many agent harnesses</div>'
@@ -52,10 +53,14 @@ refreshBtn.innerHTML = ICON_REFRESH;
 infoBtn.addEventListener('click', function() {
   vscode.postMessage({ type: 'prompt', message: '/session' });
 });
+infoBtn.addEventListener('mouseenter', function() { showTooltip(infoBtn, 'Session info'); });
+infoBtn.addEventListener('mouseleave', hideTooltip);
 refreshBtn.addEventListener('click', function() {
   if (state.isStreaming) return;
   vscode.postMessage({ type: 'reload' });
 });
+refreshBtn.addEventListener('mouseenter', function() { showTooltip(refreshBtn, 'Reload messages'); });
+refreshBtn.addEventListener('mouseleave', hideTooltip);
 var modelSelect = document.getElementById('model-select');
 var ctxRing = document.getElementById('ctx-ring');
 var ctxRingProg = document.getElementById('ctx-ring-prog');
@@ -69,6 +74,45 @@ var permissionSelect = document.getElementById('permission-select');
 var permissionIcon = document.getElementById('permission-icon');
 var statusEl = document.getElementById('status');
 var sessionInfoEl = document.getElementById('session-info');
+var nameBtn = document.getElementById('name-btn');
+nameBtn.innerHTML = ICON_EDIT;
+var nameInput = document.getElementById('name-input');
+var nameEditing = false;
+function enterNameEdit() {
+  if (nameEditing) return;
+  nameEditing = true;
+  nameInput.value = state.sessionName || '';
+  sessionInfoEl.style.display = 'none';
+  nameInput.style.display = '';
+  nameInput.focus();
+  nameInput.select();
+}
+function exitNameEdit(submit) {
+  if (!nameEditing) return;
+  nameEditing = false;
+  var val = nameInput.value.trim();
+  nameInput.style.display = 'none';
+  sessionInfoEl.style.display = '';
+  if (submit && val) {
+    vscode.postMessage({ type: 'setSessionName', name: val });
+  }
+}
+nameBtn.addEventListener('click', enterNameEdit);
+nameBtn.addEventListener('mouseenter', function() { showTooltip(nameBtn, 'Rename session'); });
+nameBtn.addEventListener('mouseleave', hideTooltip);
+nameInput.addEventListener('keydown', function(ev) {
+  if (!nameEditing) return;
+  if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) {
+    ev.preventDefault();
+    exitNameEdit(true);
+  } else if (ev.key === 'Escape') {
+    ev.preventDefault();
+    exitNameEdit(false);
+  }
+});
+nameInput.addEventListener('blur', function() {
+  exitNameEdit(false);
+});
 var acEl = document.getElementById('autocomplete');
 var overlayEl = document.getElementById('overlay');
 var toastEl = document.getElementById('toast');

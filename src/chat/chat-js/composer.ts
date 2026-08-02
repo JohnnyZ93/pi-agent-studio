@@ -80,6 +80,7 @@ function applyState(s) {
   state.model = s.model;
   state.thinkingLevel = s.thinkingLevel;
   state.sessionFile = s.sessionFile || null;
+  state.sessionName = s.sessionName || '';
   renderModels();
   renderThinking();
 }
@@ -862,8 +863,16 @@ function showTooltip(target, text) {
   ctxTooltip.textContent = text;
   ctxTooltip.style.display = 'block';
   var r = target.getBoundingClientRect();
-  ctxTooltip.style.left = (r.left + r.width / 2 - ctxTooltip.offsetWidth / 2) + 'px';
-  ctxTooltip.style.top = (r.top - ctxTooltip.offsetHeight - 6) + 'px';
+  var cw = ctxTooltip.offsetWidth;
+  var ch = ctxTooltip.offsetHeight;
+  var x = r.left + r.width / 2 - cw / 2;
+  if (x < 4) x = 4;
+  else if (x + cw > window.innerWidth - 4) x = window.innerWidth - cw - 4;
+  var aboveY = r.top - ch - 6;
+  var belowY = r.bottom + 6;
+  var below = aboveY < 4;
+  ctxTooltip.style.left = x + 'px';
+  ctxTooltip.style.top = (below ? belowY : aboveY) + 'px';
 }
 function hideTooltip() { ctxTooltip.style.display = 'none'; }
 ctxRing.addEventListener('mouseenter', function() { showTooltip(ctxRing, ctxRingText); });

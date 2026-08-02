@@ -27,7 +27,8 @@
 //     ├── mditSrc (raw import)        → vendor/markdown-it.min.js
 //     ├── getCoreJs(home, sep)        → JS: state, DOM refs, helpers, scroll, widget, queue
 //     ├── getMessagesJs()             → JS: message DOM, tool rendering, hydrate, events
-//     └── getComposerJs()             → JS: controls, autocomplete, send, dialog, wire-up
+//     ├── getComposerJs()             → JS: controls, autocomplete, send, dialog, wire-up
+//     └── getRewindJs()              → JS: rewind widget, per-message actions, custom dialogs
 //
 // ---- Module responsibilities ----
 //
@@ -39,6 +40,13 @@
 //     Static DOM skeleton: toolbar, messages container, composer,
 //     autocomplete dropdown, overlay, toast, context menu.
 //     Elements are referenced by `id` in the JS modules.
+//     Toolbar icon buttons (name-btn, info-btn, refresh-btn) render glyphs from
+//     assets/fonts/codicon.ttf (base64-embedded into the webview by
+//     loadCodiconBase64). Each button sets innerHTML to a constant
+//     `<span class="codicon codicon-<glyph>"></span>`; <glyph> MUST be a name
+//     that exists in the font's `post` table. The rename-session button uses
+//     `codicon-rename` (verified present). Always confirm a glyph name in the
+//     ttf before referencing it.
 //
 //   chat-js/core.ts
 //     - acquireVsCodeApi() + markdown-it init
@@ -77,6 +85,16 @@
 //     - Tooltip: context ring, model name, file open hint (Ctrl+Click)
 //     - Wire-up: all event listeners, window.addEventListener('message')
 //     - Initialization: autoGrow, updateSendButton, applyContextUsage(null), clearMessages
+//
+//   chat-js/rewind.ts
+//     - Rewind widget (#rewind-widget): file-change preview with per-file
+//       added/removed counts, collapse toggle, Accept All / Revert All, and
+//       per-file accept/revert buttons (applyRewindWidget, appendCounts)
+//     - Per-user-message actions (appendUserActions): copy / fork / revert
+//       buttons appended to each user bubble; posts `fork` / `revert` messages
+//     - Custom dialogs: rewind mode picker (message-only / message+code) and
+//       confirmation overlay (renderRewindDialog, showRewindConfirm)
+//     - tipBtn() tooltip helper for action buttons
 
 import fs from "node:fs";
 import mditSrc from "./vendor/markdown-it.min.js?raw";
