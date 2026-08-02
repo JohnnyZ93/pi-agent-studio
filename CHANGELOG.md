@@ -2,6 +2,13 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.4] - 2026-08-02
+
+- **Chat UI**: the todo list widget above the composer is now **collapsible** — a chevron toggle remembers its expand/collapse state across renders, and the Clear action switched to a codicon glyph with tooltip and aria-label.
+- **Chat UI**: added **inline session rename** to the chat panel toolbar — an edit icon opens a name field; Enter confirms, Escape cancels (the same handler now backs the `/name` command).
+- **Chat UI**: cleaner icon-based presentation — thinking blocks and tool status (running/done/error) now use codicon glyphs instead of text labels, and tool blocks / widget cards dropped redundant borders and backgrounds.
+- **Chat UI**: smarter tooltips — they flip below the target when there is no room above and clamp to the viewport edges; hover tooltips added to the toolbar buttons (rename, info, reload) and the todo toggle/clear controls.
+
 ## [1.1.3] - 2026-08-02
 
 - **Rewind Code extension**: new bundled `rewind-code` extension lets you restore file changes together with a rewind. When rewinding to a historical message via `/tree`, you can now choose to rewind the message only or rewind the message **and** the code. File-level sha256 snapshots are captured around every `edit`/`write` tool call and stored under `~/.pi/snapshots` (no git dependency). In the webview chat panel this adds per-message **Accept / Revert** controls, a code toolbar action, and a live **changed-files widget** comparing current disk state to a baseline with line-level `+added` / `-removed` counts (`/fork` rewind is message-only — code restoration is triggered by `/tree`). Bash-only file changes are reported but not covered.
