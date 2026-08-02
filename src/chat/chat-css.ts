@@ -62,7 +62,7 @@ body {
   padding: 6px 8px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
-  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  background: var(--vscode-editor-background);
 }
 .composer-box {
   border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
@@ -657,7 +657,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 
 .composer {
   flex-shrink: 0;
-  border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
   padding: 8px;
   display: flex;
   flex-direction: column;
