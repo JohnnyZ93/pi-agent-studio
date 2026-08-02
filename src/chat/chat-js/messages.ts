@@ -44,6 +44,8 @@ function addUserMessage(text, images) {
   row.appendChild(timeEl);
   bubble._piTimeEl = timeEl;
 
+  appendUserActions(row, bubble, text);
+
   scheduleScroll();
   return bubble;
 }

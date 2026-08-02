@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { statSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
@@ -45,6 +46,26 @@ export async function activate(context: vscode.ExtensionContext) {
       void dispose?.();
     },
   });
+
+  const rewindProvider: vscode.TextDocumentContentProvider = {
+    provideTextDocumentContent(uri: vscode.Uri): string {
+      const parts = String(uri.path || "")
+        .replace(/^\/+/, "")
+        .split("/");
+      if (parts[0] === "empty") return "";
+      if (parts[0] === "snapshot" && parts[1] && parts[2]) {
+        try {
+          return readFileSync(join(homedir(), ".pi", "snapshots", parts[1], parts[2]), "utf8");
+        } catch {
+          return "";
+        }
+      }
+      return "";
+    },
+  };
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider("pi-rewind", rewindProvider),
+  );
 
   const openTerminal = async (extraArgs?: string[]): Promise<vscode.Terminal | undefined> => {
     const terminalId = randomUUID();

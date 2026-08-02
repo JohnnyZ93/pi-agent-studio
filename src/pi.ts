@@ -7,6 +7,7 @@ import {
   BUILTIN_AGENTS_DIR,
   PERMISSION_GATE_EXTENSION_PATH,
   QUESTIONNAIRE_EXTENSION_PATH,
+  REWIND_CODE_EXTENSION_PATH,
   SUBAGENT_EXTENSION_PATH,
   TODO_EXTENSION_PATH,
 } from "./constants.ts";
@@ -119,6 +120,8 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
   ];
   const args = options.sessionFile
     ? [
@@ -177,6 +180,8 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, BTW_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
+    "-e",
+    join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile

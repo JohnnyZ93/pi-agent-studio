@@ -181,4 +181,15 @@ export type WebviewToExt =
   | { type: "todoClear" }
   | { type: "btwAbort"; id: string }
   | { type: "fork"; ts: number }
-  | { type: "revert"; ts: number };
+  | { type: "revert"; ts: number }
+  | { type: "rewindAccept" }
+  | { type: "rewindAcceptFile"; id: number }
+  | { type: "rewindRevert" }
+  | { type: "rewindRevertFile"; id: number }
+  | {
+      type: "rewindDiff";
+      absPath: string;
+      baselineHash: string | null;
+      sessionId: string;
+      basename: string;
+    };

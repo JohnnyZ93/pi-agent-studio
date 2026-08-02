@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
@@ -50,6 +51,27 @@ function messageText(content: unknown): string {
       t += (t ? "\n" : "") + block.text;
   }
   return t;
+}
+
+function openRewindDiff(msg: {
+  absPath: string;
+  baselineHash: string | null;
+  sessionId: string;
+  basename: string;
+}): void {
+  const left = msg.baselineHash
+    ? vscode.Uri.parse(
+        `pi-rewind:snapshot/${msg.sessionId}/${msg.baselineHash}/${encodeURIComponent(msg.basename)}`,
+      )
+    : vscode.Uri.parse(`pi-rewind:empty/${encodeURIComponent(msg.basename)}`);
+  let right: vscode.Uri;
+  try {
+    statSync(msg.absPath);
+    right = vscode.Uri.file(msg.absPath);
+  } catch {
+    right = vscode.Uri.parse(`pi-rewind:empty/${encodeURIComponent(msg.basename)}`);
+  }
+  void vscode.commands.executeCommand("vscode.diff", left, right, "回退对比: " + msg.basename);
 }
 
 function escapeGlob(s: string): string {
@@ -720,6 +742,41 @@ export async function openChatPanel(
         break;
       case "btwAbort":
         rpc.respondExtensionUi(msg.id, { confirmed: true });
+        break;
+      case "rewindAccept":
+        if (streaming) {
+          toast("Stop the agent before changing files.", "error");
+          break;
+        }
+        void rpc.prompt("/rewind-accept", streaming ? "steer" : undefined).catch(() => {});
+        break;
+      case "rewindAcceptFile":
+        if (streaming) {
+          toast("Stop the agent before changing files.", "error");
+          break;
+        }
+        void rpc
+          .prompt(`/rewind-accept-file ${msg.id}`, streaming ? "steer" : undefined)
+          .catch(() => {});
+        break;
+      case "rewindRevert":
+        if (streaming) {
+          toast("Stop the agent before reverting.", "error");
+          break;
+        }
+        void rpc.prompt("/rewind-revert", streaming ? "steer" : undefined).catch(() => {});
+        break;
+      case "rewindRevertFile":
+        if (streaming) {
+          toast("Stop the agent before reverting.", "error");
+          break;
+        }
+        void rpc
+          .prompt(`/rewind-revert-file ${msg.id}`, streaming ? "steer" : undefined)
+          .catch(() => {});
+        break;
+      case "rewindDiff":
+        openRewindDiff(msg);
         break;
     }
   });

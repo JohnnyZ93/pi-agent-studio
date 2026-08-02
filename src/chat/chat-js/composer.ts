@@ -631,6 +631,12 @@ function showDialog(request) {
     overlayEl.style.display = 'flex';
     return;
   }
+  if (method === 'editor' && request.title === 'Pi Rewind Confirm') {
+    renderRewindDialog(box, request);
+    overlayEl.appendChild(box);
+    overlayEl.style.display = 'flex';
+    return;
+  }
   if (method === 'select' && Array.isArray(request.options)) {
     var list = el('div', 'opt-list');
     for (var i = 0; i < request.options.length; i++) {
@@ -809,6 +815,7 @@ window.addEventListener('message', function(e) {
     case 'files': applyFileResults(d.query, d.files); break;
     case 'widget':
       if (d.widgetKey === 'btw') handleBtw(d.widgetLines);
+      else if (d.widgetKey === 'rewind-files') applyRewindWidget(d.widgetLines);
       else applyWidget(d.widgetKey, d.widgetLines);
       break;
     case 'btwAbortReady':

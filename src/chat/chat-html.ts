@@ -84,6 +84,7 @@ import { getChatHtmlTemplate } from "./chat-html-template.ts";
 import { getCoreJs } from "./chat-js/core.ts";
 import { getMessagesJs } from "./chat-js/messages.ts";
 import { getComposerJs } from "./chat-js/composer.ts";
+import { getRewindJs } from "./chat-js/rewind.ts";
 
 export function getChatHtml(home?: string, sep?: string, fontSize?: number): string {
   return /* html */ `<!DOCTYPE html>
@@ -107,6 +108,9 @@ ${getMessagesJs()}
 
 // ---- composer: controls, autocomplete, send, dialog, wire-up ----
 ${getComposerJs()}
+
+// ---- rewind: widget, per-message actions, rewind dialog ----
+${getRewindJs()}
 </script>
 </body></html>`;
 }

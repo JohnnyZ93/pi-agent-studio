@@ -1008,5 +1008,84 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 }
 .ctx-item:hover:not(:disabled) { background: var(--vscode-list-hoverBackground); }
 .ctx-item:disabled { opacity: 0.4; cursor: default; }
+
+.rewind-widget { flex-shrink: 0; padding: 0 8px 6px; }
+.rewind-widget.is-collapsed .rewind-body { display: none; }
+.rewind-widget .widget-card { border-left: 3px solid var(--vscode-charts-orange, var(--vscode-charts-yellow, #cca700)); }
+.rewind-head { display: flex; align-items: center; gap: 6px; font-size: var(--chat-fs-12); }
+.rewind-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+}
+.rewind-chevron svg { width: 14px; height: 14px; display: block; }
+.rewind-widget.is-collapsed .rewind-chevron { transform: rotate(0deg); }
+.rewind-widget:not(.is-collapsed) .rewind-chevron { transform: rotate(90deg); }
+.rewind-title { font-weight: 600; flex: 0 0 auto; white-space: nowrap; }
+.rewind-totals { font-size: var(--chat-fs-11); opacity: 0.7; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.rewind-head-actions { display: inline-flex; gap: 4px; margin-left: auto; flex: 0 0 auto; }
+.rewind-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: var(--chat-fs-11);
+  font-family: inherit;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rewind-btn svg { width: 12px; height: 12px; display: block; }
+.rewind-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+.rewind-body { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+.rewind-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  font-size: var(--chat-fs-12);
+  line-height: 1.45;
+}
+.rewind-row:hover { background: var(--vscode-list-hoverBackground, rgba(127,127,127,0.08)); }
+.rewind-file {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--vscode-textLink-foreground, var(--vscode-foreground));
+}
+.rewind-file:hover { text-decoration: underline; color: var(--vscode-textLink-activeForeground, var(--vscode-textLink-foreground)); }
+.rewind-counts {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--chat-fs-11);
+  white-space: nowrap;
+  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+  opacity: 0.85;
+}
+.rewind-row-actions { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+.msg.user .bubble-actions {
+  display: none;
+  gap: 2px;
+  margin-top: 2px;
+  align-self: flex-end;
+}
+.msg.user:hover .bubble-actions { display: inline-flex; }
+.msg.user .bubble-actions .icon-btn { width: 22px; height: 22px; opacity: 0.6; }
+.msg.user .bubble-actions .icon-btn:hover { opacity: 1; }
+.rewind-dialog .dialog-actions { justify-content: center; gap: 8px; }
 </style>`;
 }
