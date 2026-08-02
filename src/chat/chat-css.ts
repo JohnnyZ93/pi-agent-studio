@@ -29,6 +29,7 @@ export function getChatCss(fontSize?: number, codiconBase64?: string): string {
 .codicon-chevron-down::before { content: "\\eab4"; }
 .codicon-shield::before { content: "\\eb53"; }
 .codicon-unlock::before { content: "\\eb74"; }
+.codicon-clear-all::before { content: "\\eabf"; }
 :root {
   --chat-fs: ${fontSize || 13}px;
   --chat-fs-8:  calc(var(--chat-fs) * 8 / 13);
@@ -392,8 +393,8 @@ body {
   animation: tool-spin 0.7s linear infinite;
 }
 .thinking-block > summary::-webkit-details-marker { display: none; }
-.thinking-block > summary:before { content: "\\25B6  Thinking"; font-size: var(--chat-fs-11); }
-.thinking-block[open] > summary:before { content: "\\25BC  Thinking"; }
+.thinking-block > summary:before { content: "\\ec1f"; font-family: codicon; font-size: var(--chat-fs-12); margin-right: 6px; }
+.thinking-label { font-size: var(--chat-fs-11); }
 .thinking-body {
   margin-top: 6px;
   white-space: pre-wrap;
@@ -487,10 +488,9 @@ body {
 .work-body { display: flex; flex-direction: column; gap: 12px; padding-left: 16px; }
 
 .tool-block {
-  border: 1px solid var(--vscode-widget-border, transparent);
+  border: none;
   border-left: 3px solid var(--vscode-charts-blue, #3794ff);
   border-radius: 4px;
-  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.06));
   overflow: hidden;
 }
 .tool-block.is-error { border-left-color: var(--vscode-errorForeground, #f48771); }
@@ -500,14 +500,11 @@ body {
   gap: 8px;
   padding: 4px 8px;
   font-size: var(--chat-fs-12);
-  background: var(--vscode-list-hoverBackground, rgba(127,127,127,0.1));
   cursor: pointer;
   list-style: none;
   user-select: none;
 }
 .tool-head::-webkit-details-marker { display: none; }
-.tool-head:before { content: "\\25BC"; font-size: var(--chat-fs-9); opacity: 0.6; }
-.tool-block:not([open]) > .tool-head:before { content: "\\25B6"; }
 body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: underline; }
 .tool-name { font-weight: 600; font-family: var(--vscode-editor-font-family); }
 .tool-summary { font-family: var(--vscode-editor-font-family); color: var(--vscode-foreground); opacity: 0.9; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -888,7 +885,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
 .widget-card {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-radius: 6px;
-  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.06));
   padding: 8px 10px;
 }
 .widget-head {
@@ -898,6 +894,26 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   font-size: var(--chat-fs-12);
   margin-bottom: 6px;
 }
+.widget-toggle {
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  transition: transform 0.15s;
+}
+.widget-toggle:hover { opacity: 1; }
+.widget-toggle .codicon { font-size: 12px; line-height: 1; }
+.widget-card.is-collapsed .widget-toggle { transform: rotate(0deg); }
+.widget-card:not(.is-collapsed) .widget-toggle { transform: rotate(90deg); }
+.widget-card.is-collapsed .todo-list { display: none; }
 .widget-title {
   font-weight: 600;
   display: inline-flex;
@@ -917,15 +933,18 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover { text-decoration: u
   background: transparent;
   color: var(--vscode-foreground);
   opacity: 0.7;
-  border: 1px solid var(--vscode-widget-border, transparent);
-  border-radius: 4px;
-  padding: 1px 8px;
+  border: none;
+  padding: 2px 4px;
   font-size: var(--chat-fs-11);
   font-family: inherit;
   cursor: pointer;
   flex: 0 0 auto;
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.widget-clear .codicon { font-size: 13px; line-height: 1; display: block; }
 .widget-clear:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
 .widget-body {
   margin: 0;

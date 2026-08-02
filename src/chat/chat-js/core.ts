@@ -8,6 +8,7 @@ var commands = [];
 var BUILTIN_CMDS = { compact: 1, autocompact: 1, session: 1, name: 1, changelog: 1, clear: 1, new: 1 };
 var state = { model: null, thinkingLevel: 'medium', isStreaming: false, isBtwLoading: false, sessionFile: null };
 var retryAttempt = 0;
+var todoCollapsed = false;
 var inputHistory = [];
 var historyIndex = -1;
 var historyDraft = '';
@@ -230,20 +231,35 @@ function applyWidget(key, lines) {
   var totalCount = items.length;
 
   var card = el('div', 'widget-card');
+  card.classList.toggle('is-collapsed', todoCollapsed);
   var head = el('div', 'widget-head');
+  var toggle = el('button', 'widget-toggle');
+  toggle.type = 'button';
+  toggle.setAttribute('aria-label', todoCollapsed ? 'Expand' : 'Collapse');
+  toggle.innerHTML = '<span class="codicon codicon-chevron-right"></span>';
+  toggle.addEventListener('click', function() {
+    todoCollapsed = !todoCollapsed;
+    applyWidget(key, lines);
+  });
+  toggle.addEventListener('mouseenter', function() { showTooltip(toggle, todoCollapsed ? 'Expand' : 'Collapse'); });
+  toggle.addEventListener('mouseleave', hideTooltip);
+  head.appendChild(toggle);
   var title = el('span', 'widget-title');
   title.innerHTML = ICON_TODO + '<span>Todos</span>';
   head.appendChild(title);
   if (totalCount > 0) {
     var stats = el('span', 'widget-stats');
-    stats.textContent = doneCount + '/' + totalCount + ' done';
+    stats.textContent = doneCount + '/' + totalCount;
     head.appendChild(stats);
   }
   if (items.length) {
     var clearBtn = el('button', 'widget-clear');
     clearBtn.type = 'button';
-    clearBtn.textContent = 'Clear';
+    clearBtn.setAttribute('aria-label', 'Clear all todos');
+    clearBtn.innerHTML = '<span class="codicon codicon-clear-all"></span>';
     clearBtn.addEventListener('click', function() { vscode.postMessage({ type: 'todoClear' }); });
+    clearBtn.addEventListener('mouseenter', function() { showTooltip(clearBtn, 'Clear all todos'); });
+    clearBtn.addEventListener('mouseleave', hideTooltip);
     head.appendChild(clearBtn);
   }
   card.appendChild(head);

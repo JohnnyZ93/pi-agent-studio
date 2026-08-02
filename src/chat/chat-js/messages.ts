@@ -239,7 +239,7 @@ function markAssistantToolErrors(text) {
     if (b && b.type === 'toolcall') {
       if (b.resultEl) setClamped(b.resultEl, text);
       b.el.classList.add('is-error');
-      if (b.statusEl) { b.statusEl.textContent = 'error'; b.statusEl.classList.remove('is-running'); }
+      if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.remove('is-running'); }
     }
   }
 }
@@ -293,6 +293,9 @@ function createBlock(type) {
     var det = el('details', 'thinking-block');
     det.setAttribute('open', '');
     var tSumm = el('summary', '');
+    var tLabel = el('span', 'thinking-label');
+    tLabel.textContent = 'Thinking';
+    tSumm.appendChild(tLabel);
     det.appendChild(tSumm);
     var body = el('div', 'thinking-body');
     det.appendChild(body);
@@ -1017,13 +1020,13 @@ function updateToolExecution(ev) {
 function endToolExecution(ev) {
   var b = findToolBlock(ev.toolCallId);
   if (!b) return;
-  if (b.statusEl) { b.statusEl.textContent = ev.isError ? 'error' : 'done'; b.statusEl.classList.remove('is-running'); }
+  if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.remove('is-running'); }
   if (ev.isError) b.el.classList.add('is-error');
   var r = ev.result;
   if (b.name === 'subagent' && r && r.details) {
     renderSubagentResult(b, r.details);
     if (!ev.isError && subagentDetailsHasError(r.details)) {
-      if (b.statusEl) { b.statusEl.textContent = 'error'; b.statusEl.classList.remove('is-running'); }
+      if (b.statusEl) { b.statusEl.textContent = ''; b.statusEl.classList.remove('is-running'); }
       b.el.classList.add('is-error');
     }
     if (!b.el._userToggled) b.el.removeAttribute('open');
@@ -1269,6 +1272,8 @@ function wrapWorkSegment(userRow) {
         if (keep.indexOf(children[c2]) === -1) body.appendChild(children[c2]);
       }
     } else {
+      var srTime = sr.querySelector(':scope > .msg-time');
+      if (srTime) srTime.remove();
       body.appendChild(sr);
     }
   }
