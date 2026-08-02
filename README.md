@@ -19,6 +19,7 @@ English | [简体中文](README.zh-CN.md)
 
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
 - **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
+- **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
 - **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Diagnostics tool** — The agent can read VS Code diagnostics (LSP / lint / type errors) on demand via `vscode_get_diagnostics`
@@ -105,7 +106,8 @@ Beyond the editor bridge, the extension bundles a few pi extensions that add age
 - **questionnaire** - lets the agent ask structured questions (rendered as a native web form in webview mode)
 - **subagent** - delegate tasks to specialized agents (`explore`, `general`, plus your own); managed from the **Agents** sidebar
 - **permission-gate** - intercepts dangerous bash commands (matching `pi-agent-studio.permission.dangerousPatterns`, e.g. `rm -rf`, `sudo`) and requires approval before execution; switch per session via `/permission`
-- **btw** - `/btw` asks a side question without altering the main conversation context
+- **rewind-code** - file-level content snapshots that let you rewind a historical message via `/tree` and optionally restore its code changes (message-only on `/fork`); in the webview panel it drives a live changed-files widget with Accept / Revert
+- **btw** - `/btw` asks a question without altering the main conversation context
 
 ### LLM tool (1)
 

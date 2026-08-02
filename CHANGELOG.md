@@ -2,6 +2,14 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.1.3] - 2026-08-02
+
+- **Rewind Code extension**: new bundled `rewind-code` extension lets you restore file changes together with a rewind. When rewinding to a historical message via `/tree`, you can now choose to rewind the message only or rewind the message **and** the code. File-level sha256 snapshots are captured around every `edit`/`write` tool call and stored under `~/.pi/snapshots` (no git dependency). In the webview chat panel this adds per-message **Accept / Revert** controls, a code toolbar action, and a live **changed-files widget** comparing current disk state to a baseline with line-level `+added` / `-removed` counts (`/fork` rewind is message-only — code restoration is triggered by `/tree`). Bash-only file changes are reported but not covered.
+- **Chat UI**: replaced hand-drawn inline SVG icons with the bundled **codicon font** for crisp, consistent visuals across the chat panel.
+- **Chat UI**: added **context-usage warning states** (subagent details auto-expand and warn near the context limit) and a **permission-mode indicator** in the composer.
+- **Chat UI**: refined rewind / message interactions with cleaner codicon-based buttons and tooltips.
+- **Permission gate**: significantly expanded the default `dangerousPatterns` to cover more destructive operations — whole-file/recursive deletes (`shred`, `rmdir /s`, `Remove-Item -Recurse`), disk/volume/registry terminal actions (`format`, `diskpart`, `vssadmin delete shadows`, `reg delete`), database resets (`drop table`, `truncate table`, `flushall`), shutdown/reboot, forced process kills (`taskkill /f`, `pkill`, `kill -9`), `git push --force`, pipe-to-shell patterns (`curl | sh`, `iex`), and more.
+
 ## [1.1.2] - 2026-08-01
 
 - **Permission gate**: added a new `permission-gate` bridge extension that intercepts dangerous bash commands (`rm -rf`, `sudo`, `chmod/chown 777`, …) and requires explicit approval before execution. Configure via `pi-agent-studio.permission.mode` (`AskForApproval` / `FullAccess`) and `pi-agent-studio.permission.dangerousPatterns`; switch the mode per session with the `/permission` slash command. The webview chat panel shows the current mode in the composer and renders Allow/Block buttons on permission dialogs.

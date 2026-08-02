@@ -19,6 +19,7 @@
 
 - **原生终端 TUI** -- Pi 运行在 VS Code 集成终端（PTY）中。无 shell 层、无引号黑魔法--pi 二进制直接启动（默认模式）
 - **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
+- **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
 - **实时 VS Code 状态栏** —— pi 终端底部状态条实时显示当前文件、光标 / 选区、语言、未保存标记和诊断数量
 - **诊断工具** —— Agent 可通过 `vscode_get_diagnostics` 按需读取 VS Code 诊断（LSP / lint / 类型错误）
@@ -106,6 +107,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - **questionnaire** -- 让 Agent 提出结构化问题（webview 模式下渲染为原生表单）
 - **subagent** -- 将任务委派给专门 Agent（内置 `explore`、`general`，可自定义）；在 **Agents** 侧边栏管理
 - **permission-gate** -- 拦截危险 bash 命令（匹配 `pi-agent-studio.permission.dangerousPatterns`，如 `rm -rf`、`sudo`），执行前需人工批准；可通过 `/permission` 按会话切换模式
+- **rewind-code** -- 基于文件内容快照，在通过 `/tree` 回退历史消息时可选择同时恢复其代码变更（`/fork` 仅回退消息）；webview 面板中驱动实时变更文件 widget，支持 Accept / Revert
 - **btw** -- `/btw` 提问旁路问题，不污染主对话上下文
 
 ### LLM 工具（1 个）
