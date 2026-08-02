@@ -144,21 +144,21 @@ Example:
 
 ## Configuration
 
-| Setting                                        | Type      | Default            | Description                                                                                 |
-| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                     |
-| `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)        |
-| `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args       |
-| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                         |
-| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                          |
-| `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)   |
-| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer             |
-| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                               |
-| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent` |
-| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                           |
-| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`    |
-| `pi-agent-studio.permission.dangerousPatterns` | `array`   | `["\\brm\\s+(-rf?  | --recursive)", "\\bsudo\\b", "\\b(chmod                                                     | chown)\\b.\*777"]` | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
-| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                            |
+| Setting                                        | Type      | Default            | Description                                                                                                   |
+| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                                       |
+| `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)                          |
+| `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args                         |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                                           |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                                            |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)                     |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer                               |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                                                 |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent`                   |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                                             |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                      |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                              |
 
 ## Building from source
 
