@@ -120,18 +120,21 @@ body {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+  color: var(--vscode-button-background);
 }
 .ctx-ring svg { width: 14px; height: 14px; transform: rotate(-90deg); display: block; }
 .ctx-ring-track { fill: none; stroke: currentColor; stroke-width: 2; opacity: 0.3; }
 .ctx-ring-prog {
   fill: none;
-  stroke: var(--vscode-button-background);
+  stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  transition: stroke-dashoffset 0.3s ease;
+  transition: stroke-dashoffset 0.3s ease, color 0.3s ease;
 }
+.ctx-ring.is-warn { color: var(--vscode-editorWarning-foreground, #cca700); }
+.ctx-ring.is-error { color: var(--vscode-editorError-foreground, #f48771); }
 .ctx-tooltip {
   position: fixed;
   z-index: 50;

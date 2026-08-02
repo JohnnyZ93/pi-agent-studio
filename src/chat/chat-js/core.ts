@@ -184,6 +184,8 @@ function applyContextUsage(usage, cost) {
   var pct = (usage && typeof usage.percent === 'number') ? usage.percent : 0;
   if (pct < 0) pct = 0; else if (pct > 100) pct = 100;
   ctxRingProg.style.strokeDashoffset = String(100 - pct);
+  ctxRing.classList.toggle('is-warn', pct >= 50 && pct < 80);
+  ctxRing.classList.toggle('is-error', pct >= 80);
   rebuildCtxRingTooltip();
 }
 function rebuildCtxRingTooltip() {

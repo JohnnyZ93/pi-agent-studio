@@ -993,6 +993,7 @@ function startToolExecution(ev) {
   }
   applyToolSummary(b, b.name, ev.args);
   applyToolFileTarget(b, b.name, ev.args);
+  if (b.name === 'subagent' && !b.el._userToggled) b.el.setAttribute('open', '');
   scheduleScroll();
 }
 function updateToolExecution(ev) {
@@ -1002,6 +1003,8 @@ function updateToolExecution(ev) {
   if (!pr) return;
   if (b.name === 'subagent' && pr.details) {
     renderSubagentResult(b, pr.details);
+    if (!b.el._userToggled) b.el.setAttribute('open', '');
+    scheduleScroll();
     return;
   }
   if (pr.content) {
