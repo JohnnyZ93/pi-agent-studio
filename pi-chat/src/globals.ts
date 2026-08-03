@@ -623,6 +623,23 @@ nameBtn.addEventListener("mouseenter", function () {
 });
 nameBtn.addEventListener("mouseleave", hideTooltip);
 
+infoBtn.addEventListener("click", function () {
+  vscode.postMessage({ type: "prompt", message: "/session" });
+});
+infoBtn.addEventListener("mouseenter", function () {
+  showTooltip(infoBtn, "Session info");
+});
+infoBtn.addEventListener("mouseleave", hideTooltip);
+
+refreshBtn.addEventListener("click", function () {
+  if (state.isStreaming) return;
+  vscode.postMessage({ type: "reload" });
+});
+refreshBtn.addEventListener("mouseenter", function () {
+  showTooltip(refreshBtn, "Reload messages");
+});
+refreshBtn.addEventListener("mouseleave", hideTooltip);
+
 nameInput.addEventListener("keydown", function (ev: KeyboardEvent) {
   if (!nameEditing) return;
   if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
