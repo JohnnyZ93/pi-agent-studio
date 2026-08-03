@@ -4,6 +4,7 @@ node_modules
 .claude
 dist
 *.vsix
+pi-chat/src/model-icons-data.ts
 src/chat/chat-dist.html
 package-lock.json
 .DS_Store

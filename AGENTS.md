@@ -6,6 +6,7 @@ This file provides guidance to Code Agent when working with code in this reposit
 
 ## Build & Run
 
+- pnpm workspace: root `pnpm-workspace.yaml` declares `pi-chat` as the only member; **single root `pnpm-lock.yaml`** (no lockfile/workspace file inside `pi-chat/`). `pnpm install` at root installs both packages. Builds use `pnpm --filter pi-chat ...` (e.g. `build`), not `--dir`. `onlyBuiltDependencies: [esbuild]` lives in the root `pnpm-workspace.yaml`.
 - `pnpm build` / `pnpm dev` (watch) / `pnpm package` (builds + `vsce package --no-dependencies`)
 - `pnpm fmt` — auto-fix with `oxlint --fix` + `oxfmt`
 - `pnpm lint` — `oxlint . && oxfmt --check .`
