@@ -375,6 +375,14 @@ function refreshWidget(ctx: ExtensionContext): void {
   ctx.ui.setWidget(WIDGET_KEY, [JSON.stringify(data)]);
 }
 
+function resetState(): void {
+  fileHistory.clear();
+  pendingBefore.clear();
+  baselines.clear();
+  fileIds.clear();
+  nextRewindId = 1;
+}
+
 async function maybeRevert(
   ctx: ExtensionContext,
   targetId: string,
@@ -444,11 +452,7 @@ export default function (pi: ExtensionAPI) {
     const sessionId = ctx.sessionManager.getSessionId();
     currentSnapDir = path.join(SNAP_ROOT, sessionId);
     fs.mkdirSync(currentSnapDir, { recursive: true });
-    fileHistory.clear();
-    pendingBefore.clear();
-    baselines.clear();
-    fileIds.clear();
-    nextRewindId = 1;
+    resetState();
     sweepStaleSnapshots(sessionId);
     refreshWidget(ctx);
   });
@@ -508,16 +512,17 @@ export default function (pi: ExtensionAPI) {
     return maybeRevert(ctx, event.preparation.targetId, "Rewind to this message");
   });
 
+  pi.on("session_compact", async (_event, ctx) => {
+    resetState();
+    refreshWidget(ctx);
+  });
+
   pi.on("session_shutdown", async () => {
     if (currentSnapDir) {
       fs.rmSync(currentSnapDir, { recursive: true, force: true });
       currentSnapDir = undefined;
     }
-    fileHistory.clear();
-    pendingBefore.clear();
-    baselines.clear();
-    fileIds.clear();
-    nextRewindId = 1;
+    resetState();
   });
 
   pi.registerCommand("rewind-accept", {
