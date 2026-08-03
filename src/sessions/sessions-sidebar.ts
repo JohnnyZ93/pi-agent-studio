@@ -6,7 +6,7 @@ import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
 import type { SessionTracker } from "../sessions.ts";
-import { openChatPanel } from "../chat/chat-panel.ts";
+import { openChatPanel, syncOpenChatSession } from "../chat/chat-panel.ts";
 import type { ChatTracker } from "../chat/chat-tracker.ts";
 import { filterAndSortSessions } from "./session-search.ts";
 import { getSessionsHtml } from "./sessions-sidebar-html.ts";
@@ -403,8 +403,10 @@ function useWebviewUi(): boolean {
 }
 
 async function renameSession(sessionFile: string, name: string): Promise<void> {
+  const trimmed = name.trim();
   const sm = SessionManager.open(sessionFile);
-  sm.appendSessionInfo(name.trim());
+  sm.appendSessionInfo(trimmed);
+  syncOpenChatSession(sessionFile, { rename: trimmed });
 }
 
 async function deleteSession(sessionFile: string): Promise<void> {

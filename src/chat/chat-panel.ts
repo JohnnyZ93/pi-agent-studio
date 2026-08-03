@@ -13,11 +13,16 @@ import { mergeBuiltinCommands, parseBuiltin } from "./builtin-commands.ts";
 import { readPiChangelog } from "./pi-changelog.ts";
 import { sessionStatusRegistry } from "../session-status-registry.ts";
 
+export interface ChatSessionUpdate {
+  rename?: string;
+}
+
 export interface ChatPanelHandle {
   panel: vscode.WebviewPanel;
   rpc: RpcClient;
   panelId: string;
   sessionFile?: string;
+  sync?: (opts: ChatSessionUpdate) => void;
 }
 
 export interface OpenChatPanelOptions {
@@ -222,6 +227,11 @@ export async function openChatPanel(
     rpc,
     panelId,
     sessionFile: opts.sessionFile,
+  };
+  handle.sync = (opts: ChatSessionUpdate): void => {
+    if (opts.rename !== undefined) sessionName = opts.rename;
+    updatePanelTitle(streaming);
+    void sendSessionInfo();
   };
   activePanels.set(panelId, handle);
   if (opts.sessionFile) {
@@ -826,6 +836,15 @@ export function disposeAllChatPanels(): void {
   }
   activePanels.clear();
   sessionToPanel.clear();
+}
+
+export function syncOpenChatSession(sessionFile: string, opts: ChatSessionUpdate): boolean {
+  const panelId = sessionToPanel.get(sessionFile);
+  if (!panelId) return false;
+  const handle = activePanels.get(panelId);
+  if (!handle?.sync) return false;
+  handle.sync(opts);
+  return true;
 }
 
 function isChatTab(tab: vscode.Tab): boolean {

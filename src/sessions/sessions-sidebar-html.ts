@@ -33,6 +33,7 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 .session-actions button { padding:2px 6px; cursor:pointer; background:transparent; border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:11px; color:var(--vscode-foreground); }
 .session-actions button:hover { background:var(--vscode-toolbar-hoverBackground); }
 .session-actions button.danger:hover { background:var(--vscode-inputValidation-errorBackground,#d32f2f); color:var(--pi-error-text); border-color:transparent; }
+.session-actions button[disabled] { opacity:0.4; cursor:not-allowed; }
 .rename-input { width:100%; padding:2px 4px; background:var(--vscode-input-background); color:var(--vscode-input-foreground); border:1px solid var(--vscode-focusBorder); border-radius:3px; font-size:13px; font-family:inherit; outline:none; }
 .delete-confirm { padding:6px 10px; background:var(--vscode-inputValidation-errorBackground,#d32f2f); color:var(--pi-error-text); font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .delete-confirm .delete-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -275,7 +276,11 @@ function renderAll() {
     html += '<div class="session-preview">' + escHtml(s.firstMessage || '') + '</div>';
     html += '<div class="session-actions">';
     html += '<button title="Rename" data-action="rename" data-path="' + pathAttr + '">✏️</button>';
-    html += '<button class="danger" title="Delete" data-action="delete" data-path="' + pathAttr + '">🗑️</button>';
+    if (s.isOpen) {
+      html += '<button class="danger" title="Session is open, close it first" disabled>🗑️</button>';
+    } else {
+      html += '<button class="danger" title="Delete" data-action="delete" data-path="' + pathAttr + '">🗑️</button>';
+    }
     html += '</div></div>';
   }
   list.innerHTML = html;
