@@ -171,6 +171,17 @@ body {
   flex: 1 1 auto;
   min-width: 4px;
 }
+@media (max-width: 640px) {
+  .composer-controls-bar .permission-wrap {
+    display: none;
+  }
+}
+@media (max-width: 420px) {
+  .composer-controls-bar .model-wrap,
+  .composer-controls-bar .thinking-select {
+    display: none;
+  }
+}
 .ctx-ring {
   display: inline-flex;
   align-items: center;
