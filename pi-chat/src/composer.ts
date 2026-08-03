@@ -11,7 +11,14 @@ import {
   sendBtn,
   attachBtn,
   attachPreviewEl,
-  modelSelect,
+  modelWrap,
+  modelTrigger,
+  modelTriggerLabel,
+  modelPopup,
+  modelSearch,
+  modelList,
+  enabledModelKeys,
+  setEnabledModelKeys,
   ctxRing,
   ctxRingText,
   thinkingSelect,
@@ -54,9 +61,17 @@ import {
 
 import { applyRewindWidget, renderRewindDialog } from "./rewind";
 
-// ---- model select rendering ----
+// ---- model select rendering (custom dropdown) ----
 function modelLabel(m: any): string {
   return (m.name || m.id) + (m.provider ? " \u00b7 " + m.provider : "");
+}
+
+function modelKey(m: any): string {
+  return (m.provider || "") + "/" + (m.id || "");
+}
+
+function isFavorite(m: any): boolean {
+  return enabledModelKeys.has(modelKey(m).toLowerCase());
 }
 
 const modelMeasurer = document.createElement("span");
@@ -71,8 +86,9 @@ function fitSelectToText(sel: HTMLSelectElement, extra: number) {
   sel.style.width = modelMeasurer.offsetWidth + extra + "px";
 }
 
-function fitModelSelect() {
-  fitSelectToText(modelSelect, 16);
+function fitModelTrigger() {
+  modelMeasurer.textContent = modelTriggerLabel.textContent || "";
+  modelTrigger.style.width = modelMeasurer.offsetWidth + 36 + "px";
 }
 function fitThinkingSelect() {
   fitSelectToText(thinkingSelect, 22);
@@ -81,39 +97,184 @@ function fitPermissionSelect() {
   fitSelectToText(permissionSelect, 16);
 }
 
-function renderModels() {
-  const prev = state.model ? state.model.provider + "/" + state.model.id : "";
-  modelSelect.innerHTML = "";
+let modelPopupOpen = false;
+let modelQuery = "";
+let modelHighlight = -1;
+let modelFiltered: any[] = [];
+
+function currentModelIndex(): number {
+  if (!state.model) return -1;
+  for (let i = 0; i < models.length; i++) {
+    if (models[i].provider === state.model.provider && models[i].id === state.model.id) return i;
+  }
+  return -1;
+}
+
+function computeFilteredModels() {
+  const q = modelQuery.trim().toLowerCase();
+  const matched: { m: any; ord: number }[] = [];
   for (let i = 0; i < models.length; i++) {
     const m = models[i];
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = modelLabel(m);
-    const key = m.provider + "/" + m.id;
-    if (key === prev) opt.selected = true;
-    modelSelect.appendChild(opt);
+    if (!q) {
+      matched.push({ m, ord: i });
+      continue;
+    }
+    const name = String(m.name || m.id || "").toLowerCase();
+    const id = String(m.id || "").toLowerCase();
+    const provider = String(m.provider || "").toLowerCase();
+    if (name.indexOf(q) >= 0 || id.indexOf(q) >= 0 || provider.indexOf(q) >= 0) {
+      matched.push({ m, ord: i });
+    }
   }
+  matched.sort(function (a, b) {
+    const fa = isFavorite(a.m) ? 1 : 0;
+    const fb = isFavorite(b.m) ? 1 : 0;
+    if (fa !== fb) return fb - fa;
+    return a.ord - b.ord;
+  });
+  modelFiltered = matched.map(function (x) {
+    return x.m;
+  });
+}
+
+function renderModelList() {
+  computeFilteredModels();
+  modelList.innerHTML = "";
   if (!models.length) {
-    const o = document.createElement("option");
-    o.textContent = "No models configured";
-    o.value = "";
-    modelSelect.appendChild(o);
+    const empty = el("div", "model-empty");
+    empty.textContent = "No models configured";
+    modelList.appendChild(empty);
+    modelHighlight = -1;
+    return;
   }
-  fitModelSelect();
+  if (!modelFiltered.length) {
+    const empty = el("div", "model-empty");
+    empty.textContent = "No matching models";
+    modelList.appendChild(empty);
+    modelHighlight = -1;
+    return;
+  }
+  if (modelHighlight < 0 || modelHighlight >= modelFiltered.length) {
+    const curIdx = currentModelIndex();
+    let target = -1;
+    if (curIdx >= 0) {
+      for (let i = 0; i < modelFiltered.length; i++) {
+        if (modelFiltered[i] === models[curIdx]) {
+          target = i;
+          break;
+        }
+      }
+    }
+    modelHighlight = target >= 0 ? target : 0;
+  }
+  for (let i = 0; i < modelFiltered.length; i++) {
+    const m = modelFiltered[i];
+    const item = el("div", "model-item" + (i === modelHighlight ? " active" : ""));
+    item.setAttribute("data-i", String(i));
+    const iconSlot = el("span", "model-item-icon");
+    iconSlot.innerHTML = modelIconHtml(getModelIcon(m.name || m.id || ""));
+    const label = el("span", "model-item-label");
+    label.textContent = modelLabel(m);
+    item.appendChild(iconSlot);
+    item.appendChild(label);
+    const star = el("button", "model-star" + (isFavorite(m) ? " is-on" : ""));
+    star.type = "button";
+    star.setAttribute("data-i", String(i));
+    star.title = isFavorite(m) ? "Remove from favorites" : "Add to favorites";
+    star.innerHTML = isFavorite(m)
+      ? '<span class="codicon codicon-star-full"></span>'
+      : '<span class="codicon codicon-star-empty"></span>';
+    item.appendChild(star);
+    modelList.appendChild(item);
+  }
+  const active = modelList.querySelector(".active") as HTMLElement | null;
+  if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest" });
+}
+
+function renderModels() {
+  const idx = currentModelIndex();
+  const m = idx >= 0 ? models[idx] : null;
+  if (m) {
+    modelTriggerLabel.textContent = modelLabel(m);
+  } else if (!models.length) {
+    modelTriggerLabel.textContent = "No models configured";
+  } else {
+    modelTriggerLabel.textContent = "";
+  }
+  fitModelTrigger();
   updateModelIcon();
+  if (modelPopupOpen) renderModelList();
 }
 
 function updateModelIcon() {
   const slot = document.getElementById("model-icon");
   if (!slot) return;
-  const idx = Number(modelSelect.value);
-  const m = models[idx];
+  const idx = currentModelIndex();
+  const m = idx >= 0 ? models[idx] : null;
   if (!m) {
     slot.innerHTML = "";
     return;
   }
   const icon = getModelIcon(m.name || m.id || "");
   slot.innerHTML = modelIconHtml(icon);
+}
+
+function positionModelPopup() {
+  const r = modelWrap.getBoundingClientRect();
+  modelPopup.style.minWidth = r.width + "px";
+  modelPopup.style.left = "0px";
+  const ph = modelPopup.offsetHeight || 220;
+  const spaceBelow = window.innerHeight - r.bottom;
+  if (spaceBelow < ph + 8 && r.top > spaceBelow) {
+    modelPopup.style.bottom = r.height + "px";
+    modelPopup.style.top = "";
+  } else {
+    modelPopup.style.top = r.height + "px";
+    modelPopup.style.bottom = "";
+  }
+}
+
+function openModelPopup() {
+  if (modelPopupOpen) return;
+  modelPopupOpen = true;
+  modelQuery = "";
+  modelSearch.value = "";
+  modelHighlight = -1;
+  modelPopup.style.display = "block";
+  renderModelList();
+  positionModelPopup();
+  modelWrap.classList.add("is-open");
+  document.addEventListener("mousedown", onModelPopupOutside);
+  setTimeout(function () {
+    modelSearch.focus();
+  }, 0);
+}
+
+function closeModelPopup() {
+  if (!modelPopupOpen) return;
+  modelPopupOpen = false;
+  modelPopup.style.display = "none";
+  modelWrap.classList.remove("is-open");
+  document.removeEventListener("mousedown", onModelPopupOutside);
+}
+
+function onModelPopupOutside(ev: MouseEvent) {
+  const t = ev.target as HTMLElement;
+  if (t && (t === modelWrap || modelWrap.contains(t))) return;
+  closeModelPopup();
+}
+
+function selectModel(m: any) {
+  vscode.postMessage({ type: "setModel", provider: m.provider, modelId: m.id });
+  closeModelPopup();
+}
+
+function toggleFavorite(m: any) {
+  const key = modelKey(m).toLowerCase();
+  if (enabledModelKeys.has(key)) enabledModelKeys.delete(key);
+  else enabledModelKeys.add(key);
+  renderModelList();
+  vscode.postMessage({ type: "toggleFavorite", provider: m.provider, modelId: m.id });
 }
 
 function renderThinking() {
@@ -867,12 +1028,55 @@ function respond(id: string, payload: any) {
 }
 
 // ---- wire-up events ----
-modelSelect.addEventListener("change", function () {
-  const idx = Number(modelSelect.value);
-  const m = models[idx];
-  if (m) vscode.postMessage({ type: "setModel", provider: m.provider, modelId: m.id });
-  fitModelSelect();
-  updateModelIcon();
+modelTrigger.addEventListener("click", function () {
+  if (modelPopupOpen) closeModelPopup();
+  else openModelPopup();
+});
+
+modelList.addEventListener("click", function (ev: MouseEvent) {
+  const t = ev.target as HTMLElement;
+  const starBtn = t.closest ? (t.closest(".model-star") as HTMLElement | null) : null;
+  if (starBtn) {
+    ev.stopPropagation();
+    const i = Number(starBtn.getAttribute("data-i"));
+    const m = modelFiltered[i];
+    if (m) toggleFavorite(m);
+    return;
+  }
+  const item = t.closest ? (t.closest(".model-item") as HTMLElement | null) : null;
+  if (item) {
+    const i = Number(item.getAttribute("data-i"));
+    const m = modelFiltered[i];
+    if (m) selectModel(m);
+  }
+});
+
+modelSearch.addEventListener("input", function () {
+  modelQuery = modelSearch.value;
+  modelHighlight = -1;
+  renderModelList();
+});
+
+modelSearch.addEventListener("keydown", function (ev: KeyboardEvent) {
+  if (ev.key === "Escape") {
+    ev.preventDefault();
+    closeModelPopup();
+    return;
+  }
+  if (!modelFiltered.length) return;
+  if (ev.key === "ArrowDown") {
+    ev.preventDefault();
+    modelHighlight = (modelHighlight + 1) % modelFiltered.length;
+    renderModelList();
+  } else if (ev.key === "ArrowUp") {
+    ev.preventDefault();
+    modelHighlight = (modelHighlight - 1 + modelFiltered.length) % modelFiltered.length;
+    renderModelList();
+  } else if (ev.key === "Enter") {
+    ev.preventDefault();
+    const m = modelFiltered[modelHighlight];
+    if (m) selectModel(m);
+  }
 });
 
 thinkingSelect.addEventListener("change", function () {
@@ -1072,10 +1276,10 @@ ctxRing.addEventListener("mouseenter", function () {
   showTooltip(ctxRing, ctxRingText);
 });
 ctxRing.addEventListener("mouseleave", hideTooltip);
-modelSelect.addEventListener("mouseenter", function () {
-  showTooltip(modelSelect, "Model");
+modelTrigger.addEventListener("mouseenter", function () {
+  showTooltip(modelTrigger, "Model");
 });
-modelSelect.addEventListener("mouseleave", hideTooltip);
+modelTrigger.addEventListener("mouseleave", hideTooltip);
 const permissionWrap = document.querySelector(".permission-wrap") as HTMLElement;
 permissionWrap.addEventListener("mouseenter", function () {
   showTooltip(permissionWrap, permissionTip);
@@ -1162,6 +1366,10 @@ window.addEventListener("message", function (e: MessageEvent) {
         for (let i = 0; i < d.models.length; i++) models.push(d.models[i]);
       }
       renderModels();
+      break;
+    case "enabledModels":
+      setEnabledModelKeys(d.keys || []);
+      if (modelPopupOpen) renderModelList();
       break;
     case "thinkingLevels":
       thinkingLevels.length = 0;

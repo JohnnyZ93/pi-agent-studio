@@ -74,7 +74,16 @@ export const attachBtn = document.getElementById("attach-btn") as HTMLButtonElem
 export const attachPreviewEl = document.getElementById("attach-preview")!;
 export const infoBtn = document.getElementById("info-btn") as HTMLButtonElement;
 export const refreshBtn = document.getElementById("refresh-btn") as HTMLButtonElement;
-export const modelSelect = document.getElementById("model-select") as HTMLSelectElement;
+export const modelWrap = document.getElementById("model-wrap")!;
+export const modelTrigger = document.getElementById("model-trigger") as HTMLButtonElement;
+export const modelTriggerLabel = document.getElementById("model-trigger-label")!;
+export const modelPopup = document.getElementById("model-popup")!;
+export const modelSearch = document.getElementById("model-search") as HTMLInputElement;
+export const modelList = document.getElementById("model-list")!;
+export let enabledModelKeys: Set<string> = new Set();
+export function setEnabledModelKeys(keys: string[]): void {
+  enabledModelKeys = new Set((keys || []).map((k) => String(k).toLowerCase()));
+}
 export const ctxRing = document.getElementById("ctx-ring")!;
 export const ctxRingProg = document.getElementById("ctx-ring-prog")!;
 export let ctxRingText = "";

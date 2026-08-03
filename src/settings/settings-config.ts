@@ -53,3 +53,68 @@ export function ensurePromptFileExists(path: string): string {
   if (!existsSync(path)) writeTextFile(path, "");
   return path;
 }
+
+// ============================================================================
+// enabledModels (model favorites) - read/write ~/.pi/agent/settings.json
+// pi treats enabledModels as an allowlist (glob/exact "provider/model" patterns);
+// here we only manage exact "provider/model" entries and leave globs untouched.
+// ============================================================================
+
+function isGlobPattern(s: string): boolean {
+  return s.indexOf("*") >= 0 || s.indexOf("?") >= 0 || s.indexOf("[") >= 0;
+}
+
+export function modelKey(provider: string, id: string): string {
+  return provider + "/" + id;
+}
+
+function parseSettingsJson(): Record<string, any> {
+  const text = readTextFile(getSettingsJsonPath());
+  if (!text.trim()) return {};
+  try {
+    const obj = JSON.parse(text);
+    return obj && typeof obj === "object" ? (obj as Record<string, any>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSettingsJson(obj: Record<string, any>): void {
+  writeTextFile(getSettingsJsonPath(), JSON.stringify(obj, null, 2) + "\n");
+}
+
+/** Lowercased exact "provider/id" keys from enabledModels (globs ignored). */
+export function readEnabledModelKeys(): string[] {
+  const arr = Array.isArray(parseSettingsJson().enabledModels)
+    ? parseSettingsJson().enabledModels
+    : [];
+  const keys: string[] = [];
+  for (const entry of arr) {
+    if (typeof entry !== "string" || isGlobPattern(entry)) continue;
+    keys.push(entry.toLowerCase());
+  }
+  return keys;
+}
+
+/**
+ * Toggle a model's favorite state in enabledModels (exact "provider/id" only).
+ * Preserves glob entries and all other keys. Returns the new exact lowercased keys.
+ */
+export function toggleFavoriteModel(provider: string, id: string): string[] {
+  const obj = parseSettingsJson();
+  const arr = Array.isArray(obj.enabledModels) ? obj.enabledModels.slice() : [];
+  const lower = modelKey(provider, id).toLowerCase();
+  let removed = false;
+  for (let i = arr.length - 1; i >= 0; i--) {
+    const e = arr[i];
+    if (typeof e !== "string" || isGlobPattern(e)) continue;
+    if (e.toLowerCase() === lower) {
+      arr.splice(i, 1);
+      removed = true;
+    }
+  }
+  if (!removed) arr.push(modelKey(provider, id));
+  obj.enabledModels = arr;
+  writeSettingsJson(obj);
+  return readEnabledModelKeys();
+}

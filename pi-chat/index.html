@@ -72,9 +72,22 @@
                   pathLength="100"
                 ></circle></svg
             ></span>
-            <div class="select-wrap model-wrap">
+            <div class="select-wrap model-wrap" id="model-wrap">
               <span class="model-icon-slot" id="model-icon"></span
-              ><select id="model-select" class="select-borderless model-select"></select>
+              ><button id="model-trigger" class="model-trigger" type="button">
+                <span class="model-trigger-label" id="model-trigger-label"></span
+                ><span class="codicon codicon-chevron-down model-caret"></span>
+              </button>
+              <div class="model-popup" id="model-popup" style="display: none">
+                <input
+                  id="model-search"
+                  class="model-search"
+                  type="text"
+                  placeholder="Search models…"
+                  autocomplete="off"
+                />
+                <div class="model-list" id="model-list"></div>
+              </div>
             </div>
             <div class="select-wrap">
               <select id="thinking-select" class="select-borderless thinking-select"></select>

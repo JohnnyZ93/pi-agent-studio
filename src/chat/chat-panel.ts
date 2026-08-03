@@ -5,6 +5,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
 import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.ts";
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
+import { readEnabledModelKeys, toggleFavoriteModel } from "../settings/settings-config.ts";
 import { getChatWebviewHtml } from "./chat-webview.ts";
 import type { ChatTracker } from "./chat-tracker.ts";
 import type { ExtensionUiRequest, RpcClient, RpcEvent, RpcSessionStats } from "./chat-types.ts";
@@ -484,6 +485,7 @@ export async function openChatPanel(
           "AskForApproval",
       });
       panel.webview.postMessage({ type: "models", models });
+      panel.webview.postMessage({ type: "enabledModels", keys: readEnabledModelKeys() });
       panel.webview.postMessage({ type: "thinkingLevels", levels });
       panel.webview.postMessage({ type: "commands", commands: mergeBuiltinCommands(cmds) });
       applySessionFile(st.sessionFile, st.sessionName);
@@ -601,6 +603,20 @@ export async function openChatPanel(
           });
         }
         break;
+      case "toggleFavorite": {
+        try {
+          const keys = toggleFavoriteModel(String(msg.provider ?? ""), String(msg.modelId ?? ""));
+          for (const h of activePanels.values()) {
+            h.panel.webview.postMessage({ type: "enabledModels", keys });
+          }
+        } catch (e) {
+          panel.webview.postMessage({
+            type: "error",
+            message: e instanceof Error ? e.message : String(e),
+          });
+        }
+        break;
+      }
       case "setThinking":
         try {
           await rpc.setThinkingLevel(msg.level);
