@@ -2,5 +2,5 @@
   "$schema": "https://unpkg.com/oxlint/configuration_schema.json",
   "plugins": ["unicorn", "typescript", "oxc"],
   "rules": {},
-  "ignorePatterns": ["src/chat/vendor"]
+  "ignorePatterns": ["src/chat/vendor", "src/chat/chat-dist.html"]
 }

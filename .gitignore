@@ -4,6 +4,7 @@ node_modules
 .claude
 dist
 *.vsix
+src/chat/chat-dist.html
 package-lock.json
 .DS_Store
 docs

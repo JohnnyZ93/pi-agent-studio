@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
 const pkgJsonPath = require.resolve("@lobehub/icons/package.json");
 const OUT_PATH = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../src/chat/model-icons-data.ts",
+  "../pi-chat/src/model-icons-data.ts",
 );
 
 function formatWithOxfmt(file) {

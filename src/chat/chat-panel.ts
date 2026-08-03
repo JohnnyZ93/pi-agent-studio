@@ -5,7 +5,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
 import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.ts";
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
-import { getChatHtml } from "./chat-html.ts";
+import { getChatWebviewHtml } from "./chat-webview.ts";
 import type { ChatTracker } from "./chat-tracker.ts";
 import type { ExtensionUiRequest, RpcClient, RpcEvent, RpcSessionStats } from "./chat-types.ts";
 import { createRpcClient } from "./rpc-client.ts";
@@ -130,7 +130,7 @@ export async function openChatPanel(
     light: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo-light.svg"),
     dark: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo.svg"),
   };
-  panel.webview.html = getChatHtml(
+  panel.webview.html = getChatWebviewHtml(
     homedir(),
     sep,
     vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
