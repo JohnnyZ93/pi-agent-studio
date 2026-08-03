@@ -5,14 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/copy-dist.mjs",
+    "build": "node scripts/extract-model-icons.mjs && vite build && node scripts/copy-dist.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vscode/codicons": "0.0.46-24",
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {
+    "@lobehub/icons": "^5.15.0",
     "@types/markdown-it": "^14.1.2",
     "typescript": "^5.8.0",
     "vite": "^6.2.0",

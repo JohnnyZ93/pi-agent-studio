@@ -1,8 +1,3 @@
-@font-face {
-  font-family: "codicon";
-  font-display: block;
-  src: url(data:font/truetype;base64,PI_CODICON_BASE64_PLACEHOLDER) format("truetype");
-}
 .codicon {
   font: normal normal normal 16px/1 codicon;
   display: inline-block;

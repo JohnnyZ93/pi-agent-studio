@@ -3,3 +3,8 @@ declare function acquireVsCodeApi(): {
   getState<T = unknown>(): T;
   setState(state: unknown): void;
 };
+
+declare module "*.ttf?inline" {
+  const src: string;
+  export default src;
+}
