@@ -35,6 +35,7 @@ const sessionToPanel = new Map<string, string>();
 const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
 const CHAT_PANEL_TITLE = "Pi Chat";
 const BTW_ABORT_TITLE = "Pi Btw Abort";
+const DIFF_PANEL_TITLE = "Pi Diff";
 
 function messageText(content: unknown): string {
   if (typeof content === "string") return content;
@@ -71,7 +72,12 @@ function openRewindDiff(msg: {
   } catch {
     right = vscode.Uri.parse(`pi-rewind:empty/${encodeURIComponent(msg.basename)}`);
   }
-  void vscode.commands.executeCommand("vscode.diff", left, right, "回退对比: " + msg.basename);
+  void vscode.commands.executeCommand(
+    "vscode.diff",
+    left,
+    right,
+    DIFF_PANEL_TITLE + ": " + msg.basename,
+  );
 }
 
 function escapeGlob(s: string): string {
