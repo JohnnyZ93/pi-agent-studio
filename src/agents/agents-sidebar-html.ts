@@ -19,8 +19,9 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .agent-item-row{display:flex;align-items:center;gap:6px;padding-right:60px}
 .agent-name{flex:0 1 auto;min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agent-source{font-size:10px;opacity:.6;flex-shrink:0;padding:1px 5px;border-radius:3px;background:var(--vscode-badge-background,rgba(127,127,127,0.15))}
+.agent-source.user{background:rgba(0,120,212,0.25);opacity:.85}
 .agent-source.builtin{background:var(--vscode-list-activeSelectionBackground,rgba(0,120,212,0.3));opacity:.85}
-.agent-source.project{background:rgba(0,150,80,0.18)}
+.agent-source.project{background:rgba(0,150,80,0.18);opacity:.85}
 .agent-desc{font-size:11px;opacity:.6;margin-top:2px;padding-right:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agent-actions{position:absolute;right:8px;top:8px;display:flex;gap:2px;opacity:0;transition:opacity .1s}
 .agent-item:hover .agent-actions{opacity:1}

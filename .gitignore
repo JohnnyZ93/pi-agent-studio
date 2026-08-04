@@ -10,3 +10,4 @@ bridge/mcp/index.js
 package-lock.json
 .DS_Store
 docs
+.pi/mcp.json

@@ -22,6 +22,12 @@ export interface ServerInfo {
   entry: ServerEntry;
 }
 
+export interface MergedServerInfo {
+  name: string;
+  entry: ServerEntry;
+  source: "user" | "project";
+}
+
 export function getMcpUserPath(): string {
   return join(getAgentDir(), "mcp.json");
 }
@@ -71,6 +77,23 @@ export function listServers(
     userServers: serversOf(readMcpConfig(userPath)),
     projectServers: projectPath ? serversOf(readMcpConfig(projectPath)) : [],
   };
+}
+
+/**
+ * Merge user + project servers into a single list (project overrides user on
+ * name collision), tagging each with its source scope.
+ */
+export function listMergedServers(userPath: string, projectPath: string): MergedServerInfo[] {
+  const map = new Map<string, MergedServerInfo>();
+  for (const { name, entry } of serversOf(readMcpConfig(userPath))) {
+    map.set(name, { name, entry, source: "user" });
+  }
+  if (projectPath) {
+    for (const { name, entry } of serversOf(readMcpConfig(projectPath))) {
+      map.set(name, { name, entry, source: "project" });
+    }
+  }
+  return [...map.values()];
 }
 
 export function addServer(path: string, name: string, entry: ServerEntry): void {

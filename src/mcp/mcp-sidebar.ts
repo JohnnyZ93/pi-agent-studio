@@ -5,7 +5,7 @@ import {
   ensureMcpJson,
   getMcpProjectPath,
   getMcpUserPath,
-  listServers,
+  listMergedServers,
   parseServerEntry,
   readMcpConfig,
   toggleDisabled,
@@ -24,12 +24,11 @@ export function createMcpViewProvider(): vscode.WebviewViewProvider {
       const postData = () => {
         const userPath = getMcpUserPath();
         const projectPath = projectFolder ? getMcpProjectPath(projectFolder) : "";
-        const { userServers, projectServers } = listServers(userPath, projectPath);
+        const servers = listMergedServers(userPath, projectPath);
         webviewView.webview.postMessage({
           type: "data",
           data: {
-            userServers,
-            projectServers,
+            servers,
             hasWorkspace: !!projectFolder,
             userPath,
             projectPath,
