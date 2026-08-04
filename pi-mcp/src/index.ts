@@ -4,15 +4,6 @@ import { registerMcpCommand } from "./commands.ts";
 import { registerServerPrompts } from "./prompts.ts";
 import { registerServerTools } from "./tools.ts";
 
-function isDisabled(): boolean {
-  try {
-    const parsed = JSON.parse(process.env.PI_VSCODE_DISABLED_TOOLS ?? "[]");
-    return Array.isArray(parsed) && (parsed as string[]).includes("mcp");
-  } catch {
-    return false;
-  }
-}
-
 let currentSession: McpSession | null = null;
 const registeredServers = new Set<string>();
 let commandRegistered = false;
@@ -24,8 +15,6 @@ export default function (pi: ExtensionAPI) {
     registerMcpCommand(pi, getSession);
     commandRegistered = true;
   }
-
-  if (isDisabled()) return;
 
   pi.on("session_start", async (_event, ctx) => {
     await currentSession?.disconnectAll();
