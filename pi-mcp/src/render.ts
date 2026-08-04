@@ -75,3 +75,34 @@ export function renderMcpResult(
 
   return new Text(parts.join("\n"), 0, 0);
 }
+
+export function renderProxyCall(
+  action: "search" | "call",
+  args: Record<string, unknown>,
+  theme: Theme,
+): Text {
+  const head = theme.fg("toolTitle", theme.bold("mcp ")) + theme.fg("accent", action);
+  const body = summarizeArgs(args);
+  const text = body ? `${head} ${theme.fg("dim", body)}` : head;
+  return new Text(text, 0, 0);
+}
+
+export function renderSearchResult(
+  result: AgentToolResult<McpToolDetails>,
+  options: ToolRenderResultOptions,
+  theme: Theme,
+): Text {
+  if (options.isPartial) {
+    return new Text(theme.fg("warning", "Searching MCP tools..."), 0, 0);
+  }
+  const query = result.details?.query ?? "";
+  const head = theme.fg("muted", `MCP search${query ? `: ${query}` : ""}`);
+  const blocks = (result.content ?? []) as Array<{ type: string; text?: string }>;
+  const lines = blocks.flatMap((b) => (b.type === "text" ? (b.text ?? "").split("\n") : []));
+  const shown = options.expanded ? lines : lines.slice(0, MAX_COLLAPSED_LINES);
+  const truncated = !options.expanded && lines.length > MAX_COLLAPSED_LINES;
+  const parts: string[] = [head];
+  for (const line of shown) parts.push(theme.fg("toolOutput", line));
+  if (truncated) parts.push(theme.fg("muted", `… +${lines.length - MAX_COLLAPSED_LINES} lines`));
+  return new Text(parts.join("\n"), 0, 0);
+}

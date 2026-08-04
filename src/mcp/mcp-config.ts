@@ -11,6 +11,8 @@ export interface ServerEntry {
   headers?: Record<string, string>;
   bearerToken?: string;
   disabled?: boolean;
+  /** Pin specific tools as direct tools (skipped by mcp_tool_search). true = all. */
+  directTools?: string[] | boolean;
 }
 
 export interface McpConfig {
@@ -140,6 +142,8 @@ export function parseServerEntry(form: {
   headers?: string;
   bearerToken?: string;
   disabled?: boolean;
+  directTools?: string;
+  directToolsAll?: boolean;
 }): ServerEntry {
   const entry: ServerEntry = {};
   const command = form.command?.trim();
@@ -163,6 +167,15 @@ export function parseServerEntry(form: {
   const bearer = form.bearerToken?.trim();
   if (bearer) entry.bearerToken = bearer;
   if (form.disabled) entry.disabled = true;
+  if (form.directToolsAll) {
+    entry.directTools = true;
+  } else {
+    const directTools = (form.directTools ?? "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (directTools.length > 0) entry.directTools = directTools;
+  }
   return entry;
 }
 

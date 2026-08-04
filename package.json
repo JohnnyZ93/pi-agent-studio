@@ -299,6 +299,12 @@
           "default": true,
           "description": "Load the bundled MCP (Model Context Protocol) bridge extension, which exposes configured MCP servers' tools/resources/prompts to the agent. When disabled, no MCP servers are connected."
         },
+        "pi-agent-studio.mcp.idleTimeout": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "description": "Minutes before idle MCP servers disconnect (cached metadata keeps mcp_tool_search working). 0 disables idle disconnect. Requires restarting the pi terminal to take effect."
+        },
         "pi-agent-studio.permission.mode": {
           "type": "string",
           "enum": [

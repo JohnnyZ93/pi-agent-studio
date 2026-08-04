@@ -8,7 +8,14 @@ import type {
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { loadMergedConfig, loadMergedServers } from "./config.ts";
-import type { DiscoveredServer, McpConfig, McpConnection, ServerEntry } from "./types.ts";
+import { buildCacheEntry, loadMetadataCache, saveMetadataCache } from "./metadata-cache.ts";
+import type {
+  DiscoveredServer,
+  McpConfig,
+  McpConnection,
+  MetadataCache,
+  ServerEntry,
+} from "./types.ts";
 
 const CONNECT_TIMEOUT_MS = 30_000;
 
@@ -34,12 +41,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 export class McpSession {
   readonly cwd: string;
   readonly config: McpConfig;
+  readonly metadataCache: MetadataCache | null;
   private connections = new Map<string, McpConnection>();
   private connectPromises = new Map<string, Promise<McpConnection>>();
 
   constructor(cwd: string) {
     this.cwd = cwd;
     this.config = loadMergedConfig(cwd);
+    this.metadataCache = loadMetadataCache();
     for (const { name, entry, source } of loadMergedServers(cwd)) {
       this.connections.set(name, {
         name,
@@ -62,6 +71,37 @@ export class McpSession {
 
   getConnection(name: string): McpConnection | undefined {
     return this.connections.get(name);
+  }
+
+  /** All configured connections (regardless of state). */
+  allConnections(): McpConnection[] {
+    return [...this.connections.values()];
+  }
+
+  touch(name: string): void {
+    const conn = this.connections.get(name);
+    if (conn) conn.lastUsedAt = Date.now();
+  }
+
+  incrementInFlight(name: string): void {
+    const conn = this.connections.get(name);
+    if (conn) conn.inFlight = (conn.inFlight ?? 0) + 1;
+  }
+
+  decrementInFlight(name: string): void {
+    const conn = this.connections.get(name);
+    if (conn) conn.inFlight = Math.max(0, (conn.inFlight ?? 0) - 1);
+  }
+
+  /** Close the transport but keep `discovered` in memory for search. */
+  async idleDisconnect(name: string): Promise<void> {
+    const conn = this.connections.get(name);
+    if (!conn || conn.state !== "connected") return;
+    if ((conn.inFlight ?? 0) > 0) return;
+    const client = conn.client;
+    conn.client = null;
+    conn.state = "idle";
+    if (client) await client.close().catch(() => {});
   }
 
   status(): Array<{
@@ -147,7 +187,13 @@ export class McpSession {
     conn.client = client;
     conn.discovered = discovered;
     conn.state = "connected";
+    conn.lastUsedAt = Date.now();
     this.connectPromises.delete(name);
+    try {
+      saveMetadataCache(name, buildCacheEntry(conn.entry, discovered));
+    } catch {
+      // cache write failure is non-fatal
+    }
     return conn;
   }
 
@@ -232,20 +278,35 @@ export class McpSession {
     args: Record<string, unknown>,
   ): Promise<CallToolResult> {
     const conn = await this.ensureConnected(name);
-    return (await conn.client!.callTool({
-      name: toolName,
-      arguments: args,
-    })) as unknown as CallToolResult;
+    this.touch(name);
+    this.incrementInFlight(name);
+    try {
+      return (await conn.client!.callTool({
+        name: toolName,
+        arguments: args,
+      })) as unknown as CallToolResult;
+    } finally {
+      this.decrementInFlight(name);
+      this.touch(name);
+    }
   }
 
   async listResources(name: string) {
     const conn = await this.ensureConnected(name);
+    this.touch(name);
     return conn.discovered?.resources ?? [];
   }
 
   async readResource(name: string, uri: string): Promise<ReadResourceResult> {
     const conn = await this.ensureConnected(name);
-    return conn.client!.readResource({ uri });
+    this.touch(name);
+    this.incrementInFlight(name);
+    try {
+      return conn.client!.readResource({ uri });
+    } finally {
+      this.decrementInFlight(name);
+      this.touch(name);
+    }
   }
 
   async getPrompt(
@@ -254,7 +315,14 @@ export class McpSession {
     args?: Record<string, string>,
   ): Promise<GetPromptResult> {
     const conn = await this.ensureConnected(name);
-    return conn.client!.getPrompt({ name: promptName, arguments: args });
+    this.touch(name);
+    this.incrementInFlight(name);
+    try {
+      return conn.client!.getPrompt({ name: promptName, arguments: args });
+    } finally {
+      this.decrementInFlight(name);
+      this.touch(name);
+    }
   }
 
   async reconnect(name: string): Promise<McpConnection> {

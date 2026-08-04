@@ -131,7 +131,9 @@ function entryToForm(e){
     url: e.url||'',
     headers: e.headers ? Object.entries(e.headers).map(function(kv){return kv[0]+': '+kv[1]}).join('\\n') : '',
     bearerToken: e.bearerToken||'',
-    disabled: !!e.disabled
+    disabled: !!e.disabled,
+    directToolsAll: e.directTools===true,
+    directTools: Array.isArray(e.directTools) ? e.directTools.join('\\n') : ''
   };
 }
 
@@ -157,6 +159,8 @@ function renderForm(main){
     + '<div class="form-group"><label>Headers <span class="hint">(KEY: VALUE per line)</span></label><textarea id="f-headers">'+escH(f.headers)+'</textarea></div>'
     + '<div class="form-group"><label>Bearer token</label><input id="f-bearer" value="'+escA(f.bearerToken)+'"/></div>'
     + '</div>'
+    + '<div class="form-group"><label>Direct tools <span class="hint">(original tool names, one per line; pinned as direct tools, excluded from mcp_tool_search)</span></label><textarea id="f-directtools" placeholder="search_repositories\\ncreate_issue">'+escH(f.directTools)+'</textarea></div>'
+    + '<div class="form-check"><label><input type="checkbox" id="f-directtools-all" '+(f.directToolsAll?'checked':'')+'/> Expose ALL tools directly (bypass mcp_tool_search)</label></div>'
     + '<div class="form-check"><label><input type="checkbox" id="f-disabled" '+(f.disabled?'checked':'')+'/> Disabled (skip this server)</label></div>'
     + '<div class="btn-row"><button class="btn btn-primary" data-action="save">Save</button><button class="btn btn-secondary" data-action="cancel">Cancel</button></div>'
     + '</div>';
@@ -182,6 +186,8 @@ function collectForm(){
     headers: document.getElementById('f-headers').value,
     bearerToken: document.getElementById('f-bearer').value,
     disabled: document.getElementById('f-disabled').checked,
+    directTools: document.getElementById('f-directtools').value,
+    directToolsAll: document.getElementById('f-directtools-all').checked,
     _transport: t
   };
 }

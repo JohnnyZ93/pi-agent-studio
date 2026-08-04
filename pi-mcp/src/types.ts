@@ -18,6 +18,8 @@ export interface ServerEntry {
   headers?: Record<string, string>;
   bearerToken?: string;
   disabled?: boolean;
+  /** Pin specific tools as direct tools (skipped by mcp_tool_search). true = all. */
+  directTools?: string[] | boolean;
 }
 
 export interface McpConfig {
@@ -31,7 +33,7 @@ export interface DiscoveredServer {
   instructions?: string;
 }
 
-export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
+export type ConnectionState = "disconnected" | "connecting" | "connected" | "error" | "idle";
 
 export interface McpConnection {
   name: string;
@@ -43,14 +45,59 @@ export interface McpConnection {
   discovered?: DiscoveredServer;
   /** Full names of tools registered for this server (mcp__<server>__*). */
   registeredToolNames?: string[];
+  /** Epoch ms of last tool/resource call; used by idle disconnect. */
+  lastUsedAt?: number;
+  /** Outstanding in-flight requests; idle disconnect skips when > 0. */
+  inFlight?: number;
 }
 
 export interface McpToolDetails {
   server: string;
   tool: string;
   isError?: boolean;
-  kind: "tool" | "list_resources" | "read_resource";
+  kind: "tool" | "list_resources" | "read_resource" | "search" | "proxy_call";
   resourceUri?: string;
+  query?: string;
+}
+
+export interface ToolMetadata {
+  name: string;
+  originalName: string;
+  description?: string;
+  inputSchema?: unknown;
+  resourceUri?: string;
+}
+
+export interface CachedTool {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+}
+
+export interface CachedResource {
+  uri: string;
+  name: string;
+  description?: string;
+}
+
+export interface CachedPrompt {
+  name: string;
+  description?: string;
+  arguments?: Array<{ name: string; description?: string; required?: boolean }>;
+}
+
+export interface ServerCacheEntry {
+  configHash: string;
+  cachedAt: number;
+  tools?: CachedTool[];
+  resources?: CachedResource[];
+  prompts?: CachedPrompt[];
+  instructions?: string;
+}
+
+export interface MetadataCache {
+  version: number;
+  servers: Record<string, ServerCacheEntry>;
 }
 
 export type { CallToolResult, ContentBlock, GetPromptResult, ReadResourceResult };

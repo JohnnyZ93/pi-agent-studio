@@ -159,10 +159,12 @@ export function createPiEnvironment(
   const disabledTools = config.get<string[]>("disabledTools") ?? [];
   const permissionMode = config.get<string>("permission.mode") ?? "AskForApproval";
   const dangerousPatterns = config.get<string[]>("permission.dangerousPatterns") ?? [];
+  const mcpIdleTimeout = config.get<number>("mcp.idleTimeout") ?? 10;
   const env: Record<string, string> = {
     PI_VSCODE_STATUS_BAR: statusBar ? "1" : "0",
     PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
     PI_VSCODE_PERMISSION: JSON.stringify({ mode: permissionMode, patterns: dangerousPatterns }),
+    PI_VSCODE_MCP_IDLE_TIMEOUT: String(mcpIdleTimeout),
   };
   if (bridgeConfig) {
     env.PI_VSCODE_BRIDGE_URL = bridgeConfig.url;

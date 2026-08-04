@@ -5,11 +5,21 @@ import type {
   ToolRenderResultOptions,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import type { McpConnection, McpToolDetails } from "./types.ts";
+import type { McpConnection, McpToolDetails, ToolMetadata } from "./types.ts";
 import type { McpSession } from "./connection.ts";
+import {
+  isServerCacheValid,
+  reconstructFromCache,
+  reconstructFromDiscovered,
+} from "./metadata-cache.ts";
 import { renderMcpCall, renderMcpResult } from "./render.ts";
 
 type TextBlock = { type: "text"; text: string };
+
+/** pi 0.83+ runtime API (not yet in type defs). */
+type UnregisterApi = { unregisterTool?: (name: string) => void };
+
+const DIRECT_TOOLS_ADVISORY_THRESHOLD = 75;
 
 /** Wrap an arbitrary MCP inputSchema as a TypeBox schema (passed through to the LLM). */
 function toParameters(schema: unknown) {
@@ -43,58 +53,48 @@ function blockToText(block: {
   return { type: "text", text: `[${block.type}]` };
 }
 
-function joinResourceText(
-  contents: Array<{ uri?: string; text?: string; mimeType?: string; blob?: string }>,
-): string {
-  const lines: string[] = [];
-  for (const c of contents) {
-    if (c.text !== undefined) {
-      lines.push(`${c.uri ?? "(resource)"}:\n${c.text}`);
-    } else if (c.blob !== undefined) {
-      lines.push(`${c.uri ?? "(resource)"}: [blob: ${c.mimeType ?? "?"}]`);
-    } else {
-      lines.push(`${c.uri ?? "(resource)"}`);
-    }
+/** Remove previously-registered pinned direct tools (hot update before re-registering). */
+function unregisterPinned(pi: ExtensionAPI, conn: McpConnection): void {
+  const api = pi as ExtensionAPI & UnregisterApi;
+  for (const name of conn.registeredToolNames ?? []) {
+    api.unregisterTool?.(name);
   }
-  return lines.join("\n\n");
+  conn.registeredToolNames = [];
 }
 
-/**
- * Register direct tools for a connected server: one tool per discovered MCP tool
- * (named mcp__<server>__<tool>), plus resource list/read tool pair if the server
- * exposes resources.
- */
-export function registerServerTools(
+/** Register pinned direct tools (mcp__<server>__<tool>) from already-resolved metadata. */
+function registerPinnedDirectTools(
   pi: ExtensionAPI,
   getSession: () => McpSession | null,
   conn: McpConnection,
+  meta: ToolMetadata[],
+  directTools: string[] | true,
 ): void {
   const server = sanitizeName(conn.name);
-  const discovered = conn.discovered;
-  if (!discovered) return;
+  const serverName = conn.name;
+  const filter = directTools === true ? null : new Set(directTools);
   const names: string[] = [];
 
-  for (const tool of discovered.tools) {
-    const toolName = sanitizeName(tool.name);
+  for (const tool of meta) {
+    if (tool.resourceUri) continue; // resources go via proxy
+    if (filter && !filter.has(tool.originalName)) continue;
+    const toolName = sanitizeName(tool.originalName);
     const fullName = `mcp__${server}__${toolName}`;
+    if (names.includes(fullName)) continue;
     names.push(fullName);
+
+    const originalName = tool.originalName;
     pi.registerTool({
       name: fullName,
-      label: `MCP: ${tool.name}`,
-      description: tool.description ?? `MCP tool ${tool.name} from server ${conn.name}`,
+      label: `MCP: ${originalName}`,
+      description: tool.description ?? `MCP tool ${originalName} from server ${serverName}`,
       parameters: toParameters(tool.inputSchema),
-      async execute(
-        _id,
-        params,
-        _signal,
-        _onUpdate,
-        _ctx,
-      ): Promise<AgentToolResult<McpToolDetails>> {
+      async execute(_id, params): Promise<AgentToolResult<McpToolDetails>> {
         const session = getSession();
         if (!session) throw new Error("MCP session not active");
         const result = await session.callTool(
-          conn.name,
-          tool.name,
+          serverName,
+          originalName,
           params as Record<string, unknown>,
         );
         return {
@@ -102,15 +102,15 @@ export function registerServerTools(
             blockToText(b as { type: string; text?: string; mimeType?: string; data?: string }),
           ),
           details: {
-            server: conn.name,
-            tool: tool.name,
+            server: serverName,
+            tool: originalName,
             isError: result.isError === true,
             kind: "tool",
           },
         };
       },
       renderCall(args, theme: Theme) {
-        return renderMcpCall(conn.name, tool.name, args as Record<string, unknown>, theme);
+        return renderMcpCall(serverName, originalName, args as Record<string, unknown>, theme);
       },
       renderResult(
         result: AgentToolResult<McpToolDetails>,
@@ -122,112 +122,56 @@ export function registerServerTools(
     });
   }
 
-  if (discovered.resources.length > 0) {
-    registerResourceTools(pi, getSession, conn, server, names);
-  }
-
   conn.registeredToolNames = names;
+  if (names.length >= DIRECT_TOOLS_ADVISORY_THRESHOLD) {
+    console.warn(
+      `MCP: ${names.length} direct tools registered for "${serverName}". ` +
+        `Consider using the proxy (mcp_tool_search/mcp_tool_call) for large catalogs.`,
+    );
+  }
 }
 
-function registerResourceTools(
+/**
+ * Register pinned direct tools from the disk cache, before any server connects.
+ * Lets pinned tools be available immediately at session start. Connection success
+ * later hot-swaps them with the freshly-discovered set via registerServerTools.
+ */
+export function registerDirectToolsFromCache(
+  pi: ExtensionAPI,
+  getSession: () => McpSession | null,
+  session: McpSession,
+): void {
+  const cache = session.metadataCache;
+  if (!cache) return;
+  for (const conn of session.allConnections()) {
+    if (conn.entry.disabled) continue;
+    const dt = conn.entry.directTools;
+    if (!dt) continue;
+    const entry = cache.servers[conn.name];
+    if (!entry || !isServerCacheValid(entry, conn.entry)) continue;
+    const meta = reconstructFromCache(conn.name, entry);
+    registerPinnedDirectTools(pi, getSession, conn, meta, dt);
+  }
+}
+
+/**
+ * Register/refresh a connected server's pinned direct tools from its live
+ * discovery. Unregisters any previously-registered pinned tools first (hot
+ * update). Servers without `directTools` register nothing (pure proxy).
+ */
+export function registerServerTools(
   pi: ExtensionAPI,
   getSession: () => McpSession | null,
   conn: McpConnection,
-  server: string,
-  names: string[],
 ): void {
-  const listName = `mcp__${server}__list_resources`;
-  names.push(listName);
-  pi.registerTool({
-    name: listName,
-    label: `MCP: list resources (${conn.name})`,
-    description: `List resources exposed by MCP server "${conn.name}". No arguments.`,
-    parameters: Type.Unsafe({ type: "object", properties: {} } as never),
-    async execute(
-      _id,
-      _params,
-      _signal,
-      _onUpdate,
-      _ctx,
-    ): Promise<AgentToolResult<McpToolDetails>> {
-      const session = getSession();
-      if (!session) throw new Error("MCP session not active");
-      const resources = await session.listResources(conn.name);
-      const text =
-        resources.length === 0
-          ? "No resources"
-          : resources
-              .map(
-                (r) =>
-                  `- ${r.uri}${r.name ? ` (${r.name})` : ""}${r.mimeType ? ` [${r.mimeType}]` : ""}`,
-              )
-              .join("\n");
-      return {
-        content: [{ type: "text", text }],
-        details: { server: conn.name, tool: "list_resources", kind: "list_resources" },
-      };
-    },
-    renderCall(_args, theme: Theme) {
-      return renderMcpCall(conn.name, "list_resources", {}, theme);
-    },
-    renderResult(
-      result: AgentToolResult<McpToolDetails>,
-      options: ToolRenderResultOptions,
-      theme: Theme,
-    ) {
-      return renderMcpResult(result, options, theme);
-    },
-  });
-
-  const readName = `mcp__${server}__read_resource`;
-  names.push(readName);
-  pi.registerTool({
-    name: readName,
-    label: `MCP: read resource (${conn.name})`,
-    description: `Read a resource from MCP server "${conn.name}". Pass the resource "uri".`,
-    parameters: Type.Unsafe({
-      type: "object",
-      properties: { uri: { type: "string", description: "Resource URI to read" } },
-      required: ["uri"],
-    } as never),
-    async execute(_id, params, _signal, _onUpdate, _ctx): Promise<AgentToolResult<McpToolDetails>> {
-      const uri = (params as { uri?: string }).uri;
-      if (!uri) {
-        return {
-          content: [{ type: "text", text: "Error: uri is required" }],
-          details: {
-            server: conn.name,
-            tool: "read_resource",
-            isError: true,
-            kind: "read_resource",
-          },
-        };
-      }
-      const session = getSession();
-      if (!session) throw new Error("MCP session not active");
-      const result = await session.readResource(conn.name, uri);
-      const text = joinResourceText(
-        result.contents as Array<{ uri?: string; text?: string; mimeType?: string; blob?: string }>,
-      );
-      return {
-        content: [{ type: "text", text }],
-        details: {
-          server: conn.name,
-          tool: "read_resource",
-          resourceUri: uri,
-          kind: "read_resource",
-        },
-      };
-    },
-    renderCall(args, theme: Theme) {
-      return renderMcpCall(conn.name, "read_resource", args as Record<string, unknown>, theme);
-    },
-    renderResult(
-      result: AgentToolResult<McpToolDetails>,
-      options: ToolRenderResultOptions,
-      theme: Theme,
-    ) {
-      return renderMcpResult(result, options, theme);
-    },
-  });
+  unregisterPinned(pi, conn);
+  const discovered = conn.discovered;
+  if (!discovered) return;
+  const dt = conn.entry.directTools;
+  if (!dt) {
+    conn.registeredToolNames = [];
+    return;
+  }
+  const meta = reconstructFromDiscovered(conn.name, discovered);
+  registerPinnedDirectTools(pi, getSession, conn, meta, dt);
 }
