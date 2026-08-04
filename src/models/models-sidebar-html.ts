@@ -1,14 +1,12 @@
-export function getModelsHtml(modelsPath: string): string {
-  const escHtml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export function getModelsHtml(): string {
   return `<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0">
 <head><meta charset="utf-8"><style>
 *{box-sizing:border-box}
 body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-size:13px;color:var(--vscode-foreground);display:flex;flex-direction:column;overflow:hidden}
-.header{padding:8px;display:flex;align-items:center;gap:6px;flex-shrink:0;border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent))}
-.header strong{font-size:12px;white-space:nowrap;flex:1;min-width:0}
-.header-actions{display:flex;gap:2px;flex-shrink:0}
+.header{padding:8px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-shrink:0;border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent))}
+.header strong{font-size:12px;white-space:nowrap}
+.header-actions{display:flex;gap:4px;flex-shrink:0}
 .header button{padding:2px 4px;cursor:pointer;background:transparent;color:var(--vscode-foreground);border:1px solid var(--vscode-widget-border,transparent);border-radius:3px;font-size:12px;opacity:0.7;white-space:nowrap}
 .header button:hover{opacity:1}
 .main{flex:1;overflow-y:auto}
@@ -78,7 +76,7 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .delete-confirm .btn-cancel{background:transparent;color:var(--pi-error-text);text-decoration:underline}
 </style></head>
 <body>
-<div class="header"><strong>🧠 Models</strong><div class="header-actions"><button id="btn-open-models-json" data-action="open-file" title="Open ${escHtml(modelsPath)}">📝</button><button data-action="refresh" title="Refresh">↻</button></div></div>
+<div class="header"><strong>🧠 Models</strong><div class="header-actions"><button data-action="refresh" title="Refresh">↻</button><button data-action="open-file" title="Open models file">{ }</button></div></div>
 <div id="error-toast" class="error-toast"></div>
 <div class="tabs">
   <div class="tab active" data-tab="providers">Providers</div>
@@ -541,10 +539,6 @@ window.addEventListener('message', function(e) {
   var msg = e.data;
   if (msg.type === 'data') {
     VD = msg.data;
-    if (msg.title) {
-      var btn = document.getElementById('btn-open-models-json');
-      if (btn) btn.title = 'Open ' + msg.title;
-    }
     // Reset transient editing state on data refresh; keep expandedProv if it still exists
     var stillExists = expandedProv && VD.providers && VD.providers.some(function(p){ return p.id === expandedProv; });
     if (!stillExists) expandedProv = null;

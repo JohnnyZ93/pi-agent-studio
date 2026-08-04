@@ -9,7 +9,6 @@ import {
   addModel,
   updateModel,
   deleteModel,
-  getModelsPath,
   ensureModelsJsonExists,
   type ModelsJson,
   type ProviderEntry,
@@ -46,8 +45,7 @@ export function createModelsViewProvider(): vscode.WebviewViewProvider {
     resolveWebviewView(webviewView: vscode.WebviewView) {
       console.log("[pi-agent-studio] Models view: resolveWebviewView called");
       webviewView.webview.options = { enableScripts: true };
-      const modelsPath = getModelsPath();
-      webviewView.webview.html = getModelsHtml(modelsPath);
+      webviewView.webview.html = getModelsHtml();
 
       let activeOAuthFlow: OAuthFlowController | undefined;
 
@@ -59,7 +57,7 @@ export function createModelsViewProvider(): vscode.WebviewViewProvider {
             data.providers.length,
             "providers",
           );
-          webviewView.webview.postMessage({ type: "data", data, title: modelsPath });
+          webviewView.webview.postMessage({ type: "data", data });
         } catch (err) {
           console.error("[pi-agent-studio] Models view: error building data:", err);
         }

@@ -4,9 +4,9 @@ export function getSettingsHtml(): string {
 <head><style>
 * { box-sizing: border-box; }
 body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family); font-size: 13px; color: var(--vscode-foreground); display:flex; flex-direction:column; overflow:hidden; }
-.header { padding:8px; display:flex; align-items:center; gap:6px; flex-shrink:0; border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent)); }
-.header strong { font-size:12px; white-space:nowrap; flex:1; min-width:0; }
-.header-actions { display:flex; gap:2px; flex-shrink:0; }
+.header { padding:8px; display:flex; align-items:center; justify-content:space-between; gap:6px; flex-shrink:0; border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent)); }
+.header strong { font-size:12px; white-space:nowrap; }
+.header-actions { display:flex; gap:4px; flex-shrink:0; }
 .header button { padding:2px 4px; cursor:pointer; background:transparent; color:var(--vscode-foreground); border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:12px; opacity:0.7; white-space:nowrap; }
 .header button:hover { opacity:1; }
 .scroll { flex:1; overflow-y:auto; }
@@ -53,8 +53,8 @@ textarea:focus { border-color:var(--vscode-focusBorder); }
 <div class="header">
   <strong>⚙️ Settings</strong>
   <div class="header-actions">
-    <button id="btn-open-settings-json" data-action="open-settings-json" title="Open ~/.pi/agent/settings.json">📝</button>
     <button data-action="refresh" title="Refresh">↻</button>
+    <button data-action="open-settings-json" title="Open settings file">{ }</button>
   </div>
 </div>
 <div class="scroll" id="scroll">
@@ -234,12 +234,6 @@ function applyData(msg) {
   if (links.home) { home.href = links.home; home.title = links.home; }
   if (links.packages) { pkgs.href = links.packages; pkgs.title = links.packages; }
   if (links.github && gh) { gh.href = links.github; gh.title = links.github; }
-
-  // Settings.json path → tooltip on the button (no inline text under it)
-  if (msg.settingsJsonPath) {
-    var sBtn = document.getElementById('btn-open-settings-json');
-    if (sBtn) sBtn.title = msg.settingsJsonPath;
-  }
 
   // System prompt
   if (msg.systemPrompt) {

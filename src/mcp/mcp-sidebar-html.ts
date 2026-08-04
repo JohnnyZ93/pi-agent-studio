@@ -25,11 +25,20 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 .mcp-source.user{background:rgba(0,120,212,0.25);color:var(--vscode-foreground);opacity:.85}
 .mcp-source.project{background:rgba(0,150,80,0.18);color:var(--vscode-foreground);opacity:.85}
 .srv-transport{font-size:11px;opacity:.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;padding-right:90px}
-.srv-actions{position:absolute;right:8px;top:8px;display:flex;gap:2px;opacity:0;transition:opacity .1s}
-.srv:hover .srv-actions{opacity:1}
+.srv-actions{position:absolute;right:8px;top:8px;display:flex;align-items:center;gap:4px}
 .srv-actions button{padding:2px 6px;cursor:pointer;background:transparent;border:1px solid var(--vscode-widget-border,transparent);border-radius:3px;font-size:11px;color:var(--vscode-foreground)}
 .srv-actions button:hover{background:var(--vscode-toolbar-hoverBackground)}
 .srv-actions button.danger:hover{background:var(--vscode-inputValidation-errorBackground,#d32f2f);color:var(--pi-error-text);border-color:transparent}
+.switch{position:relative;display:inline-block;width:30px;height:16px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .slider{position:absolute;inset:0;background:var(--vscode-input-background,#3c3c3c);border:1px solid var(--vscode-widget-border,transparent);border-radius:10px;transition:.15s}
+.switch .slider::before{content:"";position:absolute;height:12px;width:12px;left:2px;top:1px;background:var(--vscode-foreground);border-radius:50%;transition:.15s;opacity:.6}
+.switch input:checked + .slider{background:var(--vscode-button-background,#0e639c);border-color:transparent}
+.switch input:checked + .slider::before{transform:translateX(12px);opacity:1}
+.delete-confirm{padding:6px 10px;background:var(--vscode-inputValidation-errorBackground,#d32f2f);color:var(--pi-error-text);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.delete-confirm button{padding:2px 8px;cursor:pointer;border:none;border-radius:3px;font-size:11px}
+.delete-confirm .btn-confirm{background:rgba(0,0,0,0.15);color:var(--pi-error-text)}
+.delete-confirm .btn-cancel{background:transparent;color:var(--pi-error-text);text-decoration:underline}
 .empty{padding:20px;text-align:center;opacity:.5;font-size:12px}
 .detail{padding:10px;border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent));background:var(--vscode-editor-background)}
 .detail h3{margin:0 0 8px;font-size:13px}
@@ -66,6 +75,7 @@ body{height:100%;margin:0;padding:0;font-family:var(--vscode-font-family);font-s
 var vsc = acquireVsCodeApi();
 var D = null;
 var editing = null; // null | {isNew, name, source}
+var deleteTarget = null; // null | server name pending delete confirmation
 
 function escA(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escH(s){var d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML}
@@ -91,17 +101,21 @@ function renderList(){
   for(var i=0;i<list.length;i++){
     var s = list[i];
     var t = transportOf(s.entry);
-    var dis = s.entry.disabled ? '<span class="badge disabled">disabled</span>' : '';
     var detail = t==='http' ? (s.entry.url||'') : (s.entry.command||'') + (s.entry.args&&s.entry.args.length?(' '+s.entry.args.join(' ')):'');
+    if(deleteTarget === s.name){
+      h += '<div class="delete-confirm">Delete server "'+escH(s.name)+'"? <span><button class="btn-confirm" data-action="delete-confirm" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'">Delete</button> <button class="btn-cancel" data-action="delete-cancel">Cancel</button></span></div>';
+      continue;
+    }
+    var checked = s.entry.disabled ? '' : 'checked';
     h += '<div class="srv" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'">'
       + '<div class="srv-row"><span class="srv-name">'+escH(s.name)+'</span>'
       + '<span class="badge '+t+'">'+t+'</span>'
-      + '<span class="mcp-source '+escA(s.source)+'">'+escH(s.source)+'</span>'+dis+'</div>'
+      + '<span class="mcp-source '+escA(s.source)+'">'+escH(s.source)+'</span></div>'
       + '<div class="srv-transport">'+escH(detail)+'</div>'
       + '<div class="srv-actions">'
-      + '<button data-action="toggle" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'" title="Enable/disable">'+(s.entry.disabled?'☐':'☑')+'</button>'
-      + '<button data-action="edit" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'">edit</button>'
-      + '<button data-action="delete" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'" class="danger">del</button>'
+      + '<label class="switch" title="'+(s.entry.disabled?'Enable':'Disable')+'"><input type="checkbox" data-action="toggle" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'" '+checked+'><span class="slider"></span></label>'
+      + '<button data-action="edit" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'" title="Edit">✏️</button>'
+      + '<button data-action="delete" data-name="'+escA(s.name)+'" data-source="'+escA(s.source)+'" class="danger" title="Delete">🗑️</button>'
       + '</div></div>';
   }
   main.innerHTML = h;
@@ -179,13 +193,15 @@ window.addEventListener('message', function(e){
 });
 
 document.getElementById('main').addEventListener('click', function(e){
-  var btn = e.target.closest('button[data-action]');
+  var btn = e.target.closest('[data-action]');
   if(!btn) return;
   var action = btn.getAttribute('data-action');
   var name = btn.getAttribute('data-name');
   var source = btn.getAttribute('data-source');
-  if(action==='edit'){ editing = {isNew:false, name:name, source:source}; renderList(); }
-  else if(action==='delete'){ if(confirm('Delete server "'+name+'"?')){ vsc.postMessage({type:'deleteServer',scope:source,name:name}); } }
+  if(action==='edit'){ editing = {isNew:false, name:name, source:source}; deleteTarget=null; renderList(); }
+  else if(action==='delete'){ deleteTarget = name; renderList(); }
+  else if(action==='delete-confirm'){ vsc.postMessage({type:'deleteServer',scope:source,name:name}); deleteTarget=null; }
+  else if(action==='delete-cancel'){ deleteTarget=null; renderList(); }
   else if(action==='toggle'){ vsc.postMessage({type:'toggleDisabled',scope:source,name:name}); }
   else if(action==='save'){
     var f = collectForm();
@@ -195,7 +211,7 @@ document.getElementById('main').addEventListener('click', function(e){
       if(!nm){ showErr('Name is required'); return; }
       vsc.postMessage({type:'addServer',scope:scope,name:nm,entry:f});
     } else {
-      vsc.postMessage({type:'updateServer',scope:editing.scope,name:editing.name,entry:f});
+      vsc.postMessage({type:'updateServer',scope:editing.source,name:editing.name,entry:f});
     }
     editing = null;
   }
@@ -206,7 +222,7 @@ document.querySelector('.header-actions').addEventListener('click', function(e){
   var btn = e.target.closest('button[data-action]');
   if(!btn) return;
   var action = btn.getAttribute('data-action');
-  if(action==='new'){ editing = {isNew:true, name:null, source:'user'}; renderList(); }
+  if(action==='new'){ editing = {isNew:true, name:null, source:'user'}; deleteTarget=null; renderList(); }
   else if(action==='refresh'){ refresh(); }
   else if(action==='openFile'){ vsc.postMessage({type:'openFile',scope:'user'}); }
 });

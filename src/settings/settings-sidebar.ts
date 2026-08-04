@@ -3,7 +3,6 @@ import {
   ensurePromptFileExists,
   ensureSettingsJsonExists,
   getAppendSystemPromptPath,
-  getSettingsJsonPath,
   getSystemPromptPath,
   readTextFile,
   writeTextFile,
@@ -31,7 +30,6 @@ export function createSettingsViewProvider(): vscode.WebviewViewProvider {
           env: { ...env, piVersion: "(loading…)" },
           systemPrompt: { path: systemPath, content: readTextFile(systemPath) },
           appendSystemPrompt: { path: appendPath, content: readTextFile(appendPath) },
-          settingsJsonPath: getSettingsJsonPath(),
           links: { home: LINK_HOME, packages: LINK_PACKAGES, github: LINK_GITHUB },
         });
         try {

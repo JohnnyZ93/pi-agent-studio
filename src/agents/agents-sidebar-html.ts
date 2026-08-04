@@ -163,8 +163,10 @@ function renderDetail(a) {
   h += renderDisableCheckbox(a.disableModelInvocation);
   h += '<div class="btn-row">';
   h += '<button class="btn btn-primary" data-action="save" data-name="' + escA(a.name) + '" data-new="0" data-builtin="' + (isBuiltin ? '1' : '0') + '" data-scope="' + escA(a.source) + '">Save</button>';
-  if (isBuiltin && a.hasOverride) {
+  if (a.filePath) {
     h += '<button class="btn btn-secondary" data-action="openFile" data-file="' + escA(a.filePath) + '">Open file</button>';
+  }
+  if (isBuiltin && a.hasOverride) {
     h += '<button class="btn btn-secondary" data-action="reset" data-name="' + escA(a.name) + '" data-scope="' + escA(a.source) + '" title="Delete the override file and restore built-in">Reset to built-in</button>';
   }
   if (!isBuiltin && a.name) {
