@@ -192,6 +192,11 @@
         },
         {
           "type": "webview",
+          "id": "pi-agent-studio.skills",
+          "name": "Skills"
+        },
+        {
+          "type": "webview",
           "id": "pi-agent-studio.mcp",
           "name": "MCP Servers"
         },

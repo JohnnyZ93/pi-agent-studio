@@ -12,6 +12,7 @@ import { ensureModelsJsonExists } from "./models/models-config.ts";
 import { createAgentsViewProvider } from "./agents/agents-sidebar.ts";
 import { createMcpViewProvider } from "./mcp/mcp-sidebar.ts";
 import { createPromptsViewProvider } from "./prompts/prompts-sidebar.ts";
+import { createSkillsViewProvider } from "./skills/skills-sidebar.ts";
 import { createSettingsViewProvider } from "./settings/settings-sidebar.ts";
 import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
@@ -174,6 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
       "pi-agent-studio.prompts",
       createPromptsViewProvider(),
     ),
+    vscode.window.registerWebviewViewProvider("pi-agent-studio.skills", createSkillsViewProvider()),
     vscode.window.registerWebviewViewProvider("pi-agent-studio.mcp", createMcpViewProvider()),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.settings",
