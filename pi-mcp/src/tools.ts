@@ -76,7 +76,6 @@ function registerPinnedDirectTools(
   const names: string[] = [];
 
   for (const tool of meta) {
-    if (tool.resourceUri) continue; // resources go via proxy
     if (filter && !filter.has(tool.originalName)) continue;
     const toolName = sanitizeName(tool.originalName);
     const fullName = `mcp__${server}__${toolName}`;

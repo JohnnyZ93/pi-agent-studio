@@ -1,14 +1,23 @@
-import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  mkdirSync,
+} from "node:fs";
+import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { Prompt, Resource, Tool } from "@modelcontextprotocol/sdk/types.js";
-import type {
+import {
   CachedPrompt,
   CachedResource,
   CachedTool,
   DiscoveredServer,
   MetadataCache,
+  RESOURCE_LIST_TOOL_NAME,
+  RESOURCE_READ_TOOL_NAME,
   ServerCacheEntry,
   ServerEntry,
   ToolMetadata,
@@ -17,45 +26,48 @@ import type {
 const CACHE_VERSION = 1;
 const CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-export function getMetadataCachePath(): string {
-  return join(getAgentDir(), "mcp-cache.json");
+function getMetadataCacheDir(): string {
+  return join(getAgentDir(), "mcp-cache");
 }
 
-export function loadMetadataCache(): MetadataCache | null {
-  const cachePath = getMetadataCachePath();
-  if (!existsSync(cachePath)) return null;
-  try {
-    const raw = JSON.parse(readFileSync(cachePath, "utf-8"));
-    if (!raw || typeof raw !== "object") return null;
-    if (raw.version !== CACHE_VERSION) return null;
-    if (!raw.servers || typeof raw.servers !== "object") return null;
-    return raw as MetadataCache;
-  } catch {
-    return null;
+function getServerCachePath(serverName: string): string {
+  return join(getMetadataCacheDir(), `${sanitizeName(serverName)}.json`);
+}
+
+interface ServerCacheFile {
+  version: number;
+  serverName: string;
+  entry: ServerCacheEntry;
+}
+
+export function loadMetadataCache(enabledNames?: Set<string>): MetadataCache | null {
+  const dir = getMetadataCacheDir();
+  if (!existsSync(dir)) return null;
+  if (enabledNames && enabledNames.size === 0) return null;
+  const servers: Record<string, ServerCacheEntry> = {};
+  let found = false;
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    try {
+      const raw = JSON.parse(readFileSync(join(dir, name), "utf-8")) as ServerCacheFile;
+      if (raw && raw.version === CACHE_VERSION && raw.serverName && raw.entry) {
+        if (enabledNames && !enabledNames.has(raw.serverName)) continue;
+        servers[raw.serverName] = raw.entry;
+        found = true;
+      }
+    } catch {
+      // skip corrupt/unreadable file
+    }
   }
+  return found ? { version: CACHE_VERSION, servers } : null;
 }
 
 export function saveMetadataCache(serverName: string, entry: ServerCacheEntry): void {
-  const cachePath = getMetadataCachePath();
-  const dir = dirname(cachePath);
+  const dir = getMetadataCacheDir();
   mkdirSync(dir, { recursive: true });
-
-  let merged: MetadataCache = { version: CACHE_VERSION, servers: {} };
-  try {
-    if (existsSync(cachePath)) {
-      const existing = JSON.parse(readFileSync(cachePath, "utf-8")) as MetadataCache;
-      if (existing && existing.version === CACHE_VERSION && existing.servers) {
-        merged.servers = { ...existing.servers };
-      }
-    }
-  } catch {
-    // ignore parse errors, start fresh
-  }
-  merged.version = CACHE_VERSION;
-  merged.servers[serverName] = entry;
-
+  const cachePath = getServerCachePath(serverName);
   const tmpPath = `${cachePath}.${process.pid}.tmp`;
-  writeFileSync(tmpPath, JSON.stringify(merged, null, 2), "utf-8");
+  writeFileSync(tmpPath, JSON.stringify({ version: CACHE_VERSION, serverName, entry }), "utf-8");
   renameSync(tmpPath, cachePath);
 }
 
@@ -182,18 +194,32 @@ function reconstructMetadata(
       ...(tool.inputSchema !== undefined ? { inputSchema: tool.inputSchema } : {}),
     });
   }
-  for (const resource of resources) {
-    if (!resource?.name || !resource?.uri) continue;
-    const baseName = `read_${sanitizeName(resource.name)}`;
-    const handle = makeHandle(serverName, baseName);
-    if (seen.has(handle)) continue;
-    seen.add(handle);
-    metadata.push({
-      name: handle,
-      originalName: baseName,
-      description: resource.description ?? `Read resource: ${resource.uri}`,
-      resourceUri: resource.uri,
-    });
+  if (resources.length > 0) {
+    const listHandle = makeHandle(serverName, RESOURCE_LIST_TOOL_NAME);
+    if (!seen.has(listHandle)) {
+      seen.add(listHandle);
+      metadata.push({
+        name: listHandle,
+        originalName: RESOURCE_LIST_TOOL_NAME,
+        description: `List all available resources from MCP server "${serverName}"`,
+      });
+    }
+    const readHandle = makeHandle(serverName, RESOURCE_READ_TOOL_NAME);
+    if (!seen.has(readHandle)) {
+      seen.add(readHandle);
+      metadata.push({
+        name: readHandle,
+        originalName: RESOURCE_READ_TOOL_NAME,
+        description: `Read a specific resource from MCP server "${serverName}" by URI`,
+        inputSchema: {
+          type: "object",
+          properties: {
+            uri: { type: "string", description: "Resource URI to read" },
+          },
+          required: ["uri"],
+        },
+      });
+    }
   }
   return metadata;
 }

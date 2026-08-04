@@ -48,8 +48,10 @@ export class McpSession {
   constructor(cwd: string) {
     this.cwd = cwd;
     this.config = loadMergedConfig(cwd);
-    this.metadataCache = loadMetadataCache();
-    for (const { name, entry, source } of loadMergedServers(cwd)) {
+    const mergedServers = loadMergedServers(cwd);
+    const enabledNames = new Set(mergedServers.filter((s) => !s.entry.disabled).map((s) => s.name));
+    this.metadataCache = loadMetadataCache(enabledNames);
+    for (const { name, entry, source } of mergedServers) {
       this.connections.set(name, {
         name,
         entry,

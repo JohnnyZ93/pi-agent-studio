@@ -678,6 +678,10 @@ export function formatReadRange(args: any): string {
   return ":" + startLine + (endLine !== "" ? "-" + endLine : "");
 }
 
+export function isMcpTool(name: string): boolean {
+  return name.startsWith("mcp__") || name.startsWith("mcp_tool_");
+}
+
 export function toolDisplayName(name: string): string {
   if (name.startsWith("mcp__")) {
     const rest = name.slice(5);
@@ -685,6 +689,12 @@ export function toolDisplayName(name: string): string {
     if (idx > 0) return `${rest.slice(0, idx)}/${rest.slice(idx + 2)}`;
   }
   return name;
+}
+
+function mcpHandleParts(handle: string): { server: string; tool: string } {
+  const idx = handle.indexOf("_");
+  if (idx <= 0) return { server: "", tool: handle };
+  return { server: handle.slice(0, idx), tool: handle.slice(idx + 1) };
 }
 
 function mcpArgsPreview(args: any): string {
@@ -737,6 +747,21 @@ export function formatToolSummary(name: string, args: any): string {
     }
   } else if (name.startsWith("mcp__")) {
     s = mcpArgsPreview(args);
+  } else if (name === "mcp_tool_call") {
+    const h = toolStr(args && args.tool);
+    if (h) {
+      const parts = mcpHandleParts(h);
+      s = parts.server ? `${parts.server}/${parts.tool}` : h;
+    } else {
+      s = "...";
+    }
+  } else if (name === "mcp_tool_search") {
+    const q = toolStr(args && args.query);
+    s = q ? `"${q}"` : "...";
+    const opts: string[] = [];
+    if (args && args.limit != null) opts.push("limit " + args.limit);
+    if (args && args.offset != null) opts.push("offset " + args.offset);
+    if (opts.length) s += ` (${opts.join(", ")})`;
   }
   return s;
 }
@@ -784,7 +809,7 @@ export function finalizeToolCall(ci: number, toolCall: any) {
     if (toolCall.name) {
       b.name = toolCall.name;
       b.nameEl.textContent = toolDisplayName(b.name);
-      b.el.classList.toggle("is-mcp", b.name.startsWith("mcp__"));
+      b.el.classList.toggle("is-mcp", isMcpTool(b.name));
       if (b.name === "subagent") b.el.classList.add("is-subagent");
     }
     if (toolCall.id) {
@@ -877,7 +902,7 @@ export function startToolExecution(ev: any) {
   if (ev.toolName) {
     b.name = ev.toolName;
     if (b.nameEl) b.nameEl.textContent = toolDisplayName(b.name);
-    if (b.nameEl) b.el.classList.toggle("is-mcp", b.name.startsWith("mcp__"));
+    if (b.nameEl) b.el.classList.toggle("is-mcp", isMcpTool(b.name));
     if (b.name === "subagent") b.el.classList.add("is-subagent");
   }
   b.el._block = b;

@@ -98,11 +98,9 @@ export function scoreToolMatch(tool: ToolMetadata, server: string, query: string
 export function rankToolMatches(
   sources: Iterable<[string, ToolMetadata[]]>,
   query: string,
-  server?: string,
 ): RankedToolMatch[] {
   const matches: RankedToolMatch[] = [];
   for (const [serverName, metadata] of sources) {
-    if (server && serverName !== server) continue;
     for (const tool of metadata) {
       const score = scoreToolMatch(tool, serverName, query);
       if (score !== null) matches.push({ server: serverName, tool, score });

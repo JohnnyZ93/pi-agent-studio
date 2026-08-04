@@ -9,6 +9,10 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+/** Synthetic tool names for resource access. */
+export const RESOURCE_LIST_TOOL_NAME = "mcp__list_resources";
+export const RESOURCE_READ_TOOL_NAME = "mcp__read_resource";
+
 export interface ServerEntry {
   command?: string;
   args?: string[];
@@ -65,7 +69,6 @@ export interface ToolMetadata {
   originalName: string;
   description?: string;
   inputSchema?: unknown;
-  resourceUri?: string;
 }
 
 export interface CachedTool {

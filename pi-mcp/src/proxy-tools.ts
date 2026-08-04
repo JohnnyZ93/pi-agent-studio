@@ -18,7 +18,13 @@ import {
   type RankedToolMatch,
 } from "./search-ranking.ts";
 import { renderMcpResult, renderProxyCall, renderSearchResult } from "./render.ts";
-import type { McpConnection, McpToolDetails, ToolMetadata } from "./types.ts";
+import {
+  McpConnection,
+  McpToolDetails,
+  RESOURCE_LIST_TOOL_NAME,
+  RESOURCE_READ_TOOL_NAME,
+  ToolMetadata,
+} from "./types.ts";
 
 type TextBlock = { type: "text"; text: string };
 
@@ -103,7 +109,6 @@ function collectSearchSources(session: McpSession): Array<[string, ToolMetadata[
 interface ResolvedHandle {
   server: string;
   originalName: string;
-  resourceUri?: string;
 }
 
 function resolveHandle(
@@ -118,7 +123,6 @@ function resolveHandle(
         return {
           server: serverName,
           originalName: tool.originalName,
-          resourceUri: tool.resourceUri,
         };
       }
     }
@@ -147,25 +151,13 @@ function renderMatch(idx: number, m: RankedToolMatch, includeSchemas: boolean): 
   const lines: string[] = [];
   lines.push(`[${idx}] ${m.tool.name}`);
   lines.push(`    server: ${m.server}`);
-  if (m.tool.resourceUri) {
-    lines.push(`    [resource] uri: ${m.tool.resourceUri}`);
-  }
   if (m.tool.description) {
     lines.push(`    description: ${m.tool.description}`);
   }
-  if (includeSchemas && m.tool.inputSchema && !m.tool.resourceUri) {
+  if (includeSchemas && m.tool.inputSchema) {
     lines.push(`    params: ${schemaToShape(m.tool.inputSchema)}`);
   }
   return lines.join("\n");
-}
-
-function safeRegex(pattern: string): RegExp | null {
-  if (pattern.length > 256) return null;
-  try {
-    return new RegExp(pattern, "i");
-  } catch {
-    return null;
-  }
 }
 
 export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSession | null): void {
@@ -177,18 +169,10 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
     label: "MCP: search tools",
     description:
       "Search MCP server tools/resources by keyword (weighted name/description match). " +
-      "Returns matching tool handles to pass to mcp_tool_call. Set server to list one server's tools. " +
-      "Pinned direct tools are excluded (call them directly). Set regex=true for regex matching.",
+      "Returns matching tool handles to pass to mcp_tool_call. " +
+      "Pinned direct tools are excluded (call them directly).",
     parameters: Type.Object({
-      query: Type.Optional(Type.String({ description: "Search query (keywords)." })),
-      server: Type.Optional(
-        Type.String({
-          description: "Restrict to one server; with empty query lists its tools.",
-        }),
-      ),
-      regex: Type.Optional(
-        Type.Boolean({ description: "Treat query as a regex (case-insensitive)." }),
-      ),
+      query: Type.String({ description: "Search query (keywords). Required, must not be empty." }),
       limit: Type.Optional(Type.Number({ description: "Max results (default 10)." })),
       offset: Type.Optional(Type.Number({ description: "Pagination offset (default 0)." })),
       includeSchemas: Type.Optional(
@@ -200,28 +184,14 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
       if (!session) throw new Error("MCP session not active");
       const p = params as {
         query?: string;
-        server?: string;
-        regex?: boolean;
         limit?: number;
         offset?: number;
         includeSchemas?: boolean;
       };
       const query = (p.query ?? "").trim();
-      const server = p.server?.trim() || undefined;
-      const limit = p.limit ?? 10;
-      const offset = p.offset ?? 0;
-      const includeSchemas = p.includeSchemas !== false;
-
-      const sources = collectSearchSources(session);
-
-      if (!query && !server) {
+      if (!query) {
         return {
-          content: [
-            {
-              type: "text",
-              text: 'Provide a non-empty "query", or set "server" to list a server\'s tools.',
-            },
-          ],
+          content: [{ type: "text", text: 'Error: "query" is required and must not be empty.' }],
           details: {
             server: "",
             tool: "mcp_tool_search",
@@ -231,58 +201,17 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
         };
       }
 
-      let ranked: RankedToolMatch[];
-      if (!query && server) {
-        const src = sources.find(([s]) => s === server);
-        if (!src) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No MCP server "${server}" (or it has no discoverable tools).`,
-              },
-            ],
-            details: {
-              server,
-              tool: "mcp_tool_search",
-              kind: "search",
-              isError: true,
-              query,
-            },
-          };
-        }
-        ranked = src[1].map((tool) => ({ server, tool, score: 0 }));
-      } else if (p.regex) {
-        const re = safeRegex(query);
-        if (!re) {
-          return {
-            content: [{ type: "text", text: `Invalid regex: ${query}` }],
-            details: {
-              server: server ?? "",
-              tool: "mcp_tool_search",
-              kind: "search",
-              isError: true,
-              query,
-            },
-          };
-        }
-        ranked = [];
-        for (const [serverName, meta] of sources) {
-          if (server && serverName !== server) continue;
-          for (const tool of meta) {
-            const hay = `${tool.name} ${tool.originalName} ${tool.description ?? ""}`;
-            if (re.test(hay)) ranked.push({ server: serverName, tool, score: 0 });
-          }
-        }
-      } else {
-        ranked = rankToolMatches(sources, query, server);
-      }
+      const limit = p.limit ?? 10;
+      const offset = p.offset ?? 0;
+      const includeSchemas = p.includeSchemas !== false;
 
+      const sources = collectSearchSources(session);
+      const ranked = rankToolMatches(sources, query);
       const page = paginate(ranked, offset, limit);
       if (page.items.length === 0) {
         return {
           content: [{ type: "text", text: `No MCP tools matched "${query}".` }],
-          details: { server: server ?? "", tool: "mcp_tool_search", kind: "search", query },
+          details: { server: "", tool: "mcp_tool_search", kind: "search", query },
         };
       }
 
@@ -300,7 +229,7 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
       }
       return {
         content: [{ type: "text", text: lines.join("\n").trimEnd() }],
-        details: { server: server ?? "", tool: "mcp_tool_search", kind: "search", query },
+        details: { server: "", tool: "mcp_tool_search", kind: "search", query },
       };
     },
     renderCall(args, theme: Theme) {
@@ -318,9 +247,7 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
   pi.registerTool({
     name: "mcp_tool_call",
     label: "MCP: call tool",
-    description:
-      "Call an MCP tool or read a resource by its handle (the name returned by mcp_tool_search). " +
-      "For resources (handles starting with read_), pass no args; the resource URI is resolved automatically.",
+    description: "Call an MCP tool by its handle (the name returned by mcp_tool_search).",
     parameters: Type.Object({
       tool: Type.String({
         description: "Tool handle from mcp_tool_search (e.g. server_tool_name).",
@@ -330,14 +257,11 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
           description: "Arguments object for the tool.",
         }),
       ),
-      server: Type.Optional(
-        Type.String({ description: "Restrict handle resolution to this server." }),
-      ),
     }),
     async execute(_id, params): Promise<AgentToolResult<McpToolDetails>> {
       const session = getSession();
       if (!session) throw new Error("MCP session not active");
-      const p = params as { tool?: string; args?: Record<string, unknown>; server?: string };
+      const p = params as { tool?: string; args?: Record<string, unknown> };
       const handle = (p.tool ?? "").trim();
       if (!handle) {
         return {
@@ -351,7 +275,7 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
         };
       }
 
-      const resolved = resolveHandle(session, handle, p.server?.trim() || undefined);
+      const resolved = resolveHandle(session, handle);
       if (!resolved) {
         const suggestions = rankSuggestions(collectSources(session), handle, 5);
         const hint =
@@ -364,8 +288,47 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
         };
       }
 
-      if (resolved.resourceUri) {
-        const result = await session.readResource(resolved.server, resolved.resourceUri);
+      if (resolved.originalName === RESOURCE_LIST_TOOL_NAME) {
+        const resources = await session.listResources(resolved.server);
+        const text =
+          resources.length === 0
+            ? `Server "${resolved.server}": no resources.`
+            : `Server "${resolved.server}" (${resources.length} resource${resources.length === 1 ? "" : "s"}):\n` +
+              resources
+                .map(
+                  (r) =>
+                    `  - ${r.name}\n    uri: ${r.uri}${r.description ? `\n    description: ${r.description}` : ""}`,
+                )
+                .join("\n");
+        return {
+          content: [{ type: "text", text }],
+          details: {
+            server: resolved.server,
+            tool: RESOURCE_LIST_TOOL_NAME,
+            kind: "list_resources",
+          },
+        };
+      }
+
+      if (resolved.originalName === RESOURCE_READ_TOOL_NAME) {
+        const uri = p.args?.uri;
+        if (typeof uri !== "string" || !uri.trim()) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: 'Error: "uri" is required for "read_resource" (a resource URI string).',
+              },
+            ],
+            details: {
+              server: resolved.server,
+              tool: RESOURCE_READ_TOOL_NAME,
+              kind: "read_resource",
+              isError: true,
+            },
+          };
+        }
+        const result = await session.readResource(resolved.server, uri.trim());
         const text = joinResourceText(
           result.contents as Array<{
             uri?: string;
@@ -378,9 +341,9 @@ export function registerProxyTools(pi: ExtensionAPI, getSession: () => McpSessio
           content: [{ type: "text", text }],
           details: {
             server: resolved.server,
-            tool: "read_resource",
+            tool: RESOURCE_READ_TOOL_NAME,
             kind: "read_resource",
-            resourceUri: resolved.resourceUri,
+            resourceUri: uri.trim(),
           },
         };
       }
