@@ -654,10 +654,10 @@ refreshBtn.addEventListener("mouseenter", function () {
 refreshBtn.addEventListener("mouseleave", hideTooltip);
 
 mcpBtn.addEventListener("click", function () {
-  vscode.postMessage({ type: "mcpReconnect" });
+  vscode.postMessage({ type: "mcpOpen" });
 });
 mcpBtn.addEventListener("mouseenter", function () {
-  showTooltip(mcpBtn, "Reconnect MCP");
+  showTooltip(mcpBtn, "Manage MCP");
 });
 mcpBtn.addEventListener("mouseleave", hideTooltip);
 

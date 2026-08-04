@@ -6,6 +6,7 @@ import { getModelIcon, modelIconHtml, escHtml } from "./model-icons";
 import "./messages";
 import "./composer";
 import "./rewind";
+import "./mcp-panel";
 
 const codiconStyle = document.createElement("style");
 codiconStyle.textContent =

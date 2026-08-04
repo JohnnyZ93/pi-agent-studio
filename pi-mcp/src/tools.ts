@@ -72,10 +72,12 @@ export function registerServerTools(
   const server = sanitizeName(conn.name);
   const discovered = conn.discovered;
   if (!discovered) return;
+  const names: string[] = [];
 
   for (const tool of discovered.tools) {
     const toolName = sanitizeName(tool.name);
     const fullName = `mcp__${server}__${toolName}`;
+    names.push(fullName);
     pi.registerTool({
       name: fullName,
       label: `MCP: ${tool.name}`,
@@ -121,8 +123,10 @@ export function registerServerTools(
   }
 
   if (discovered.resources.length > 0) {
-    registerResourceTools(pi, getSession, conn, server);
+    registerResourceTools(pi, getSession, conn, server, names);
   }
+
+  conn.registeredToolNames = names;
 }
 
 function registerResourceTools(
@@ -130,8 +134,10 @@ function registerResourceTools(
   getSession: () => McpSession | null,
   conn: McpConnection,
   server: string,
+  names: string[],
 ): void {
   const listName = `mcp__${server}__list_resources`;
+  names.push(listName);
   pi.registerTool({
     name: listName,
     label: `MCP: list resources (${conn.name})`,
@@ -174,6 +180,7 @@ function registerResourceTools(
   });
 
   const readName = `mcp__${server}__read_resource`;
+  names.push(readName);
   pi.registerTool({
     name: readName,
     label: `MCP: read resource (${conn.name})`,

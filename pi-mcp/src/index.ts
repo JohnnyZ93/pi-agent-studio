@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { McpSession } from "./connection.ts";
+import type { McpConnection } from "./types.ts";
 import { registerMcpCommand } from "./commands.ts";
 import { registerServerPrompts } from "./prompts.ts";
 import { registerServerTools } from "./tools.ts";
@@ -11,8 +12,16 @@ let commandRegistered = false;
 export default function (pi: ExtensionAPI) {
   const getSession = () => currentSession;
 
+  /** Register a server's tools/prompts once (deduped by name). */
+  function ensureServerRegistered(conn: McpConnection): void {
+    if (registeredServers.has(conn.name)) return;
+    registerServerTools(pi, getSession, conn);
+    registerServerPrompts(pi, getSession, conn);
+    registeredServers.add(conn.name);
+  }
+
   if (!commandRegistered) {
-    registerMcpCommand(pi, getSession);
+    registerMcpCommand(pi, getSession, ensureServerRegistered);
     commandRegistered = true;
   }
 
@@ -24,13 +33,7 @@ export default function (pi: ExtensionAPI) {
 
     session.init(
       (name, conn) => {
-        // Tools/prompts are registered once per server name (they read the live
-        // session via getSession, so they keep working across session switches).
-        if (!registeredServers.has(name)) {
-          registerServerTools(pi, getSession, conn);
-          registerServerPrompts(pi, getSession, conn);
-          registeredServers.add(name);
-        }
+        ensureServerRegistered(conn);
         const tools = conn.discovered?.tools.length ?? 0;
         ctx.ui.notify(`MCP ${name}: connected (${tools} tools)`, "info");
       },

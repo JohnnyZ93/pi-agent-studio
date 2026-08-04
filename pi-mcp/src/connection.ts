@@ -7,7 +7,7 @@ import type {
   GetPromptResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { enabledServers, loadMergedConfig } from "./config.ts";
+import { loadMergedConfig, loadMergedServers } from "./config.ts";
 import type { DiscoveredServer, McpConfig, McpConnection, ServerEntry } from "./types.ts";
 
 const CONNECT_TIMEOUT_MS = 30_000;
@@ -40,10 +40,11 @@ export class McpSession {
   constructor(cwd: string) {
     this.cwd = cwd;
     this.config = loadMergedConfig(cwd);
-    for (const [name, entry] of enabledServers(this.config)) {
+    for (const { name, entry, source } of loadMergedServers(cwd)) {
       this.connections.set(name, {
         name,
         entry,
+        source,
         client: null,
         state: "disconnected",
       });
@@ -54,6 +55,11 @@ export class McpSession {
     return [...this.connections.keys()];
   }
 
+  /** Names of servers that are enabled in config (not disabled). */
+  enabledNames(): string[] {
+    return [...this.connections.values()].filter((c) => !c.entry.disabled).map((c) => c.name);
+  }
+
   getConnection(name: string): McpConnection | undefined {
     return this.connections.get(name);
   }
@@ -61,6 +67,8 @@ export class McpSession {
   status(): Array<{
     name: string;
     state: string;
+    source: "user" | "project";
+    disabled: boolean;
     error?: string;
     tools: number;
     resources: number;
@@ -69,6 +77,8 @@ export class McpSession {
     return [...this.connections.values()].map((c) => ({
       name: c.name,
       state: c.state,
+      source: c.source,
+      disabled: !!c.entry.disabled,
       error: c.error,
       tools: c.discovered?.tools.length ?? 0,
       resources: c.discovered?.resources.length ?? 0,
@@ -84,7 +94,7 @@ export class McpSession {
     onReady: (name: string, conn: McpConnection) => void,
     onError: (name: string, error: string) => void,
   ): void {
-    for (const name of this.connections.keys()) {
+    for (const name of this.enabledNames()) {
       void this.ensureConnected(name)
         .then((conn) => onReady(name, conn))
         .catch((err) => onError(name, err instanceof Error ? err.message : String(err)));

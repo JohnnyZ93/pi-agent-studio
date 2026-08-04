@@ -38,6 +38,9 @@ export interface OpenChatPanelOptions {
 const activePanels = new Map<string, ChatPanelHandle>();
 const sessionToPanel = new Map<string, string>();
 
+/** Marker prefix the MCP bridge emits before a structured status JSON payload. */
+const MCP_STATUS_MARKER = "__mcp_status__";
+
 const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
 const CHAT_PANEL_TITLE = "Pi Chat";
 const BTW_ABORT_TITLE = "Pi Btw Abort";
@@ -527,10 +530,20 @@ export async function openChatPanel(
         });
     } else if (req.method === "notify") {
       if (!disposed) {
+        const message = String(req.message ?? "");
+        if (message.startsWith(MCP_STATUS_MARKER)) {
+          try {
+            const servers = JSON.parse(message.slice(MCP_STATUS_MARKER.length));
+            panel.webview.postMessage({ type: "mcpStatus", servers });
+          } catch {
+            // ignore malformed status payload
+          }
+          return;
+        }
         const t = req.notifyType as string | undefined;
         const kind: "info" | "success" | "error" =
           t === "error" ? "error" : t === "success" ? "success" : "info";
-        panel.webview.postMessage({ type: "toast", text: String(req.message ?? ""), kind });
+        panel.webview.postMessage({ type: "toast", text: message, kind });
       }
     }
     // Other fire-and-forget methods (setStatus, setTitle, ...) are ignored.
@@ -784,9 +797,16 @@ export async function openChatPanel(
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;
-      case "mcpReconnect":
-        void rpc.prompt("/mcp reconnect", streaming ? "steer" : undefined).catch(() => {});
+      case "mcpOpen":
+        void rpc.prompt("/mcp status", streaming ? "steer" : undefined).catch(() => {});
         break;
+      case "mcpAction": {
+        const action = String(msg.action ?? "status");
+        const server = String(msg.server ?? "");
+        const arg = server ? ` ${server}` : "";
+        void rpc.prompt(`/mcp ${action}${arg}`, streaming ? "steer" : undefined).catch(() => {});
+        break;
+      }
       case "setPermission":
         void rpc
           .prompt(`/permission ${String(msg.mode ?? "")}`, streaming ? "steer" : undefined)

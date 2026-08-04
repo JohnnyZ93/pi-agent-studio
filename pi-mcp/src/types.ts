@@ -36,10 +36,13 @@ export type ConnectionState = "disconnected" | "connecting" | "connected" | "err
 export interface McpConnection {
   name: string;
   entry: ServerEntry;
+  source: "user" | "project";
   client: Client | null;
   state: ConnectionState;
   error?: string;
   discovered?: DiscoveredServer;
+  /** Full names of tools registered for this server (mcp__<server>__*). */
+  registeredToolNames?: string[];
 }
 
 export interface McpToolDetails {

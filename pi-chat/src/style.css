@@ -100,6 +100,7 @@ body {
   height: 100%;
   width: 100%;
   max-width: 920px;
+  position: relative;
 }
 
 .toolbar {
@@ -2233,4 +2234,195 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
 }
 .rewind-dialog .dialog-actions .btn {
   width: 100%;
+}
+
+/* ---- MCP drawer (toolbar dropdown) ---- */
+.mcp-popover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.mcp-drawer {
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.mcp-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vscode-widget-border, transparent);
+}
+.mcp-drawer-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+.mcp-drawer-body {
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+.mcp-empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+  opacity: 0.8;
+  font-size: 12px;
+}
+.mcp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 6px;
+}
+.mcp-row:hover {
+  background: var(--vscode-list-hoverBackground, rgba(127, 127, 127, 0.1));
+}
+.mcp-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mcp-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.mcp-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+  background: var(--vscode-badge-background, rgba(127, 127, 127, 0.15));
+}
+.mcp-tag-project {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  background: rgba(55, 148, 255, 0.12);
+}
+.mcp-state {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.7;
+}
+.mcp-state-connected {
+  color: #3fb950;
+  opacity: 1;
+}
+.mcp-state-connecting {
+  color: #1f6feb;
+  opacity: 1;
+}
+.mcp-state-error,
+.mcp-state-stopped {
+  color: #f85149;
+  opacity: 1;
+}
+.mcp-state-disabled {
+  color: var(--vscode-descriptionForeground, #888);
+  opacity: 0.9;
+}
+.mcp-meta {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
+  opacity: 0.75;
+}
+.mcp-err {
+  font-size: 11px;
+  color: var(--vscode-errorForeground, #f48771);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mcp-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mcp-dot-ok {
+  background: #3fb950;
+}
+.mcp-dot-busy {
+  background: #1f6feb;
+}
+.mcp-dot-off {
+  background: var(--vscode-descriptionForeground, #888);
+}
+.mcp-dot-err {
+  background: #f85149;
+}
+.mcp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mcp-icon-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
+}
+.mcp-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--vscode-input-background, rgba(127, 127, 127, 0.3));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.mcp-switch.mcp-switch-on {
+  background: var(--vscode-button-background, #0e639c);
+}
+.mcp-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vscode-button-foreground, #fff);
+  transition: transform 0.15s ease;
+}
+.mcp-switch.mcp-switch-on .mcp-switch-knob {
+  transform: translateX(14px);
 }

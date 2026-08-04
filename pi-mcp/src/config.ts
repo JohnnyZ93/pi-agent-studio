@@ -22,6 +22,30 @@ export function readMcpJson(path: string): McpConfig {
   }
 }
 
+export interface ResolvedServer {
+  name: string;
+  entry: ServerEntry;
+  source: "user" | "project";
+}
+
+/**
+ * Load user + project mcp.json, merge per-server (project overrides user on name
+ * collision, whole-server replacement), and tag each resolved server with its
+ * source scope.
+ */
+export function loadMergedServers(cwd: string): ResolvedServer[] {
+  const user = readMcpJson(getUserMcpPath());
+  const project = readMcpJson(getProjectMcpPath(cwd));
+  const map = new Map<string, ResolvedServer>();
+  for (const [name, entry] of Object.entries(user.mcpServers ?? {})) {
+    map.set(name, { name, entry, source: "user" });
+  }
+  for (const [name, entry] of Object.entries(project.mcpServers ?? {})) {
+    map.set(name, { name, entry, source: "project" });
+  }
+  return [...map.values()];
+}
+
 /**
  * Load user + project mcp.json and merge.
  * Project overrides user per-server (whole-server replacement).
