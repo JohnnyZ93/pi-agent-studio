@@ -139,6 +139,9 @@ export const EMPTY_HTML =
   (/Mac/i.test(navigator.platform || "") ? "\u2318V" : "Ctrl+V") +
   "</kbd>paste image</span>" +
   '<span class="empty-hint"><kbd>Tab</kbd>complete</span>' +
+  '<span class="empty-hint"><kbd>' +
+  (/Mac/i.test(navigator.platform || "") ? "\u2318U" : "Ctrl+U") +
+  "</kbd>clear</span>" +
   "</div>" +
   "</div>";
 

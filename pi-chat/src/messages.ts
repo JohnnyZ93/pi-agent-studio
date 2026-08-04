@@ -1705,12 +1705,11 @@ export function handleEvent(event: any) {
       endToolExecution(event);
       break;
     case "compaction_start":
-      setStatus("Compacting\u2026");
+      showToast("Compacting\u2026", undefined, true);
       addCompactionPlaceholder();
       break;
     case "compaction_end":
       hideToast();
-      setStatus("");
       if (event.aborted || event.errorMessage) {
         if (pendingCompactionBlockRef) {
           pendingCompactionBlockRef.remove();

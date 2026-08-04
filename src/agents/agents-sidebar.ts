@@ -10,10 +10,13 @@ import {
   type AgentFormData,
 } from "./agents-config.ts";
 import { getAgentsHtml } from "./agents-sidebar-html.ts";
-import { getModelRuntime } from "../models/auth-config.ts";
+import { getModelRuntime, refreshModelRegistry } from "../models/auth-config.ts";
 
 async function getAvailableAgentModels(): Promise<string[]> {
   try {
+    // Reload models.json into the cached runtime so models added via the
+    // Models view (custom providers) show up here without a restart.
+    await refreshModelRegistry();
     const runtime = await getModelRuntime();
     const all = await runtime.getAvailable();
     const seen = new Set<string>();

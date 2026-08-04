@@ -221,8 +221,20 @@ function updateModelIcon() {
 
 function positionModelPopup() {
   const r = modelWrap.getBoundingClientRect();
-  modelPopup.style.minWidth = r.width + "px";
-  modelPopup.style.left = "0px";
+  modelPopup.style.minWidth = Math.max(260, r.width) + "px";
+  modelPopup.style.left = "";
+  modelPopup.style.right = "";
+  const pw = modelPopup.offsetWidth;
+  const margin = 8;
+  let left = 0;
+  const rightEdge = r.left + pw;
+  if (rightEdge > window.innerWidth - margin) {
+    left = r.width - pw;
+    if (r.left + left < margin) {
+      left = -(r.left - margin);
+    }
+  }
+  modelPopup.style.left = left + "px";
   const ph = modelPopup.offsetHeight || 220;
   const spaceBelow = window.innerHeight - r.bottom;
   if (spaceBelow < ph + 8 && r.top > spaceBelow) {
@@ -1126,6 +1138,12 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
   if (ev.key === "Escape" && (acItems.length || fileTimer)) {
     ev.preventDefault();
     hideAutocomplete();
+    return;
+  }
+  if (ev.ctrlKey && !ev.shiftKey && !ev.altKey && !ev.metaKey && ev.key === "u") {
+    ev.preventDefault();
+    inputEl.value = "";
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
     return;
   }
   if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === "ArrowUp") {
