@@ -232,6 +232,27 @@ function applyStatusUpdate(entries) {
       els[j].innerHTML = '';
     }
   }
+  // Sync isOpen + delete-button enabled state when a session tab closes/opens,
+  // without a full re-render (which would interrupt an in-progress rename).
+  for (var k = 0; k < sessionsData.length; k++) {
+    var s = sessionsData[k];
+    var isOpen = !!map[s.path];
+    if (isOpen === s.isOpen) continue;
+    s.isOpen = isOpen;
+    var item = document.getElementById('item-' + safeId(s.path));
+    if (!item) continue;
+    var delBtn = item.querySelector('.session-actions button.danger');
+    if (!delBtn) continue;
+    if (isOpen) {
+      delBtn.disabled = true;
+      delBtn.title = 'Session is open, close it first';
+      delBtn.removeAttribute('data-action');
+    } else {
+      delBtn.disabled = false;
+      delBtn.title = 'Delete';
+      delBtn.setAttribute('data-action', 'delete');
+    }
+  }
 }
 
 function formatTime(iso) {
