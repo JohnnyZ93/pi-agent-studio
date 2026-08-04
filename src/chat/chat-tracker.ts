@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import * as vscode from "vscode";
 
 const SESSIONS_KEY = "pi-agent-studio.chatSessions";
@@ -30,20 +30,32 @@ export function createChatTracker(context: vscode.ExtensionContext): ChatTracker
     },
     async restore(openFn) {
       const map = read();
-      const valid: ChatSessionMap = {};
-      for (const [panelId, sessionFile] of Object.entries(map)) {
-        if (existsSync(sessionFile)) valid[panelId] = sessionFile;
-      }
+      const entries = Object.entries(map);
+      const checks = await Promise.all(
+        entries.map(async ([panelId, sessionFile]) => {
+          try {
+            await access(sessionFile);
+            return [panelId, sessionFile] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const valid = Object.fromEntries(
+        checks.filter((e): e is readonly [string, string] => e !== null),
+      );
       if (Object.keys(valid).length !== Object.keys(map).length) {
         await write(valid);
       }
-      for (const [panelId, sessionFile] of Object.entries(valid)) {
-        try {
-          await openFn(sessionFile, panelId);
-        } catch (err) {
-          console.error("[pi-agent-studio] Failed to restore chat session", sessionFile, err);
-        }
-      }
+      await Promise.all(
+        Object.entries(valid).map(async ([panelId, sessionFile]) => {
+          try {
+            await openFn(sessionFile, panelId);
+          } catch (err) {
+            console.error("[pi-agent-studio] Failed to restore chat session", sessionFile, err);
+          }
+        }),
+      );
     },
   };
 }

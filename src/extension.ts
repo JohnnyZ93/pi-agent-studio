@@ -6,25 +6,34 @@ import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
-import { createSessionsViewProvider } from "./sessions/sessions-sidebar.ts";
-import { createModelsViewProvider } from "./models/models-sidebar.ts";
-import { ensureModelsJsonExists } from "./models/models-config.ts";
-import { createAgentsViewProvider } from "./agents/agents-sidebar.ts";
-import { createMcpViewProvider } from "./mcp/mcp-sidebar.ts";
-import { createPromptsViewProvider } from "./prompts/prompts-sidebar.ts";
-import { createSkillsViewProvider } from "./skills/skills-sidebar.ts";
-import { createSettingsViewProvider } from "./settings/settings-sidebar.ts";
-import { ensureSettingsJsonExists } from "./settings/settings-config.ts";
 import { createSessionTracker } from "./sessions.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
-import { abortCommitGeneration, generateCommitMsg } from "./gitCommit/commitMessageGenerator.ts";
 import { createChatTracker } from "./chat/chat-tracker.ts";
-import { disposeAllChatPanels, openChatPanel } from "./chat/chat-panel.ts";
 import { disposeRpcTrace } from "./chat/rpc-trace.ts";
 
 let extensionUri: vscode.Uri;
 let bridgeConfig: { url: string; token: string } | undefined;
 let bridgeDispose: (() => Promise<void>) | undefined;
+
+/** Wrap a lazy WebviewViewProvider factory so the implementing module (and its
+ *  dependency tree, e.g. the pi SDK) is only imported when the user first opens
+ *  the corresponding sidebar view, not at activation time. */
+function lazyViewProvider(
+  factory: () => Promise<vscode.WebviewViewProvider>,
+): vscode.WebviewViewProvider {
+  let pending: Promise<vscode.WebviewViewProvider> | undefined;
+  const resolve = () => (pending ??= factory());
+  return {
+    async resolveWebviewView(
+      webviewView: vscode.WebviewView,
+      context: vscode.WebviewViewResolveContext,
+      token: vscode.CancellationToken,
+    ) {
+      const provider = await resolve();
+      return provider.resolveWebviewView(webviewView, context, token);
+    },
+  };
+}
 
 export async function activate(context: vscode.ExtensionContext) {
   extensionUri = context.extensionUri;
@@ -107,6 +116,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
       if (useWebviewUi()) {
+        const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         return;
       }
@@ -116,6 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
       if (useWebviewUi()) {
+        const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         try {
           await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
@@ -138,6 +149,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
       if (useWebviewUi()) {
+        const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, cwd });
         return;
       }
@@ -147,45 +159,80 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.upgrade", upgradePiBinary),
     vscode.commands.registerCommand("pi-agent-studio.openSettingsJson", async () => {
+      const { ensureSettingsJsonExists } = await import("./settings/settings-config.ts");
       const path = ensureSettingsJsonExists();
       const doc = await vscode.workspace.openTextDocument(path);
       await vscode.window.showTextDocument(doc);
     }),
     vscode.commands.registerCommand("pi-agent-studio.openModelsJson", async () => {
+      const { ensureModelsJsonExists } = await import("./models/models-config.ts");
       const path = ensureModelsJsonExists();
       const doc = await vscode.workspace.openTextDocument(path);
       await vscode.window.showTextDocument(doc);
     }),
     vscode.commands.registerCommand("pi-agent-studio.generateGitCommitMessage", async (scm) => {
+      const { generateCommitMsg } = await import("./gitCommit/commitMessageGenerator.ts");
       generateCommitMsg(scm);
     }),
-    vscode.commands.registerCommand("pi-agent-studio.abortGitCommitMessage", () => {
+    vscode.commands.registerCommand("pi-agent-studio.abortGitCommitMessage", async () => {
+      const { abortCommitGeneration } = await import("./gitCommit/commitMessageGenerator.ts");
       abortCommitGeneration();
     }),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.sessions",
-      createSessionsViewProvider(extensionUri, bridgeConfig, sessions, chatTracker),
+      lazyViewProvider(async () => {
+        const { createSessionsViewProvider } = await import("./sessions/sessions-sidebar.ts");
+        return createSessionsViewProvider(extensionUri, bridgeConfig!, sessions, chatTracker);
+      }),
     ),
-    vscode.window.registerWebviewViewProvider("pi-agent-studio.models", createModelsViewProvider()),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.models",
+      lazyViewProvider(async () => {
+        const { createModelsViewProvider } = await import("./models/models-sidebar.ts");
+        return createModelsViewProvider();
+      }),
+    ),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.agents",
-      createAgentsViewProvider(extensionUri),
+      lazyViewProvider(async () => {
+        const { createAgentsViewProvider } = await import("./agents/agents-sidebar.ts");
+        return createAgentsViewProvider(extensionUri);
+      }),
     ),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.prompts",
-      createPromptsViewProvider(),
+      lazyViewProvider(async () => {
+        const { createPromptsViewProvider } = await import("./prompts/prompts-sidebar.ts");
+        return createPromptsViewProvider();
+      }),
     ),
-    vscode.window.registerWebviewViewProvider("pi-agent-studio.skills", createSkillsViewProvider()),
-    vscode.window.registerWebviewViewProvider("pi-agent-studio.mcp", createMcpViewProvider()),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.skills",
+      lazyViewProvider(async () => {
+        const { createSkillsViewProvider } = await import("./skills/skills-sidebar.ts");
+        return createSkillsViewProvider();
+      }),
+    ),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.mcp",
+      lazyViewProvider(async () => {
+        const { createMcpViewProvider } = await import("./mcp/mcp-sidebar.ts");
+        return createMcpViewProvider();
+      }),
+    ),
     vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.settings",
-      createSettingsViewProvider(),
+      lazyViewProvider(async () => {
+        const { createSettingsViewProvider } = await import("./settings/settings-sidebar.ts");
+        return createSettingsViewProvider();
+      }),
     ),
   );
 
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
   if (useWebviewUi()) {
     void chatTracker.restore(async (sessionFile, panelId) => {
+      const { openChatPanel } = await import("./chat/chat-panel.ts");
       await openChatPanel({
         extensionUri,
         bridgeConfig,
@@ -202,7 +249,12 @@ function useWebviewUi(): boolean {
 }
 
 export async function deactivate() {
-  disposeAllChatPanels();
+  try {
+    const { disposeAllChatPanels } = await import("./chat/chat-panel.ts");
+    disposeAllChatPanels();
+  } catch {
+    // chat module never loaded — nothing to dispose
+  }
   disposeRpcTrace();
   for (const terminal of vscode.window.terminals) {
     if (terminal.name === TERMINAL_TITLE) terminal.dispose();
@@ -215,10 +267,10 @@ export async function deactivate() {
 
 /**
  * Resolve a usable cwd from an Explorer-context command argument.
- *  - File   → use its parent directory
- *  - Folder → use as-is
- *  - Missing on disk → return undefined
- *  - No uri (e.g. invoked from command palette) → fall back to first workspace folder
+ *  - File   -> use its parent directory
+ *  - Folder -> use as-is
+ *  - Missing on disk -> return undefined
+ *  - No uri (e.g. invoked from command palette) -> fall back to first workspace folder
  */
 function resolveExplorerCwd(uri: vscode.Uri | undefined): string | undefined {
   if (!uri || uri.scheme !== "file") {

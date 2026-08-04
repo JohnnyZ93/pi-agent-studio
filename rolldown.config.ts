@@ -21,10 +21,11 @@ export default defineConfig({
   external: ["vscode"],
   platform: "node",
   output: {
-    file: "dist/extension.cjs",
+    dir: "dist",
+    entryFileNames: "extension.cjs",
+    chunkFileNames: "chunks/[name]-[hash].cjs",
     format: "cjs",
     sourcemap: true,
-    codeSplitting: false,
     minify: true,
   },
   plugins: [rawPlugin],

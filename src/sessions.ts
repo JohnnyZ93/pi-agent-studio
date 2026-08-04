@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import * as vscode from "vscode";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
@@ -62,27 +62,39 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
     },
     async restore(extensionUri, bridgeConfig) {
       const map = read();
-      const valid: TerminalSessionMap = {};
-      for (const [terminalId, sessionFile] of Object.entries(map)) {
-        if (existsSync(sessionFile)) valid[terminalId] = sessionFile;
-      }
+      const entries = Object.entries(map);
+      const checks = await Promise.all(
+        entries.map(async ([terminalId, sessionFile]) => {
+          try {
+            await access(sessionFile);
+            return [terminalId, sessionFile] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const valid = Object.fromEntries(
+        checks.filter((e): e is readonly [string, string] => e !== null),
+      );
       if (Object.keys(valid).length !== Object.keys(map).length) {
         await write(valid);
       }
-      for (const [terminalId, sessionFile] of Object.entries(valid)) {
-        const terminal = await createNewTerminal({
-          extensionUri,
-          bridgeConfig,
-          terminalId,
-          sessionFile,
-        });
-        if (terminal) {
-          terminalIds.set(terminal, terminalId);
-          terminalsById.set(terminalId, terminal);
-          terminal.show();
-          lockPiEditorGroup();
-        }
-      }
+      await Promise.all(
+        Object.entries(valid).map(async ([terminalId, sessionFile]) => {
+          const terminal = await createNewTerminal({
+            extensionUri,
+            bridgeConfig,
+            terminalId,
+            sessionFile,
+          });
+          if (terminal) {
+            terminalIds.set(terminal, terminalId);
+            terminalsById.set(terminalId, terminal);
+            terminal.show();
+          }
+        }),
+      );
+      lockPiEditorGroup();
     },
   };
 }

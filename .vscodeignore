@@ -1,5 +1,6 @@
 **/*
 !dist/extension.cjs
+!dist/chunks/**/*.cjs
 !dist/webview.js
 !dist/webview.css
 !assets/fonts/**

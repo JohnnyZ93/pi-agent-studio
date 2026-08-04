@@ -21,19 +21,23 @@ import {
   type PiPackageManager,
 } from "./upgrade.ts";
 
+let piPathCache: string | undefined;
 let piExistsCache: boolean | undefined;
 
-/** Invalidate the cached existence check; call when `pi-agent-studio.path` changes. */
+/** Invalidate the cached pi binary resolution; call when `pi-agent-studio.path` changes. */
 export function invalidatePiBinaryCache(): void {
+  piPathCache = undefined;
   piExistsCache = undefined;
 }
 
 export function findPiBinary(): string {
+  if (piPathCache !== undefined) return piPathCache;
   const config = vscode.workspace.getConfiguration("pi-agent-studio");
-  return resolvePiBinary({
+  piPathCache = resolvePiBinary({
     customPath: config.get<string>("path") || undefined,
     workspaceDirs: (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath),
   });
+  return piPathCache;
 }
 
 export async function ensurePiBinary(): Promise<string | undefined> {
