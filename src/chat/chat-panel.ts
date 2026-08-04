@@ -347,7 +347,7 @@ export async function openChatPanel(
     void sendContextUsage();
   }
 
-  function toast(text: string, kind?: "info" | "success" | "error"): void {
+  function toast(text: string, kind?: "info" | "success" | "error" | "warning"): void {
     if (disposed) return;
     panel.webview.postMessage({ type: "toast", text, ...(kind ? { kind } : {}) });
   }
@@ -811,9 +811,17 @@ export async function openChatPanel(
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;
-      case "mcpOpen":
+      case "mcpOpen": {
+        const mcpEnabled = vscode.workspace
+          .getConfiguration("pi-agent-studio.mcp")
+          .get("enabled", true);
+        if (!mcpEnabled) {
+          toast('MCP is disabled. Enable it via setting "pi-agent-studio.mcp.enabled".', "warning");
+          break;
+        }
         void rpc.prompt("/mcp status", streaming ? "steer" : undefined).catch(() => {});
         break;
+      }
       case "mcpAction": {
         const action = String(msg.action ?? "status");
         const server = String(msg.server ?? "");
