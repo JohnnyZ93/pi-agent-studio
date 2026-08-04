@@ -3,6 +3,7 @@
   "ignorePatterns": [
     "src/chat/vendor",
     "src/chat/chat-dist.html",
-    "pi-chat/src/model-icons-data.ts"
+    "pi-chat/src/model-icons-data.ts",
+    "bridge/mcp/index.js"
   ]
 }

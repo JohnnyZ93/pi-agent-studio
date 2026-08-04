@@ -36,7 +36,7 @@
   "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "pnpm --filter pi-chat build && rolldown -c rolldown.config.ts",
+    "build": "pnpm --filter pi-chat build && pnpm --filter pi-mcp build && rolldown -c rolldown.config.ts",
     "dev": "rolldown -c rolldown.config.ts -w",
     "package": "pnpm build && pnpx @vscode/vsce package --no-dependencies",
     "install-local": "pnpm package && code --install-extension *.vsix",
@@ -192,6 +192,11 @@
         },
         {
           "type": "webview",
+          "id": "pi-agent-studio.mcp",
+          "name": "MCP"
+        },
+        {
+          "type": "webview",
           "id": "pi-agent-studio.settings",
           "name": "Settings",
           "visibility": "collapsed"
@@ -278,11 +283,17 @@
               "vscode_get_diagnostics",
               "todo",
               "questionnaire",
-              "subagent"
+              "subagent",
+              "mcp"
             ]
           },
           "default": [],
           "description": "LLM tools registered by bundled extensions to disable (blocklist). Defaults to none (all enabled)."
+        },
+        "pi-agent-studio.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Load the bundled MCP (Model Context Protocol) bridge extension, which exposes configured MCP servers' tools/resources/prompts to the agent. When disabled, no MCP servers are connected."
         },
         "pi-agent-studio.permission.mode": {
           "type": "string",

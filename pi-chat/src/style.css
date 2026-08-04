@@ -62,6 +62,9 @@
 .codicon-star-empty::before {
   content: "\ea6a";
 }
+.codicon-server::before {
+  content: "\eb50";
+}
 :root {
   --chat-fs: 13px;
   --chat-fs-8: calc(var(--chat-fs) * 8 / 13);
@@ -1035,6 +1038,18 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
 .tool-name {
   font-weight: 600;
   font-family: var(--vscode-editor-font-family);
+}
+.tool-block.is-mcp > .tool-head .tool-name::before {
+  content: "MCP";
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: rgba(0, 150, 200, 0.2);
+  color: var(--vscode-charts-blue, #3794ff);
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: 1px;
 }
 .tool-summary {
   font-family: var(--vscode-editor-font-family);

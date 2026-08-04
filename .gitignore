@@ -6,6 +6,7 @@ dist
 *.vsix
 pi-chat/src/model-icons-data.ts
 src/chat/chat-dist.html
+bridge/mcp/index.js
 package-lock.json
 .DS_Store
 docs

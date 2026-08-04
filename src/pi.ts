@@ -5,6 +5,7 @@ import {
   BRIDGE_EXTENSION_PATH,
   BTW_EXTENSION_PATH,
   BUILTIN_AGENTS_DIR,
+  MCP_EXTENSION_PATH,
   PERMISSION_GATE_EXTENSION_PATH,
   QUESTIONNAIRE_EXTENSION_PATH,
   REWIND_CODE_EXTENSION_PATH,
@@ -98,6 +99,14 @@ export async function upgradePiBinary(): Promise<void> {
   }
 }
 
+/** Build the `-e <path>` pair for the MCP bridge, or [] when disabled. */
+function mcpExtensionArgs(extensionUri: vscode.Uri): string[] {
+  const enabled =
+    vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("mcp.enabled") ?? true;
+  if (!enabled) return [];
+  return ["-e", join(extensionUri.fsPath, MCP_EXTENSION_PATH)];
+}
+
 /**
  * Build the pi CLI argument list (without the binary itself).
  */
@@ -122,6 +131,7 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
+    ...mcpExtensionArgs(options.extensionUri),
   ];
   const args = options.sessionFile
     ? [
@@ -182,6 +192,7 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
+    ...mcpExtensionArgs(options.extensionUri),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile

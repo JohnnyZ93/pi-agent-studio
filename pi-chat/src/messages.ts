@@ -678,6 +678,25 @@ export function formatReadRange(args: any): string {
   return ":" + startLine + (endLine !== "" ? "-" + endLine : "");
 }
 
+export function toolDisplayName(name: string): string {
+  if (name.startsWith("mcp__")) {
+    const rest = name.slice(5);
+    const idx = rest.indexOf("__");
+    if (idx > 0) return `${rest.slice(0, idx)}/${rest.slice(idx + 2)}`;
+  }
+  return name;
+}
+
+function mcpArgsPreview(args: any): string {
+  if (!args || typeof args !== "object") return "";
+  try {
+    const j = JSON.stringify(args);
+    return j.length > 80 ? j.slice(0, 80) + "\u2026" : j;
+  } catch {
+    return "";
+  }
+}
+
 export function formatToolSummary(name: string, args: any): string {
   if (!args || typeof args !== "object") return "";
   let s = "";
@@ -716,6 +735,8 @@ export function formatToolSummary(name: string, args: any): string {
     } else {
       s = "subagent";
     }
+  } else if (name.startsWith("mcp__")) {
+    s = mcpArgsPreview(args);
   }
   return s;
 }
@@ -762,7 +783,8 @@ export function finalizeToolCall(ci: number, toolCall: any) {
   if (toolCall) {
     if (toolCall.name) {
       b.name = toolCall.name;
-      b.nameEl.textContent = toolCall.name;
+      b.nameEl.textContent = toolDisplayName(b.name);
+      b.el.classList.toggle("is-mcp", b.name.startsWith("mcp__"));
       if (b.name === "subagent") b.el.classList.add("is-subagent");
     }
     if (toolCall.id) {
@@ -854,7 +876,8 @@ export function startToolExecution(ev: any) {
   }
   if (ev.toolName) {
     b.name = ev.toolName;
-    if (b.nameEl) b.nameEl.textContent = ev.toolName;
+    if (b.nameEl) b.nameEl.textContent = toolDisplayName(b.name);
+    if (b.nameEl) b.el.classList.toggle("is-mcp", b.name.startsWith("mcp__"));
     if (b.name === "subagent") b.el.classList.add("is-subagent");
   }
   b.el._block = b;

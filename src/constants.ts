@@ -7,6 +7,7 @@ export const PERMISSION_GATE_EXTENSION_PATH = "bridge/permission-gate.ts";
 export const QUESTIONNAIRE_EXTENSION_PATH = "bridge/questionnaire.ts";
 export const SUBAGENT_EXTENSION_PATH = "bridge/subagent/index.ts";
 export const REWIND_CODE_EXTENSION_PATH = "bridge/rewind-code.ts";
+export const MCP_EXTENSION_PATH = "bridge/mcp/index.js";
 export const BUILTIN_AGENTS_DIR = "bridge/agents";
 
 export const BRIDGE_BOOTSTRAP_PROMPT =

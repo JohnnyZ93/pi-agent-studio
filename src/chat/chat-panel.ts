@@ -784,6 +784,9 @@ export async function openChatPanel(
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;
+      case "mcpReconnect":
+        void rpc.prompt("/mcp reconnect", streaming ? "steer" : undefined).catch(() => {});
+        break;
       case "setPermission":
         void rpc
           .prompt(`/permission ${String(msg.mode ?? "")}`, streaming ? "steer" : undefined)
