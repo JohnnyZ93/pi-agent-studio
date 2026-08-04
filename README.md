@@ -21,6 +21,8 @@ English | [简体中文](README.zh-CN.md)
 - **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
 - **Model brand icons** — The chat panel shows circular vendor brand avatars (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …) next to the model dropdown in the composer and beside model names in message timestamps, matched by model id prefix (30+ vendors)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
+- **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope: discover and call their tools/resources via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` slash commands, and manage connections live from the chat toolbar drawer or the `/mcp` command (start / stop / reconnect, idle disconnect)
+- **Skills management** - Visual panel to create, edit, and delete pi skills (SKILL.md with YAML frontmatter) in user and project scopes
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
 - **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Diagnostics tool** — The agent can read VS Code diagnostics (LSP / lint / type errors) on demand via `vscode_get_diagnostics`
@@ -76,11 +78,13 @@ The **Pi: Open** command is also wired to the editor title bar for one-click acc
 
 ## Sidebar
 
-The **Pi** activity bar icon opens a sidebar with five webviews:
+The **Pi** activity bar icon opens a sidebar with seven webviews:
 
 - **Sessions** - Per-workspace session list with live running/idle status icons; dropdown when multiple workspace folders exist
 - **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
 - **Prompt Templates** - Create / edit / delete / open pi prompt templates (markdown with YAML frontmatter) in user and project scopes
+- **Skills** - Create / edit / delete pi skills (SKILL.md) in user and project scopes; external skills are shown read-only with an option to open the file
+- **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; stdio (command/args/env/cwd) and http (url/headers/bearerToken) transports, plus per-server `directTools` configuration
 - **Models** — Three tabs:
   - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`
   - **OAuth** — Sign in to providers that support OAuth, managed through the bundled `AuthStorage`
@@ -109,6 +113,7 @@ Beyond the editor bridge, the extension bundles a few pi extensions that add age
 - **permission-gate** - intercepts dangerous bash commands (matching `pi-agent-studio.permission.dangerousPatterns`, e.g. `rm -rf`, `sudo`) and requires approval before execution; switch per session via `/permission`
 - **rewind-code** - file-level content snapshots that let you rewind a historical message via `/tree` and optionally restore its code changes (message-only on `/fork`); in the webview panel it drives a live changed-files widget with Accept / Revert
 - **btw** - `/btw` asks a question without altering the main conversation context
+- **mcp** - connects configured MCP servers (stdio or StreamableHTTP→SSE) at session start, registers their tools/prompts into pi, and powers the MCP server drawer in the chat toolbar (managed from the **MCP Servers** sidebar; enable/disable via `pi-agent-studio.mcp.enabled`)
 
 ### LLM tool (1)
 
@@ -159,6 +164,8 @@ Example:
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                      |
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                              |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)         |
+| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables    |
 
 ## Building from source
 

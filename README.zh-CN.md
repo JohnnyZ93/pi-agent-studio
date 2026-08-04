@@ -21,6 +21,8 @@
 - **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
 - **模型品牌图标** —— 聊天面板在 composer 模型下拉框旁和消息时间戳的模型名前显示圆形品牌头像（OpenAI、Claude、Gemini、DeepSeek、Qwen、Grok …），按模型 id 前缀匹配（覆盖 30+ 厂商）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
+- **MCP 支持** —— 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：通过 `mcp_tool_search` / `mcp_tool_call` 发现并调用其工具 / 资源，提示词以 `/mcp__<服务器>__<提示词>` 形式暴露为 Slash 命令，并可从聊天工具栏抽屉或 `/mcp` 命令实时管理连接（start / stop / reconnect、空闲自动断开）
+- **技能管理** —— 可视化面板，在用户 / 项目作用域内创建、编辑、删除 pi 技能（带 YAML frontmatter 的 SKILL.md）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
 - **实时 VS Code 状态栏** —— pi 终端底部状态条实时显示当前文件、光标 / 选区、语言、未保存标记和诊断数量
 - **诊断工具** —— Agent 可通过 `vscode_get_diagnostics` 按需读取 VS Code 诊断（LSP / lint / 类型错误）
@@ -77,11 +79,13 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 侧边栏
 
-活动栏中的 **Pi** 图标会展开包含五个 webview 的侧边栏：
+活动栏中的 **Pi** 图标会展开包含七个 webview 的侧边栏：
 
 - **Sessions** -- 按工作区显示会话列表，带实时运行 / 空闲状态图标；多根工作区时显示下拉切换
 - **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
 - **Prompt Templates** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 / 打开 pi 提示词模板（带 YAML frontmatter 的 markdown）
+- **Skills** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 pi 技能（SKILL.md）；外部技能只读展示，可打开源文件
+- **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；支持 stdio（command/args/env/cwd）与 http（url/headers/bearerToken）两种传输方式，以及每台服务器的 `directTools` 配置
 - **Models** —— 三个标签页：
   - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider
   - **OAuth** —— 通过内置 `AuthStorage` 登录支持 OAuth 的 Provider
@@ -110,6 +114,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - **permission-gate** -- 拦截危险 bash 命令（匹配 `pi-agent-studio.permission.dangerousPatterns`，如 `rm -rf`、`sudo`），执行前需人工批准；可通过 `/permission` 按会话切换模式
 - **rewind-code** -- 基于文件内容快照，在通过 `/tree` 回退历史消息时可选择同时恢复其代码变更（`/fork` 仅回退消息）；webview 面板中驱动实时变更文件 widget，支持 Accept / Revert
 - **btw** -- `/btw` 提问旁路问题，不污染主对话上下文
+- **mcp** -- 会话启动时自动连接配置的 MCP 服务器（stdio 或 StreamableHTTP→SSE），将其工具 / 提示词注册进 pi，并驱动聊天工具栏的 MCP 服务器抽屉（在 **MCP Servers** 侧边栏管理；可通过 `pi-agent-studio.mcp.enabled` 开关）
 
 ### LLM 工具（1 个）
 
@@ -160,6 +165,8 @@ ovsx get johnny-zhao/pi-agent-studio
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                    |
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）           |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）      |
+| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开        |
 
 ## 从源码构建
 
