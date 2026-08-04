@@ -202,6 +202,7 @@ export async function openChatPanel(
               .then((s) => applySessionFile(s.sessionFile, s.sessionName))
               .catch(() => {});
           }
+          refreshCommands();
           void sendContextUsage();
         } else if (event.type === "message_end") {
           void sendContextUsage();
@@ -465,6 +466,16 @@ export async function openChatPanel(
     return true;
   }
 
+  function refreshCommands(): void {
+    void rpc
+      .getCommands()
+      .then((cmds) => {
+        if (disposed) return;
+        panel.webview.postMessage({ type: "commands", commands: mergeBuiltinCommands(cmds) });
+      })
+      .catch(() => {});
+  }
+
   async function hydrate(): Promise<void> {
     try {
       if (opts.sessionFile) {
@@ -490,6 +501,9 @@ export async function openChatPanel(
       panel.webview.postMessage({ type: "models", models });
       panel.webview.postMessage({ type: "enabledModels", keys: readEnabledModelKeys() });
       panel.webview.postMessage({ type: "thinkingLevels", levels });
+      // MCP prompt commands are registered asynchronously after session_start;
+      // refresh shortly to pick them up.
+      setTimeout(refreshCommands, 3000);
       panel.webview.postMessage({ type: "commands", commands: mergeBuiltinCommands(cmds) });
       applySessionFile(st.sessionFile, st.sessionName);
       const messages = await rpc.getMessages();

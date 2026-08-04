@@ -2320,12 +2320,12 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   padding: 1px 5px;
   border-radius: 3px;
   border: 1px solid var(--vscode-widget-border, transparent);
-  color: var(--vscode-descriptionForeground, var(--vscode-foreground));
-  background: var(--vscode-badge-background, rgba(127, 127, 127, 0.15));
+  color: var(--vscode-foreground);
+  background: rgba(0, 120, 212, 0.25);
+  opacity: 0.85;
 }
 .mcp-tag-project {
-  color: var(--vscode-textLink-foreground, #3794ff);
-  background: rgba(55, 148, 255, 0.12);
+  background: rgba(0, 150, 80, 0.18);
 }
 .mcp-state {
   flex-shrink: 0;
