@@ -228,7 +228,7 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
     <div class="form-group"><label class="field-label">Display Name</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="Optional" /></div></div>
     <div class="form-row"><div class="form-group"><label class="field-label">Context Window</label><input id="mf-ctx" type="number" value="${e?.contextWindow ?? ""}" placeholder="200000" /></div>
     <div class="form-group"><label class="field-label">Max Tokens</label><input id="mf-maxTok" type="number" value="${e?.maxTokens ?? ""}" placeholder="16384" /></div></div>
-    <h4 style="margin:6px 0 2px;font-size:11px;opacity:.7">Cost (per million tokens)</h4>
+    <h4 style="margin:6px 0 2px;font-size:var(--fs-11);opacity:.7">Cost (per million tokens)</h4>
     <div class="form-row"><div class="form-group"><label class="field-label">Input</label><input id="mf-costIn" type="number" step="any" value="${costIn}" placeholder="0" /></div>
     <div class="form-group"><label class="field-label">Output</label><input id="mf-costOut" type="number" step="any" value="${costOut}" placeholder="0" /></div></div>
     <div class="form-row"><div class="form-group"><label class="field-label">Cache Read</label><input id="mf-costCacheRead" type="number" step="any" value="${costCacheRead}" placeholder="0" /></div>
@@ -276,7 +276,7 @@ function renderOAuthProgress(s: OAuthProgressEvent): string {
     h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-code"><span class="codicon codicon-check"></span> Submit</button><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "device_code") {
     h += "<strong>Device Code</strong>";
-    h += `<p style="font-size:16px;font-weight:bold;letter-spacing:2px">${escHtml(s.userCode ?? "")}</p>`;
+    h += `<p style="font-size:var(--fs-16);font-weight:bold;letter-spacing:2px">${escHtml(s.userCode ?? "")}</p>`;
     if (s.verificationUri)
       h += `<p><a href="${escAttr(s.verificationUri)}" target="_blank">${escHtml(s.verificationUri)}</a></p>`;
     h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
