@@ -22,6 +22,7 @@ export default defineConfig({
   platform: "node",
   output: {
     dir: "dist",
+    cleanDir: true,
     entryFileNames: "extension.cjs",
     chunkFileNames: "chunks/[name]-[hash].cjs",
     format: "cjs",
