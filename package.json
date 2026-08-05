@@ -187,8 +187,7 @@
         {
           "type": "webview",
           "id": "pi-agent-studio.settings",
-          "name": "Settings",
-          "visibility": "collapsed"
+          "name": "Settings"
         }
       ]
     },

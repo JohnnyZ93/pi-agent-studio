@@ -3,11 +3,22 @@ import { vscode } from "../globals";
 interface ModelEntry {
   id?: string;
   name?: string;
+  api?: string;
+  baseUrl?: string;
   contextWindow?: number;
   maxTokens?: number;
-  cost?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    tiers?: unknown;
+  };
   reasoning?: boolean;
+  thinkingLevelMap?: Record<string, string | null>;
   input?: string[];
+  headers?: Record<string, string>;
+  compat?: Record<string, unknown>;
 }
 
 interface ProviderEntry {
@@ -15,6 +26,9 @@ interface ProviderEntry {
   baseUrl?: string;
   apiKey?: string;
   api?: string;
+  headers?: Record<string, string>;
+  authHeader?: boolean;
+  compat?: Record<string, unknown>;
   models?: ModelEntry[];
 }
 
@@ -67,6 +81,226 @@ const APIS = [
   ["google-generative-ai", "Google Generative AI"],
 ] as const;
 
+interface CompatFieldDef {
+  name: string;
+  type: "bool" | "select" | "json";
+  options?: readonly string[];
+  group: "openai" | "anthropic";
+}
+
+const COMPAT_FIELDS: readonly CompatFieldDef[] = [
+  { name: "supportsStore", type: "bool", group: "openai" },
+  { name: "supportsDeveloperRole", type: "bool", group: "openai" },
+  { name: "supportsReasoningEffort", type: "bool", group: "openai" },
+  { name: "supportsUsageInStreaming", type: "bool", group: "openai" },
+  { name: "supportsStrictMode", type: "bool", group: "openai" },
+  { name: "supportsOpenAIGrammarTools", type: "bool", group: "openai" },
+  { name: "requiresToolResultName", type: "bool", group: "openai" },
+  { name: "requiresAssistantAfterToolResult", type: "bool", group: "openai" },
+  { name: "requiresThinkingAsText", type: "bool", group: "openai" },
+  { name: "requiresReasoningContentOnAssistantMessages", type: "bool", group: "openai" },
+  { name: "sendSessionAffinityHeaders", type: "bool", group: "openai" },
+  { name: "supportsLongCacheRetention", type: "bool", group: "openai" },
+  {
+    name: "maxTokensField",
+    type: "select",
+    group: "openai",
+    options: ["", "max_completion_tokens", "max_tokens"],
+  },
+  {
+    name: "thinkingFormat",
+    type: "select",
+    group: "openai",
+    options: [
+      "",
+      "openai",
+      "openrouter",
+      "deepseek",
+      "together",
+      "zai",
+      "qwen",
+      "chat-template",
+      "qwen-chat-template",
+      "string-thinking",
+      "ant-ling",
+    ],
+  },
+  { name: "cacheControlFormat", type: "select", group: "openai", options: ["", "anthropic"] },
+  {
+    name: "sessionAffinityFormat",
+    type: "select",
+    group: "openai",
+    options: ["", "openai", "openai-nosession", "openrouter"],
+  },
+  { name: "deferredToolsMode", type: "select", group: "openai", options: ["", "kimi"] },
+  { name: "chatTemplateKwargs", type: "json", group: "openai" },
+  { name: "openRouterRouting", type: "json", group: "openai" },
+  { name: "vercelGatewayRouting", type: "json", group: "openai" },
+  { name: "supportsEagerToolInputStreaming", type: "bool", group: "anthropic" },
+  { name: "supportsCacheControlOnTools", type: "bool", group: "anthropic" },
+  { name: "forceAdaptiveThinking", type: "bool", group: "anthropic" },
+  { name: "allowEmptySignature", type: "bool", group: "anthropic" },
+  { name: "supportsStrictTools", type: "bool", group: "anthropic" },
+];
+
+function renderHeadersField(id: string, headers?: Record<string, string>): string {
+  const text = headers
+    ? Object.entries(headers)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("\n")
+    : "";
+  return `<label class="field-label">Headers (KEY: VALUE, one per line; values support $ENV / !cmd)</label><textarea id="${id}" class="ta" style="height:70px" placeholder="X-Custom-Header: value&#10;Authorization: Bearer $TOKEN">${escHtml(text)}</textarea>`;
+}
+
+function readHeadersField(id: string): Record<string, string> | null {
+  const el = document.getElementById(id) as HTMLTextAreaElement | null;
+  const text = el?.value ?? "";
+  const result: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const idx = trimmed.indexOf(":");
+    if (idx < 0) continue;
+    const k = trimmed.slice(0, idx).trim();
+    const v = trimmed.slice(idx + 1).trim();
+    if (k) result[k] = v;
+  }
+  return Object.keys(result).length === 0 ? null : result;
+}
+
+function renderCompatSection(prefix: string, compat?: Record<string, unknown>): string {
+  const hint =
+    '<p class="compat-hint">Choose per-field override: <em>default</em> clears the field so pi uses API defaults.</p>';
+  return `<div class="compat-wrap">${hint}${renderCompatGroup(
+    prefix,
+    "openai",
+    "OpenAI Compatibility",
+    false,
+    compat,
+  )}${renderCompatGroup(prefix, "anthropic", "Anthropic Compatibility", false, compat)}</div>`;
+}
+
+function renderCompatGroup(
+  prefix: string,
+  id: string,
+  label: string,
+  defaultOpen: boolean,
+  compat?: Record<string, unknown>,
+): string {
+  const fields = COMPAT_FIELDS.filter((f) => f.group === id);
+  let h = `<div class="cfg-group${defaultOpen ? " open" : ""}" data-compat-group="${id}">`;
+  h += `<div class="cfg-group-header"><span class="codicon codicon-chevron-down"></span> ${label}</div>`;
+  h += '<div class="cfg-group-body">';
+  const bools = fields.filter((f) => f.type === "bool");
+  if (bools.length) {
+    h += '<div class="compat-bools">';
+    for (const f of bools) {
+      const cur = compat?.[f.name];
+      const val = cur === true ? "True" : cur === false ? "False" : "Default";
+      const opts = ["Default", "True", "False"]
+        .map((o) => {
+          const sel = o === val ? " selected" : "";
+          return `<option value="${o}"${sel}>${o}</option>`;
+        })
+        .join("");
+      h += `<div class="compat-bool"><span class="compat-bool-label" title="${escAttr(f.name)}">${escHtml(f.name)}</span><select id="${prefix}-${f.name}">${opts}</select></div>`;
+    }
+    h += "</div>";
+  }
+  for (const f of fields.filter((x) => x.type === "select")) {
+    const cur = compat?.[f.name];
+    h += `<label class="field-label">${f.name}</label><select id="${prefix}-${f.name}">`;
+    for (const opt of f.options!) {
+      const sel = cur === opt ? " selected" : "";
+      h += `<option value="${escAttr(opt)}"${sel}>${escHtml(opt === "" ? "(default)" : opt)}</option>`;
+    }
+    h += "</select>";
+  }
+  for (const f of fields.filter((x) => x.type === "json")) {
+    const val = compat?.[f.name];
+    const text = val != null ? safeJsonStringify(val) : "";
+    h += `<label class="field-label">${f.name} (JSON)</label><textarea id="${prefix}-${f.name}" class="ta" style="height:70px" placeholder="{}">${escHtml(text)}</textarea>`;
+  }
+  h += "</div></div>";
+  return h;
+}
+
+function safeJsonStringify(v: unknown): string {
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return "";
+  }
+}
+
+interface CompatReadResult {
+  value: Record<string, unknown> | null;
+  errors: string[];
+}
+
+function compatGroupVisible(fieldId: string): boolean {
+  const el = document.getElementById(fieldId);
+  if (!el) return true;
+  const group = el.closest<HTMLElement>(".cfg-group");
+  return group ? group.style.display !== "none" : true;
+}
+
+function applyCompatVisibility(apiValue: string, scope: Element): void {
+  const openai =
+    apiValue === "" || apiValue === "openai-completions" || apiValue === "openai-responses";
+  const anthropic = apiValue === "" || apiValue === "anthropic-messages";
+  scope.querySelectorAll<HTMLElement>("[data-compat-group]").forEach((g) => {
+    const grp = g.getAttribute("data-compat-group");
+    const show = grp === "openai" ? openai : anthropic;
+    g.style.display = show ? "" : "none";
+  });
+}
+
+function initCompatVisibility(scope: Element): void {
+  const pd = scope.querySelector<HTMLSelectElement>("#pd-api");
+  const pf = scope.querySelector<HTMLSelectElement>("#pf-api");
+  const mf = scope.querySelector<HTMLSelectElement>("#mf-api");
+  if (pd) applyCompatVisibility(pd.value, pd.closest(".editor-card") ?? scope);
+  if (pf) applyCompatVisibility(pf.value, pf.closest(".editor-card") ?? scope);
+  if (mf) {
+    const apiVal = mf.value || (pd?.value ?? "");
+    applyCompatVisibility(apiVal, mf.closest(".editor-card") ?? scope);
+  }
+}
+
+function readCompatSection(prefix: string, existing?: Record<string, unknown>): CompatReadResult {
+  const result: Record<string, unknown> = {};
+  if (existing) Object.assign(result, existing);
+  const errors: string[] = [];
+  for (const f of COMPAT_FIELDS) {
+    const id = `${prefix}-${f.name}`;
+    if (!compatGroupVisible(id)) continue;
+    if (f.type === "bool") {
+      const el = document.getElementById(id) as HTMLSelectElement | null;
+      const v = el?.value ?? "";
+      if (v === "True") result[f.name] = true;
+      else if (v === "False") result[f.name] = false;
+      else delete result[f.name];
+    } else if (f.type === "select") {
+      const el = document.getElementById(id) as HTMLSelectElement | null;
+      const v = el?.value ?? "";
+      if (v) result[f.name] = v;
+      else delete result[f.name];
+    } else {
+      const el = document.getElementById(id) as HTMLTextAreaElement | null;
+      const txt = el?.value.trim() ?? "";
+      if (txt) {
+        try {
+          result[f.name] = JSON.parse(txt);
+        } catch {
+          errors.push(`Invalid JSON in ${f.name}`);
+        }
+      } else delete result[f.name];
+    }
+  }
+  return { value: Object.keys(result).length === 0 ? null : result, errors };
+}
+
 export function handleOAuthProgress(ev: OAuthProgressEvent) {
   oauthState = ev;
   if (modelsTabActive && modelsEl && modelsEl.tab === "oauth")
@@ -87,9 +321,37 @@ export function renderModelsTab(parent: HTMLElement, data: ModelsData) {
   if (boundParent !== parent) {
     boundParent = parent;
     parent.addEventListener("click", (e) => {
+      const header = (e.target as HTMLElement).closest<HTMLElement>(".cfg-group-header");
+      if (header) {
+        header.parentElement?.classList.toggle("open");
+        return;
+      }
       const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
       if (!btn) return;
       if (currentData) handleAction(btn, parent, currentData);
+    });
+    parent.addEventListener("change", (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.matches("select")) return;
+      const id = target.id;
+      if (id !== "pd-api" && id !== "pf-api" && id !== "mf-api") return;
+      const sel = target as HTMLSelectElement;
+      if (id === "pd-api") {
+        const card = sel.closest(".editor-card");
+        if (card) applyCompatVisibility(sel.value, card);
+        parent.querySelectorAll<HTMLSelectElement>("#mf-api").forEach((ms) => {
+          if (!ms.value) {
+            const mcard = ms.closest(".editor-card");
+            if (mcard) applyCompatVisibility(sel.value, mcard);
+          }
+        });
+      } else {
+        const card = sel.closest(".editor-card");
+        if (!card) return;
+        const apiVal =
+          sel.value || (parent.querySelector<HTMLSelectElement>("#pd-api")?.value ?? "");
+        applyCompatVisibility(apiVal, card);
+      }
     });
   }
 }
@@ -148,6 +410,7 @@ function renderProv(parent: HTMLElement, data: ModelsData) {
   if (state.editNew) h += renderProvAddForm();
   h += "</div>";
   body.innerHTML = h;
+  initCompatVisibility(body);
 }
 
 function renderProvDetail(provId: string, data: ModelsData) {
@@ -157,12 +420,16 @@ function renderProvDetail(provId: string, data: ModelsData) {
   let h = `<div class="editor-card"><h3>Provider</h3>`;
   h += `<label class="field-label">Name</label><input id="pd-name" value="${escAttr(provId)}" placeholder="provider-name" />`;
   h += `<label class="field-label">Base URL</label><input id="pd-baseUrl" value="${escAttr(prov.baseUrl ?? "")}" placeholder="https://api.example.com/v1" />`;
-  h += `<label class="field-label">API Key</label><input id="pd-apiKey" type="password" value="${escAttr(prov.apiKey ?? "")}" placeholder="sk-... or $ENV_VAR" />`;
+  h += `<label class="field-label">API Key</label><input id="pd-apiKey" type="password" value="${escAttr(prov.apiKey ?? "")}" placeholder="sk-... or $ENV_VAR or !cmd" />`;
   h += `<label class="field-label">API Protocol</label><select id="pd-api">`;
   for (const [val, label] of APIS) {
     h += `<option value="${escAttr(val)}"${prov.api === val ? " selected" : ""}>${escHtml(label)}</option>`;
   }
   h += "</select>";
+  h += `<label class="check-label"><input type="checkbox" id="pd-authHeader" ${prov.authHeader ? "checked" : ""} /> authHeader (add Authorization: Bearer header)</label>`;
+  h += renderHeadersField("pd-headers", prov.headers);
+  h += `<label class="field-label">Compatibility</label>`;
+  h += renderCompatSection("pd-cx", prov.compat);
   h += `<div class="btn-row"><button class="btn-primary" data-action="prov-save-detail" data-id="${escAttr(provId)}"><span class="codicon codicon-save"></span> Save</button><button class="btn-icon btn-danger" data-action="prov-delete" data-id="${escAttr(provId)}" title="Delete"><span class="codicon codicon-trash"></span></button></div></div>`;
 
   const models = prov.models || [];
@@ -211,8 +478,12 @@ function renderProvAddForm() {
   return `<div class="editor-card"><h3>Add Provider</h3>
     <label class="field-label">Name</label><input id="pf-name" placeholder="my-provider" />
     <label class="field-label">Base URL</label><input id="pf-baseUrl" placeholder="https://api.example.com/v1" />
-    <label class="field-label">API Key</label><input id="pf-apiKey" type="password" placeholder="sk-... or $ENV_VAR" />
+    <label class="field-label">API Key</label><input id="pf-apiKey" type="password" placeholder="sk-... or $ENV_VAR or !cmd" />
     <label class="field-label">API Protocol</label><select id="pf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}">${escHtml(l)}</option>`).join("")}</select>
+    <label class="check-label"><input type="checkbox" id="pf-authHeader" /> authHeader (add Authorization: Bearer header)</label>
+    ${renderHeadersField("pf-headers")}
+    <label class="field-label">Compatibility</label>
+    ${renderCompatSection("pf-cx")}
     <div class="btn-row"><button class="btn-primary" data-action="prov-save-new"><span class="codicon codicon-save"></span> Save</button><button class="btn-secondary" data-action="prov-cancel-edit" title="Cancel"><span class="codicon codicon-close"></span></button></div></div>`;
 }
 
@@ -222,21 +493,30 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
   const costOut = e?.cost?.output != null ? e.cost.output : "";
   const costCacheRead = e?.cost?.cacheRead != null ? e.cost.cacheRead : "";
   const costCacheWrite = e?.cost?.cacheWrite != null ? e.cost.cacheWrite : "";
+  const costTiers = e?.cost?.tiers != null ? safeJsonStringify(e.cost.tiers) : "";
   const hasImage = !!e?.input?.includes("image");
+  const tlm = e?.thinkingLevelMap != null ? safeJsonStringify(e.thinkingLevelMap) : "";
   return `<div class="editor-card" style="border:1px solid var(--vscode-focusBorder);border-radius:4px;margin:4px 0"><h3>${isNew ? "Add Model" : "Edit Model"}</h3>
     <div class="form-row"><div class="form-group"><label class="field-label">Model ID</label><input id="mf-id" value="${escAttr(e?.id ?? "")}" placeholder="model-id" ${isNew ? "" : "readonly"} /></div>
     <div class="form-group"><label class="field-label">Display Name</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="Optional" /></div></div>
     <div class="form-row"><div class="form-group"><label class="field-label">Context Window</label><input id="mf-ctx" type="number" value="${e?.contextWindow ?? ""}" placeholder="200000" /></div>
     <div class="form-group"><label class="field-label">Max Tokens</label><input id="mf-maxTok" type="number" value="${e?.maxTokens ?? ""}" placeholder="16384" /></div></div>
+    <div class="form-row"><div class="form-group"><label class="field-label">API Protocol (override)</label><select id="mf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}"${e?.api === v ? " selected" : ""}>${escHtml(l)}</option>`).join("")}</select></div>
+    <div class="form-group"><label class="field-label">Base URL (override)</label><input id="mf-baseUrl" value="${escAttr(e?.baseUrl ?? "")}" placeholder="Optional" /></div></div>
     <h4 style="margin:6px 0 2px;font-size:var(--fs-11);opacity:.7">Cost (per million tokens)</h4>
     <div class="form-row"><div class="form-group"><label class="field-label">Input</label><input id="mf-costIn" type="number" step="any" value="${costIn}" placeholder="0" /></div>
     <div class="form-group"><label class="field-label">Output</label><input id="mf-costOut" type="number" step="any" value="${costOut}" placeholder="0" /></div></div>
     <div class="form-row"><div class="form-group"><label class="field-label">Cache Read</label><input id="mf-costCacheRead" type="number" step="any" value="${costCacheRead}" placeholder="0" /></div>
     <div class="form-group"><label class="field-label">Cache Write</label><input id="mf-costCacheWrite" type="number" step="any" value="${costCacheWrite}" placeholder="0" /></div></div>
+    <label class="field-label">Cost Tiers (JSON array)</label><textarea id="mf-costTiers" class="ta" style="height:80px" placeholder='[{ "inputTokensAbove": 272000, "input": 10, "output": 45, "cacheRead": 1, "cacheWrite": 12.5 }]'>${escHtml(costTiers)}</textarea>
     <div class="form-row" style="gap:14px;margin:4px 0">
       <label class="check-label"><input type="checkbox" id="mf-reasoning" ${e?.reasoning ? "checked" : ""} /> Reasoning</label>
       <label class="check-label"><input type="checkbox" id="mf-image" ${hasImage ? "checked" : ""} /> Image input</label>
     </div>
+    <label class="field-label">Thinking Level Map (JSON)</label><textarea id="mf-thinkingLevelMap" class="ta" style="height:90px" placeholder='{ "high": "high", "max": "max", "low": null }'>${escHtml(tlm)}</textarea>
+    ${renderHeadersField("mf-headers", e?.headers)}
+    <label class="field-label">Compatibility</label>
+    ${renderCompatSection("mf-cx", e?.compat)}
     <div class="btn-row"><button class="btn-primary" data-action="model-save" data-pid="${escAttr(provId)}" data-new="${isNew ? "1" : "0"}"><span class="codicon codicon-save"></span> Save</button><button class="btn-secondary" data-action="model-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div></div>`;
 }
 
@@ -494,13 +774,24 @@ function saveProvForm(parent: HTMLElement, _data: ModelsData, _isNew: boolean) {
     showErr(parent, "Provider name is required");
     return;
   }
-  const entry: Record<string, string> = {};
+  const entry: Record<string, unknown> = {};
   const baseUrl = (document.getElementById("pf-baseUrl") as HTMLInputElement)?.value.trim() ?? "";
   if (baseUrl) entry.baseUrl = baseUrl;
   const apiKey = (document.getElementById("pf-apiKey") as HTMLInputElement)?.value.trim() ?? "";
   if (apiKey) entry.apiKey = apiKey;
   const api = (document.getElementById("pf-api") as HTMLSelectElement)?.value ?? "";
   if (api) entry.api = api;
+  const authHeader =
+    (document.getElementById("pf-authHeader") as HTMLInputElement)?.checked ?? false;
+  if (authHeader) entry.authHeader = true;
+  const headers = readHeadersField("pf-headers");
+  if (headers) entry.headers = headers;
+  const compat = readCompatSection("pf-cx");
+  if (compat.errors.length) {
+    showErr(parent, compat.errors.join("; "));
+    return;
+  }
+  if (compat.value) entry.compat = compat.value;
   vscode.postMessage({ type: "addProvider", name, entry });
   provState.editNew = false;
 }
@@ -511,10 +802,20 @@ function saveProvDetail(parent: HTMLElement, _data: ModelsData, provId: string) 
     showErr(parent, "Provider name is required");
     return;
   }
-  const u: Record<string, string | null> = {};
+  const u: Record<string, unknown> = {};
   u.baseUrl = (document.getElementById("pd-baseUrl") as HTMLInputElement)?.value.trim() || null;
   u.apiKey = (document.getElementById("pd-apiKey") as HTMLInputElement)?.value.trim() || null;
   u.api = (document.getElementById("pd-api") as HTMLSelectElement)?.value || null;
+  u.authHeader = (document.getElementById("pd-authHeader") as HTMLInputElement)?.checked
+    ? true
+    : null;
+  u.headers = readHeadersField("pd-headers");
+  const compat = readCompatSection("pd-cx");
+  if (compat.errors.length) {
+    showErr(parent, compat.errors.join("; "));
+    return;
+  }
+  u.compat = compat.value;
   if (newName !== provId) {
     provState.expanded = newName;
     vscode.postMessage({ type: "renameProviderAndUpdate", oldName: provId, newName, updates: u });
@@ -529,13 +830,18 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
     showErr(parent, "Model ID is required");
     return;
   }
+  const errors: string[] = [];
   const m: Record<string, unknown> = { id };
   const name = (document.getElementById("mf-name") as HTMLInputElement)?.value.trim() ?? "";
-  if (name) m.name = name;
+  m.name = name || null;
   const ctx = parseInt((document.getElementById("mf-ctx") as HTMLInputElement)?.value ?? "");
-  if (ctx > 0) m.contextWindow = ctx;
+  m.contextWindow = ctx > 0 ? ctx : null;
   const maxTok = parseInt((document.getElementById("mf-maxTok") as HTMLInputElement)?.value ?? "");
-  if (maxTok > 0) m.maxTokens = maxTok;
+  m.maxTokens = maxTok > 0 ? maxTok : null;
+  const api = (document.getElementById("mf-api") as HTMLSelectElement)?.value ?? "";
+  m.api = api || null;
+  const baseUrl = (document.getElementById("mf-baseUrl") as HTMLInputElement)?.value.trim() ?? "";
+  m.baseUrl = baseUrl || null;
   const costIn = parseFloat(
     (document.getElementById("mf-costIn") as HTMLInputElement)?.value ?? "",
   );
@@ -548,22 +854,62 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
   const costCacheWrite = parseFloat(
     (document.getElementById("mf-costCacheWrite") as HTMLInputElement)?.value ?? "",
   );
+  const tiersTxt = (
+    (document.getElementById("mf-costTiers") as HTMLTextAreaElement)?.value ?? ""
+  ).trim();
+  let tiers: unknown = null;
+  if (tiersTxt) {
+    try {
+      tiers = JSON.parse(tiersTxt);
+    } catch {
+      errors.push("Invalid JSON in Cost Tiers");
+    }
+  }
   const anyCost =
-    !isNaN(costIn) || !isNaN(costOut) || !isNaN(costCacheRead) || !isNaN(costCacheWrite);
+    !isNaN(costIn) ||
+    !isNaN(costOut) ||
+    !isNaN(costCacheRead) ||
+    !isNaN(costCacheWrite) ||
+    tiers != null;
   if (anyCost) {
-    m.cost = {
+    const cost: Record<string, unknown> = {
       input: isNaN(costIn) ? 0 : costIn,
       output: isNaN(costOut) ? 0 : costOut,
       cacheRead: isNaN(costCacheRead) ? 0 : costCacheRead,
       cacheWrite: isNaN(costCacheWrite) ? 0 : costCacheWrite,
     };
+    if (tiers != null) cost.tiers = tiers;
+    m.cost = cost;
+  } else {
+    m.cost = null;
   }
   m.reasoning = (document.getElementById("mf-reasoning") as HTMLInputElement)?.checked ?? false;
   const image = (document.getElementById("mf-image") as HTMLInputElement)?.checked ?? false;
   m.input = image ? ["text", "image"] : null;
+  const tlmTxt = (
+    (document.getElementById("mf-thinkingLevelMap") as HTMLTextAreaElement)?.value ?? ""
+  ).trim();
+  if (tlmTxt) {
+    try {
+      m.thinkingLevelMap = JSON.parse(tlmTxt);
+    } catch {
+      errors.push("Invalid JSON in Thinking Level Map");
+    }
+  } else {
+    m.thinkingLevelMap = null;
+  }
+  m.headers = readHeadersField("mf-headers");
+  const compat = readCompatSection("mf-cx");
+  errors.push(...compat.errors);
+  m.compat = compat.value;
+  if (errors.length) {
+    showErr(parent, errors.join("; "));
+    return;
+  }
   if (isNew) {
-    if (m.input === null) delete m.input;
-    vscode.postMessage({ type: "addModel", providerName: provId, model: m });
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(m)) if (v !== null) clean[k] = v;
+    vscode.postMessage({ type: "addModel", providerName: provId, model: clean });
   } else {
     vscode.postMessage({ type: "updateModel", providerName: provId, modelId: id, updates: m });
   }

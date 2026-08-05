@@ -1143,3 +1143,47 @@ textarea.form-input {
 .oauth-progress a {
   color: var(--vscode-textLink-foreground);
 }
+
+.compat-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.compat-hint {
+  font-size: var(--fs-10);
+  opacity: 0.65;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.compat-bools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.compat-bool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.compat-bool-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-11);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compat-bool select {
+  width: auto;
+  flex-shrink: 0;
+  min-width: 72px;
+}

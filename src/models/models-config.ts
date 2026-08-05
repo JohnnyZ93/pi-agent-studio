@@ -10,6 +10,7 @@ export interface ModelEntry {
   id: string;
   name?: string;
   api?: string;
+  baseUrl?: string;
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string | null>;
   input?: string[];
@@ -20,7 +21,15 @@ export interface ModelEntry {
     output?: number;
     cacheRead?: number;
     cacheWrite?: number;
+    tiers?: Array<{
+      inputTokensAbove: number;
+      input?: number;
+      output?: number;
+      cacheRead?: number;
+      cacheWrite?: number;
+    }>;
   };
+  headers?: Record<string, string>;
   compat?: Record<string, unknown>;
 }
 
