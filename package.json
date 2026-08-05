@@ -47,6 +47,7 @@
     "test": "pnpm lint && pnpm typecheck"
   },
   "dependencies": {
+    "@earendil-works/pi-ai": "^0.83.0",
     "@earendil-works/pi-coding-agent": "^0.83.0"
   },
   "devDependencies": {
@@ -86,11 +87,11 @@
       },
       {
         "command": "pi-agent-studio.openSettingsJson",
-        "title": "Pi: Open settings.json"
+        "title": "Pi: Open Settings (JSON)"
       },
       {
         "command": "pi-agent-studio.openModelsJson",
-        "title": "Pi: Open models.json"
+        "title": "Pi: Open Models (JSON)"
       },
       {
         "command": "pi-agent-studio.openSettings",
@@ -367,6 +368,10 @@
       {
         "command": "pi-agent-studio.open",
         "key": "alt+shift+p"
+      },
+      {
+        "command": "pi-agent-studio.openSettings",
+        "key": "alt+shift+,"
       }
     ]
   },

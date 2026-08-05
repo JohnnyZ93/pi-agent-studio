@@ -1,3 +1,4 @@
+import { registerBunOAuthFlows } from "@earendil-works/pi-ai/bun-oauth";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import {
   getOAuthProviders,
@@ -5,6 +6,13 @@ import {
   invalidateModelRuntime,
   logout,
 } from "./auth-config.ts";
+
+// pi-ai loads OAuth flow implementations through bundler-opaque dynamic
+// imports (variable specifiers) that resolve relative to the importing
+// module. Inside the rolldown bundle those resolve against dist/chunks/
+// where the modules don't exist, so the flows must be statically bundled
+// and registered instead - same mechanism standalone Bun binaries use.
+registerBunOAuthFlows();
 
 // Auth interaction shapes (mirrors pi-ai's AuthPrompt / AuthEvent / AuthInteraction,
 // declared locally because @earendil-works/pi-ai is only a transitive dependency).

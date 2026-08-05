@@ -103,9 +103,9 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = "$(pi-logo) Pi";
-  statusBarItem.tooltip = "Open Pi Terminal";
-  statusBarItem.command = "pi-agent-studio.open";
+  statusBarItem.text = "$(pi-logo)";
+  statusBarItem.tooltip = "Open Pi Settings";
+  statusBarItem.command = "pi-agent-studio.openSettings";
   statusBarItem.show();
 
   context.subscriptions.push(
