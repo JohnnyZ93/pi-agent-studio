@@ -89,7 +89,8 @@ window.addEventListener("message", (ev) => {
       if (msg.what === "system") showToast("System prompt saved", "success");
       else if (msg.what === "append") showToast("Append prompt saved", "success");
       else if (msg.what === "commit") showToast("Commit message settings saved", "success");
-      else if (msg.what === "settings") showToast("Settings saved — restart pi to apply", "success");
+      else if (msg.what === "settings")
+        showToast("Settings saved — restart pi to apply", "success");
       break;
     default:
       break;

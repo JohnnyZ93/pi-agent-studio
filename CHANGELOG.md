@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.2.1] - 2026-08-05
+
+- **Unified Settings panel**: the separate Models / Agents / Prompt Templates / Skills / MCP Servers sidebar webviews are consolidated into a single **Full Settings** editor panel (`pi-agent-studio.openSettings`). Seven lazy-loaded tabs: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers, **Commit Message** (model / language / custom prompt), and Settings (inline **`settings.json` editor** + System Prompt Append / Override).
+- **MCP editor**: explicit **transport selector** (stdio / http) with dynamic field visibility; server names are locked when editing an existing server.
+- **UI / build**: theme-relative font sizes, editor-state and dropdown-preservation fixes; `dist` is cleaned before each build to avoid stale chunks.
+
 ## [1.2.0] - 2026-08-05
 
 - **MCP support**: new MCP bridge extension connects configured Model Context Protocol servers (user `~/.pi/agent/mcp.json` + project `.pi/mcp.json`, stdio or HTTP) at session start and registers their tools/resources/prompts into pi. Discover and call tools via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` commands, and manage connections live from the chat toolbar MCP drawer or the `/mcp` command (start / stop / reconnect). Idle servers auto-disconnect (`pi-agent-studio.mcp.idleTimeout`, default 10 min) while cached metadata stays searchable; new **MCP Servers** sidebar manages server configs and per-server `directTools` in both scopes.

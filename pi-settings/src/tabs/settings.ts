@@ -25,15 +25,30 @@ const GROUPS: SettingGroup[] = [
   {
     title: "Model & Thinking",
     fields: [
-      { key: "defaultProvider", label: "Default provider", type: "string", placeholder: "anthropic" },
-      { key: "defaultModel", label: "Default model", type: "string", placeholder: "claude-sonnet-4-20250514" },
+      {
+        key: "defaultProvider",
+        label: "Default provider",
+        type: "string",
+        placeholder: "anthropic",
+      },
+      {
+        key: "defaultModel",
+        label: "Default model",
+        type: "string",
+        placeholder: "claude-sonnet-4-20250514",
+      },
       {
         key: "defaultThinkingLevel",
         label: "Default thinking level",
         type: "enum",
         options: ["off", "minimal", "low", "medium", "high", "xhigh", "max"],
       },
-      { key: "hideThinkingBlock", label: "Hide thinking block", type: "bool", desc: "Hide thinking blocks in output" },
+      {
+        key: "hideThinkingBlock",
+        label: "Hide thinking block",
+        type: "bool",
+        desc: "Hide thinking blocks in output",
+      },
       {
         key: "showCacheMissNotices",
         label: "Show cache-miss notices",
@@ -52,7 +67,12 @@ const GROUPS: SettingGroup[] = [
     title: "UI & Display",
     fields: [
       { key: "theme", label: "Theme", type: "string", def: "dark", placeholder: "dark" },
-      { key: "externalEditor", label: "External editor", type: "string", desc: 'Command for Ctrl+G external editor (e.g. "code --wait")' },
+      {
+        key: "externalEditor",
+        label: "External editor",
+        type: "string",
+        desc: 'Command for Ctrl+G external editor (e.g. "code --wait")',
+      },
       { key: "quietStartup", label: "Quiet startup", type: "bool", desc: "Hide startup header" },
       {
         key: "defaultProjectTrust",
@@ -61,11 +81,27 @@ const GROUPS: SettingGroup[] = [
         options: ["ask", "always", "never"],
         desc: "Fallback project trust behavior (global only)",
       },
-      { key: "collapseChangelog", label: "Collapse changelog", type: "bool", desc: "Show condensed changelog after updates" },
+      {
+        key: "collapseChangelog",
+        label: "Collapse changelog",
+        type: "bool",
+        desc: "Show condensed changelog after updates",
+      },
       { key: "enableInstallTelemetry", label: "Install telemetry", type: "bool", def: true },
-      { key: "enableAnalytics", label: "Analytics", type: "bool", desc: "Opt-in analytics data sharing" },
+      {
+        key: "enableAnalytics",
+        label: "Analytics",
+        type: "bool",
+        desc: "Opt-in analytics data sharing",
+      },
       { key: "trackingId", label: "Tracking ID", type: "string" },
-      { key: "doubleEscapeAction", label: "Double-escape action", type: "enum", options: ["tree", "fork", "none"], def: "tree" },
+      {
+        key: "doubleEscapeAction",
+        label: "Double-escape action",
+        type: "enum",
+        options: ["tree", "fork", "none"],
+        def: "tree",
+      },
       {
         key: "treeFilterMode",
         label: "Tree filter mode",
@@ -75,7 +111,14 @@ const GROUPS: SettingGroup[] = [
       },
       { key: "editorPaddingX", label: "Editor padding X", type: "number", min: 0, max: 3, def: 0 },
       { key: "outputPad", label: "Output pad", type: "number", min: 0, max: 1, def: 1 },
-      { key: "autocompleteMaxVisible", label: "Autocomplete max visible", type: "number", min: 3, max: 20, def: 5 },
+      {
+        key: "autocompleteMaxVisible",
+        label: "Autocomplete max visible",
+        type: "number",
+        min: 3,
+        max: 20,
+        def: 5,
+      },
       {
         key: "showHardwareCursor",
         label: "Show hardware cursor",
@@ -111,15 +154,39 @@ const GROUPS: SettingGroup[] = [
   {
     title: "Compaction",
     fields: [
-      { key: "compaction.enabled", label: "Enabled", type: "bool", def: true, desc: "Enable auto-compaction" },
-      { key: "compaction.reserveTokens", label: "Reserve tokens", type: "number", def: 16384, desc: "Tokens reserved for LLM response" },
-      { key: "compaction.keepRecentTokens", label: "Keep recent tokens", type: "number", def: 20000, desc: "Recent tokens to keep (not summarized)" },
+      {
+        key: "compaction.enabled",
+        label: "Enabled",
+        type: "bool",
+        def: true,
+        desc: "Enable auto-compaction",
+      },
+      {
+        key: "compaction.reserveTokens",
+        label: "Reserve tokens",
+        type: "number",
+        def: 16384,
+        desc: "Tokens reserved for LLM response",
+      },
+      {
+        key: "compaction.keepRecentTokens",
+        label: "Keep recent tokens",
+        type: "number",
+        def: 20000,
+        desc: "Recent tokens to keep (not summarized)",
+      },
     ],
   },
   {
     title: "Branch Summary",
     fields: [
-      { key: "branchSummary.reserveTokens", label: "Reserve tokens", type: "number", def: 16384, desc: "Tokens reserved for branch summarization" },
+      {
+        key: "branchSummary.reserveTokens",
+        label: "Reserve tokens",
+        type: "number",
+        def: 16384,
+        desc: "Tokens reserved for branch summarization",
+      },
       {
         key: "branchSummary.skipPrompt",
         label: "Skip prompt",
@@ -131,22 +198,62 @@ const GROUPS: SettingGroup[] = [
   {
     title: "Retry",
     fields: [
-      { key: "retry.enabled", label: "Enabled", type: "bool", def: true, desc: "Enable automatic agent-level retry on transient errors" },
+      {
+        key: "retry.enabled",
+        label: "Enabled",
+        type: "bool",
+        def: true,
+        desc: "Enable automatic agent-level retry on transient errors",
+      },
       { key: "retry.maxRetries", label: "Max retries", type: "number", def: 3 },
-      { key: "retry.baseDelayMs", label: "Base delay (ms)", type: "number", def: 2000, desc: "Exponential backoff base (2s, 4s, 8s)" },
+      {
+        key: "retry.baseDelayMs",
+        label: "Base delay (ms)",
+        type: "number",
+        def: 2000,
+        desc: "Exponential backoff base (2s, 4s, 8s)",
+      },
       { key: "retry.provider.timeoutMs", label: "Provider timeout (ms)", type: "number" },
       { key: "retry.provider.maxRetries", label: "Provider max retries", type: "number", def: 0 },
-      { key: "retry.provider.maxRetryDelayMs", label: "Provider max retry delay (ms)", type: "number", def: 60000 },
+      {
+        key: "retry.provider.maxRetryDelayMs",
+        label: "Provider max retry delay (ms)",
+        type: "number",
+        def: 60000,
+      },
     ],
   },
   {
     title: "Message Delivery",
     fields: [
-      { key: "steeringMode", label: "Steering mode", type: "enum", options: ["all", "one-at-a-time"], def: "one-at-a-time" },
-      { key: "followUpMode", label: "Follow-up mode", type: "enum", options: ["all", "one-at-a-time"], def: "one-at-a-time" },
-      { key: "transport", label: "Transport", type: "enum", options: ["sse", "websocket", "websocket-cached", "auto"], def: "auto" },
+      {
+        key: "steeringMode",
+        label: "Steering mode",
+        type: "enum",
+        options: ["all", "one-at-a-time"],
+        def: "one-at-a-time",
+      },
+      {
+        key: "followUpMode",
+        label: "Follow-up mode",
+        type: "enum",
+        options: ["all", "one-at-a-time"],
+        def: "one-at-a-time",
+      },
+      {
+        key: "transport",
+        label: "Transport",
+        type: "enum",
+        options: ["sse", "websocket", "websocket-cached", "auto"],
+        def: "auto",
+      },
       { key: "httpIdleTimeoutMs", label: "HTTP idle timeout (ms)", type: "number", def: 300000 },
-      { key: "websocketConnectTimeoutMs", label: "WebSocket connect timeout (ms)", type: "number", def: 15000 },
+      {
+        key: "websocketConnectTimeoutMs",
+        label: "WebSocket connect timeout (ms)",
+        type: "number",
+        def: 15000,
+      },
     ],
   },
   {
@@ -154,22 +261,60 @@ const GROUPS: SettingGroup[] = [
     fields: [
       { key: "terminal.showImages", label: "Show images in terminal", type: "bool", def: true },
       { key: "terminal.imageWidthCells", label: "Image width (cells)", type: "number", def: 60 },
-      { key: "terminal.clearOnShrink", label: "Clear on shrink", type: "bool", desc: "Clear empty rows when content shrinks" },
-      { key: "images.autoResize", label: "Auto-resize images", type: "bool", def: true, desc: "Resize images to 2000x2000 max" },
-      { key: "images.blockImages", label: "Block images", type: "bool", desc: "Block all images from being sent to the LLM" },
+      {
+        key: "terminal.clearOnShrink",
+        label: "Clear on shrink",
+        type: "bool",
+        desc: "Clear empty rows when content shrinks",
+      },
+      {
+        key: "images.autoResize",
+        label: "Auto-resize images",
+        type: "bool",
+        def: true,
+        desc: "Resize images to 2000x2000 max",
+      },
+      {
+        key: "images.blockImages",
+        label: "Block images",
+        type: "bool",
+        desc: "Block all images from being sent to the LLM",
+      },
     ],
   },
   {
     title: "Shell",
     fields: [
-      { key: "shellPath", label: "Shell path", type: "string", desc: "Custom shell path (e.g. for Cygwin on Windows)" },
-      { key: "shellCommandPrefix", label: "Command prefix", type: "string", desc: 'Prefix for every bash command (e.g. "shopt -s expand_aliases")' },
-      { key: "npmCommand", label: "npm command", type: "string[]", desc: "Command argv for npm operations (one entry per line)" },
+      {
+        key: "shellPath",
+        label: "Shell path",
+        type: "string",
+        desc: "Custom shell path (e.g. for Cygwin on Windows)",
+      },
+      {
+        key: "shellCommandPrefix",
+        label: "Command prefix",
+        type: "string",
+        desc: 'Prefix for every bash command (e.g. "shopt -s expand_aliases")',
+      },
+      {
+        key: "npmCommand",
+        label: "npm command",
+        type: "string[]",
+        desc: "Command argv for npm operations (one entry per line)",
+      },
     ],
   },
   {
     title: "Sessions",
-    fields: [{ key: "sessionDir", label: "Session directory", type: "string", placeholder: ".pi/sessions" }],
+    fields: [
+      {
+        key: "sessionDir",
+        label: "Session directory",
+        type: "string",
+        placeholder: ".pi/sessions",
+      },
+    ],
   },
   {
     title: "Model Cycling",
@@ -184,17 +329,50 @@ const GROUPS: SettingGroup[] = [
   },
   {
     title: "Markdown",
-    fields: [{ key: "markdown.codeBlockIndent", label: "Code block indent", type: "string", def: "  " }],
+    fields: [
+      { key: "markdown.codeBlockIndent", label: "Code block indent", type: "string", def: "  " },
+    ],
   },
   {
     title: "Resources",
     fields: [
-      { key: "packages", label: "Packages", type: "json", desc: "npm/git packages to load resources from (JSON array)" },
-      { key: "extensions", label: "Extensions", type: "string[]", desc: "Local extension file paths or directories (one per line)" },
-      { key: "skills", label: "Skills", type: "string[]", desc: "Local skill file paths or directories (one per line)" },
-      { key: "prompts", label: "Prompts", type: "string[]", desc: "Local prompt template paths or directories (one per line)" },
-      { key: "themes", label: "Themes", type: "string[]", desc: "Local theme file paths or directories (one per line)" },
-      { key: "enableSkillCommands", label: "Enable skill commands", type: "bool", def: true, desc: "Register skills as /skill:name commands" },
+      {
+        key: "packages",
+        label: "Packages",
+        type: "json",
+        desc: "npm/git packages to load resources from (JSON array)",
+      },
+      {
+        key: "extensions",
+        label: "Extensions",
+        type: "string[]",
+        desc: "Local extension file paths or directories (one per line)",
+      },
+      {
+        key: "skills",
+        label: "Skills",
+        type: "string[]",
+        desc: "Local skill file paths or directories (one per line)",
+      },
+      {
+        key: "prompts",
+        label: "Prompts",
+        type: "string[]",
+        desc: "Local prompt template paths or directories (one per line)",
+      },
+      {
+        key: "themes",
+        label: "Themes",
+        type: "string[]",
+        desc: "Local theme file paths or directories (one per line)",
+      },
+      {
+        key: "enableSkillCommands",
+        label: "Enable skill commands",
+        type: "bool",
+        def: true,
+        desc: "Register skills as /skill:name commands",
+      },
     ],
   },
 ];
@@ -212,8 +390,13 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
       case "bool":
         return `<div class="cfg-field"><label class="check-label"><input type="checkbox" id="${id}" data-key="${escHtml(f.key)}" ${init ? "checked" : ""} /> ${escHtml(f.label)}</label>${desc}</div>`;
       case "enum":
-        return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><select id="${id}" data-key="${escHtml(f.key)}">${(f.options ?? [])
-          .map((o) => `<option value="${escHtml(o)}" ${o === init ? "selected" : ""}>${escHtml(o)}</option>`)
+        return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><select id="${id}" data-key="${escHtml(f.key)}">${(
+          f.options ?? []
+        )
+          .map(
+            (o) =>
+              `<option value="${escHtml(o)}" ${o === init ? "selected" : ""}>${escHtml(o)}</option>`,
+          )
           .join("")}</select>${desc}</div>`;
       case "number":
         return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><input type="number" id="${id}" data-key="${escHtml(f.key)}" value="${init === undefined ? "" : String(init)}"${f.min !== undefined ? ` min="${f.min}"` : ""}${f.max !== undefined ? ` max="${f.max}"` : ""} />${desc}</div>`;
@@ -375,7 +558,9 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
           (el as HTMLInputElement).value = String(f.def ?? "");
           break;
         case "string[]":
-          (el as HTMLTextAreaElement).value = Array.isArray(f.def) ? f.def.map(String).join("\n") : "";
+          (el as HTMLTextAreaElement).value = Array.isArray(f.def)
+            ? f.def.map(String).join("\n")
+            : "";
           break;
         case "json": {
           const s = JSON.stringify(f.def);

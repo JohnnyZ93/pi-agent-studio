@@ -147,7 +147,8 @@ export function parseServerEntry(form: {
   _transport?: string;
 }): ServerEntry {
   const entry: ServerEntry = {};
-  const transport = form._transport === "http" ? "http" : form._transport === "stdio" ? "stdio" : null;
+  const transport =
+    form._transport === "http" ? "http" : form._transport === "stdio" ? "stdio" : null;
   const command = form.command?.trim();
   const url = form.url?.trim();
   if (transport === "http" && url) {

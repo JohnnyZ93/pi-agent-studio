@@ -4,7 +4,7 @@
 
 # Pi Agent Studio
 
-**A feature-rich VS Code extension for the [pi coding agent](https://pi.dev/) - native terminal TUI or webview chat panel, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sidebar for sessions, models, agents, and settings** 🔥
+**A feature-rich VS Code extension for the [pi coding agent](https://pi.dev/) - native terminal TUI or webview chat panel, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sessions sidebar and a full settings panel for models, agents, and more** 🔥
 
 English | [简体中文](README.zh-CN.md)
 
@@ -29,7 +29,8 @@ English | [简体中文](README.zh-CN.md)
 - **Slash commands** — `/vscode-selection` and `/vscode-diagnostics` inject the current editor selection or diagnostics into the conversation, with the rest of the editor surface intentionally kept off-limits to the model
 - **AI-powered Git commit messages** — Generate semantic commit messages from staged changes using pi, with support for 14 languages and custom prompt templates
 - **Session restoration** — Per-workspace pi sessions are persisted and relaunched with `--session` after IDE reload
-- **Sidebar views** — Visual management panel: `Sessions` (new/restore/switch), `Agents` (subagent definitions), `Prompt Templates` (user/project prompt files), `Models` (Providers / OAuth / API Keys), and `Settings` (env info, system prompt override/append) — all webviews backed by direct `~/.pi/agent/*.json` I/O
+- **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (stdio/http with a transport selector), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O
+- **Sidebar views** — `Sessions` (new/restore/switch) and a compact `Settings` sidebar (env info, upgrade, jump to the full panel)
 - **Status bar / title bar buttons** — Pi button on the editor title bar for quick access
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`; on Windows `%APPDATA%/npm`, `%LOCALAPPDATA%/pnpm`)
 
@@ -47,7 +48,7 @@ English | [简体中文](README.zh-CN.md)
   yarn global add --ignore-scripts @earendil-works/pi-coding-agent
   ```
 
-- An API key (or OAuth credential) configured for at least one provider — manage them from the **Models** sidebar
+- An API key (or OAuth credential) configured for at least one provider — manage them from the **Models** tab of the Settings panel
 
 ## Install
 
@@ -78,20 +79,27 @@ The **Pi: Open** command is also wired to the editor title bar for one-click acc
 
 ## Sidebar
 
-The **Pi** activity bar icon opens a sidebar with seven webviews:
+The **Pi** activity bar icon opens a sidebar with two webviews:
 
 - **Sessions** - Per-workspace session list with live running/idle status icons; dropdown when multiple workspace folders exist
-- **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
-- **Prompt Templates** - Create / edit / delete / open pi prompt templates (markdown with YAML frontmatter) in user and project scopes
-- **Skills** - Create / edit / delete pi skills (SKILL.md) in user and project scopes; external skills are shown read-only with an option to open the file
-- **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; stdio (command/args/env/cwd) and http (url/headers/bearerToken) transports, plus per-server `directTools` configuration
-- **Models** — Three tabs:
+- **Settings** - Environment info, quick links, `Upgrade Pi` button, and a `Full Settings` jump button
+
+### Full Settings panel
+
+The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) opens a single-instance editor panel with seven tabs, each loading its data lazily:
+
+- **Models** — three subtabs:
   - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`
   - **OAuth** — Sign in to providers that support OAuth, managed through the bundled `AuthStorage`
   - **API Keys** — Manage stored API keys in `~/.pi/agent/auth.json`
-- **Settings** — Environment info, quick links, `Upgrade Pi` button, `Open settings.json`, and two textareas:
-  - **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt)
-  - **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
+- **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
+- **Prompt Templates** - Create / edit / delete / open pi prompt templates (markdown with YAML frontmatter) in user and project scopes
+- **Skills** - Create / edit / delete pi skills (SKILL.md) in user and project scopes; external skills are shown read-only with an option to open the file
+- **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; an explicit **transport selector** (stdio / http) shows only the relevant fields — command/args/env/cwd for stdio, url/headers/bearerToken for http — plus per-server `directTools` configuration
+- **Commit Message** — Configure the AI-generated commit message feature: model (`provider/model`), output language, and a custom prompt template, written straight to VS Code settings
+- **Settings** — Two sections:
+  - **System Prompt** — **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt), **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
+  - **settings.json** — Inline editor for `pi-agent-studio.*` configuration, saved directly to VS Code settings
 
 ## Bridge: tools, slash commands, and footer status
 
@@ -109,11 +117,11 @@ Beyond the editor bridge, the extension bundles a few pi extensions that add age
 
 - **todo** - a `todo` LLM tool with a live list widget above the composer, plus `/todos` and `/todo-clear` commands
 - **questionnaire** - lets the agent ask structured questions (rendered as a native web form in webview mode)
-- **subagent** - delegate tasks to specialized agents (`explore`, `general`, plus your own); managed from the **Agents** sidebar
+- **subagent** - delegate tasks to specialized agents (`explore`, `general`, plus your own); managed from the **Agents** tab of the Settings panel
 - **permission-gate** - intercepts dangerous bash commands (matching `pi-agent-studio.permission.dangerousPatterns`, e.g. `rm -rf`, `sudo`) and requires approval before execution; switch per session via `/permission`
 - **rewind-code** - file-level content snapshots that let you rewind a historical message via `/tree` and optionally restore its code changes (message-only on `/fork`); in the webview panel it drives a live changed-files widget with Accept / Revert
 - **btw** - `/btw` asks a question without altering the main conversation context
-- **mcp** - connects configured MCP servers (stdio or StreamableHTTP→SSE) at session start, registers their tools/prompts into pi, and powers the MCP server drawer in the chat toolbar (managed from the **MCP Servers** sidebar; enable/disable via `pi-agent-studio.mcp.enabled`)
+- **mcp** - connects configured MCP servers (stdio or StreamableHTTP→SSE) at session start, registers their tools/prompts into pi, and powers the MCP server drawer in the chat toolbar (managed from the **MCP Servers** tab of the Settings panel; enable/disable via `pi-agent-studio.mcp.enabled`)
 
 ### LLM tool (1)
 

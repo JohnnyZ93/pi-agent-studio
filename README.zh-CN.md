@@ -4,7 +4,7 @@
 
 # Pi Agent Studio
 
-**面向 [pi coding agent](https://pi.dev/) 的功能丰富的 VS Code 扩展 -- 原生终端 TUI 或 webview 聊天面板、完整编辑器桥接，开箱即用内置 pi 扩展（todo / subagent ...），并配套侧边栏管理会话、模型、Agents 与设置** 🔥
+**面向 [pi coding agent](https://pi.dev/) 的功能丰富的 VS Code 扩展 -- 原生终端 TUI 或 webview 聊天面板、完整编辑器桥接，开箱即用内置 pi 扩展（todo / subagent ...），并配套会话侧边栏与涵盖模型、Agents、设置等的完整设置面板** 🔥
 
 [English](README.md) | 简体中文
 
@@ -29,7 +29,8 @@
 - **Slash 命令** —— `/vscode-selection` 与 `/vscode-diagnostics` 将当前选区或诊断以用户消息的形式注入对话；其余编辑器能力刻意不对模型开放
 - **AI 驱动的 Git 提交信息** —— 基于 pi 从暂存区变更生成语义化 commit message，支持 14 种语言与自定义提示模板
 - **会话恢复** —— 按工作区持久化 pi 会话，IDE 重启后通过 `--session` 自动续接
-- **侧边栏视图** —— 可视化管理面板：`Sessions`（新建/恢复/切换会话，含实时状态图标）、`Agents`（subagent 定义）、`Prompt Templates`（提示词模板）、`Models`（Providers / OAuth / API Keys）与 `Settings`（环境信息、系统提示覆盖/追加），均为 webview 实现，直接读写 `~/.pi/agent/*.json`
+- **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（stdio / http 传输选择器）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`
+- **侧边栏视图** —— `Sessions`（新建 / 恢复 / 切换会话，含实时状态图标）与精简版 `Settings` 侧边栏（环境信息、升级、跳转完整设置面板）
 - **危险命令审批** —— 内置 permission gate，拦截 `rm -rf`、`sudo` 等危险 bash 命令，执行前需人工批准；支持 `AskForApproval` / `FullAccess` 模式与自定义危险模式
 - **编辑器标题栏按钮** —— 编辑器标题栏快捷打开 pi
 - **自动检测 pi 二进制** —— 自动从常见路径定位（`~/.bun/bin`、`~/.local/bin`、`~/.npm-global/bin`；Windows 上额外探测 `%APPDATA%/npm`、`%LOCALAPPDATA%/pnpm`）
@@ -48,7 +49,7 @@
   yarn global add --ignore-scripts @earendil-works/pi-coding-agent
   ```
 
-- 至少为一个 Provider 配置 API Key 或 OAuth 凭据 —— 在 **Models** 侧边栏管理
+- 至少为一个 Provider 配置 API Key 或 OAuth 凭据 —— 在设置面板的 **Models** 标签页管理
 
 ## 安装
 
@@ -79,20 +80,27 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 侧边栏
 
-活动栏中的 **Pi** 图标会展开包含七个 webview 的侧边栏：
+活动栏中的 **Pi** 图标会展开包含两个 webview 的侧边栏：
 
 - **Sessions** -- 按工作区显示会话列表，带实时运行 / 空闲状态图标；多根工作区时显示下拉切换
-- **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
-- **Prompt Templates** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 / 打开 pi 提示词模板（带 YAML frontmatter 的 markdown）
-- **Skills** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 pi 技能（SKILL.md）；外部技能只读展示，可打开源文件
-- **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；支持 stdio（command/args/env/cwd）与 http（url/headers/bearerToken）两种传输方式，以及每台服务器的 `directTools` 配置
-- **Models** —— 三个标签页：
+- **Settings** -- 环境信息、快捷链接、`Upgrade Pi` 按钮，以及 `Full Settings` 跳转按钮
+
+### 完整设置面板
+
+**Settings** 侧边栏的跳转按钮（或 `Pi: Open Settings` 命令）会打开一个单实例编辑器面板，共七个标签页，数据按标签页惰性加载：
+
+- **Models** —— 三个子标签页：
   - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider
   - **OAuth** —— 通过内置 `AuthStorage` 登录支持 OAuth 的 Provider
   - **API Keys** —— 管理 `~/.pi/agent/auth.json` 中保存的 API Key
-- **Settings** —— 环境信息、快捷链接、`Upgrade Pi` 按钮、`Open settings.json`，以及两个文本框：
-  - **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）
-  - **Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
+- **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
+- **Prompt Templates** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 / 打开 pi 提示词模板（带 YAML frontmatter 的 markdown）
+- **Skills** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 pi 技能（SKILL.md）；外部技能只读展示，可打开源文件
+- **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；显式**传输方式选择器**（stdio / http）只展示对应字段——stdio 为 command/args/env/cwd，http 为 url/headers/bearerToken，另有每台服务器的 `directTools` 配置
+- **Commit Message** —— 配置 AI 生成提交信息功能：模型（`provider/model`）、输出语言与自定义提示词模板，直接写入 VS Code 设置
+- **Settings** —— 两个分区：
+  - **System Prompt** -- **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）、**Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
+  - **settings.json** -- `pi-agent-studio.*` 配置的内联编辑器，直接保存到 VS Code 设置
 
 ## 桥接：LLM 工具、Slash 命令与状态栏
 
@@ -110,11 +118,11 @@ ovsx get johnny-zhao/pi-agent-studio
 
 - **todo** -- `todo` LLM 工具，配输入框上方的实时列表 widget，以及 `/todos`、`/todo-clear` 命令
 - **questionnaire** -- 让 Agent 提出结构化问题（webview 模式下渲染为原生表单）
-- **subagent** -- 将任务委派给专门 Agent（内置 `explore`、`general`，可自定义）；在 **Agents** 侧边栏管理
+- **subagent** -- 将任务委派给专门 Agent（内置 `explore`、`general`，可自定义）；在设置面板的 **Agents** 标签页管理
 - **permission-gate** -- 拦截危险 bash 命令（匹配 `pi-agent-studio.permission.dangerousPatterns`，如 `rm -rf`、`sudo`），执行前需人工批准；可通过 `/permission` 按会话切换模式
 - **rewind-code** -- 基于文件内容快照，在通过 `/tree` 回退历史消息时可选择同时恢复其代码变更（`/fork` 仅回退消息）；webview 面板中驱动实时变更文件 widget，支持 Accept / Revert
 - **btw** -- `/btw` 提问旁路问题，不污染主对话上下文
-- **mcp** -- 会话启动时自动连接配置的 MCP 服务器（stdio 或 StreamableHTTP→SSE），将其工具 / 提示词注册进 pi，并驱动聊天工具栏的 MCP 服务器抽屉（在 **MCP Servers** 侧边栏管理；可通过 `pi-agent-studio.mcp.enabled` 开关）
+- **mcp** -- 会话启动时自动连接配置的 MCP 服务器（stdio 或 StreamableHTTP→SSE），将其工具 / 提示词注册进 pi，并驱动聊天工具栏的 MCP 服务器抽屉（在设置面板的 **MCP Servers** 标签页管理；可通过 `pi-agent-studio.mcp.enabled` 开关）
 
 ### LLM 工具（1 个）
 
