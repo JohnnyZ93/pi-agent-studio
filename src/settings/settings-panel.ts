@@ -9,6 +9,9 @@ import {
   readTextFile,
   writeTextFile,
   ensurePromptFileExists,
+  ensureSettingsJsonExists,
+  readSettingsJson,
+  saveSettingsPatch,
 } from "./settings-config.ts";
 import {
   readModelsJson,
@@ -151,7 +154,16 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
           panel.webview.postMessage({
             type: "init",
             hasWorkspace: hasWorkspace(),
-            tabs: ["models", "agents", "prompts", "skills", "mcp", "commit", "settings"],
+            tabs: [
+              "models",
+              "agents",
+              "prompts",
+              "skills",
+              "mcp",
+              "commit",
+              "sysprompt",
+              "settings",
+            ],
           });
           break;
 
@@ -354,7 +366,18 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
           await postTabData("mcp");
           break;
 
-        // ---- Settings (system prompt) ----
+        // ---- Settings params ----
+        case "saveSettings":
+          saveSettingsPatch(msg.patch ?? {});
+          panel.webview.postMessage({ type: "saved", what: "settings" });
+          break;
+        case "openSettingsFile": {
+          const doc = await vscode.workspace.openTextDocument(ensureSettingsJsonExists());
+          await vscode.window.showTextDocument(doc, { preview: false });
+          break;
+        }
+
+        // ---- System prompt ----
         case "saveSystemPrompt":
           writeTextFile(getSystemPromptPath(), msg.content ?? "");
           panel.webview.postMessage({ type: "saved", what: "system" });
@@ -507,13 +530,16 @@ async function buildTabData(
       const servers = listMergedServers(userPath, projectPath);
       return { servers, hasWorkspace: !!cwd, userPath, projectPath };
     }
-    case "settings": {
+    case "sysprompt": {
       const systemPath = getSystemPromptPath();
       const appendPath = getAppendSystemPromptPath();
       return {
         systemPrompt: { content: readTextFile(systemPath) },
         appendSystemPrompt: { content: readTextFile(appendPath) },
       };
+    }
+    case "settings": {
+      return { values: readSettingsJson() };
     }
     case "commit": {
       const cfg = vscode.workspace.getConfiguration("pi-agent-studio");

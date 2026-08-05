@@ -50,6 +50,9 @@
 .codicon-error::before {
   content: "\ea87";
 }
+.codicon-file-text::before {
+  content: "\ec5e";
+}
 .codicon-gear::before {
   content: "\eaf8";
 }
@@ -926,7 +929,10 @@ textarea.form-input {
 
 .editor-card input:not([type="checkbox"]),
 .editor-card select,
-.editor-card textarea {
+.editor-card textarea,
+.cfg-field input:not([type="checkbox"]),
+.cfg-field select,
+.cfg-field textarea {
   width: 100%;
   padding: 4px 6px;
   background: var(--vscode-input-background);
@@ -940,8 +946,104 @@ textarea.form-input {
 
 .editor-card input:focus,
 .editor-card select:focus,
-.editor-card textarea:focus {
+.editor-card textarea:focus,
+.cfg-field input:focus,
+.cfg-field select:focus,
+.cfg-field textarea:focus {
   border-color: var(--vscode-focusBorder);
+}
+
+.cfg-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cfg-search {
+  flex: 1;
+  padding: 5px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 4px;
+  font-size: var(--fs-12);
+  font-family: inherit;
+  outline: none;
+}
+
+.cfg-search:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.cfg-group {
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+  border-radius: 4px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.cfg-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  user-select: none;
+}
+
+.cfg-group-header:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.cfg-group-header .codicon {
+  transition: transform 0.12s;
+  transform: rotate(-90deg);
+}
+
+.cfg-group.open .cfg-group-header .codicon {
+  transform: none;
+}
+
+.cfg-group-body {
+  display: none;
+  padding: 10px;
+  border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+}
+
+.cfg-group.open .cfg-group-body {
+  display: block;
+}
+
+.cfg-group.hidden {
+  display: none;
+}
+
+.cfg-dirty-dot {
+  margin-left: auto;
+  color: var(--vscode-charts-orange, #d18616);
+  font-size: 10px;
+}
+
+.cfg-reset {
+  width: 20px;
+  height: 20px;
+}
+
+.cfg-group:not(.open) .cfg-reset {
+  display: none;
+}
+
+.cfg-field {
+  margin-bottom: 12px;
+}
+
+.cfg-desc {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 2px;
 }
 
 .check-label {

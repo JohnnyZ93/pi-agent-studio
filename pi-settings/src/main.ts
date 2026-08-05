@@ -7,6 +7,7 @@ import { renderPromptsTab } from "./tabs/prompts";
 import { renderSkillsTab } from "./tabs/skills";
 import { renderMcpTab } from "./tabs/mcp";
 import { renderCommitTab } from "./tabs/commit";
+import { renderSysPromptTab } from "./tabs/sysprompt";
 import { renderSettingsTab } from "./tabs/settings";
 
 const codiconStyle = document.createElement("style");
@@ -88,6 +89,7 @@ window.addEventListener("message", (ev) => {
       if (msg.what === "system") showToast("System prompt saved", "success");
       else if (msg.what === "append") showToast("Append prompt saved", "success");
       else if (msg.what === "commit") showToast("Commit message settings saved", "success");
+      else if (msg.what === "settings") showToast("Settings saved — restart pi to apply", "success");
       break;
     default:
       break;
@@ -113,6 +115,7 @@ const tabRenderers: Record<string, (parent: HTMLElement, data: any) => void> = {
   skills: renderSkillsTab,
   mcp: renderMcpTab,
   commit: renderCommitTab,
+  sysprompt: renderSysPromptTab,
   settings: renderSettingsTab,
 };
 

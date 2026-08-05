@@ -83,6 +83,43 @@ function writeSettingsJson(obj: Record<string, any>): void {
   writeTextFile(getSettingsJsonPath(), JSON.stringify(obj, null, 2) + "\n");
 }
 
+/** Read parsed settings.json (missing or invalid -> {}). */
+export function readSettingsJson(): Record<string, any> {
+  return parseSettingsJson();
+}
+
+/**
+ * Deep-merge a patch into settings. Nested plain objects are merged
+ * recursively (preserving untouched sibling keys); arrays/scalars replace.
+ */
+export function mergeSettingsPatch(
+  base: Record<string, any>,
+  patch: Record<string, any>,
+): Record<string, any> {
+  const out: Record<string, any> = { ...base };
+  for (const [k, v] of Object.entries(patch)) {
+    const cur = out[k];
+    if (
+      v !== null &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      cur !== null &&
+      typeof cur === "object" &&
+      !Array.isArray(cur)
+    ) {
+      out[k] = mergeSettingsPatch(cur, v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+/** Merge patch into the persisted settings.json and write it back. */
+export function saveSettingsPatch(patch: Record<string, any>): void {
+  writeSettingsJson(mergeSettingsPatch(parseSettingsJson(), patch));
+}
+
 /** Lowercased exact "provider/id" keys from enabledModels (globs ignored). */
 export function readEnabledModelKeys(): string[] {
   const arr = Array.isArray(parseSettingsJson().enabledModels)

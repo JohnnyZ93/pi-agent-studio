@@ -279,7 +279,7 @@
         },
         "pi-agent-studio.mcp.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Load the bundled MCP (Model Context Protocol) bridge extension, which exposes configured MCP servers' tools/resources/prompts to the agent. When disabled, no MCP servers are connected."
         },
         "pi-agent-studio.mcp.idleTimeout": {
