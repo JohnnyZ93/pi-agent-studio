@@ -21,6 +21,7 @@ interface PromptData {
 export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
   const prompts = data.prompts || [];
   const hasWorkspace = data.hasWorkspace;
+  let editing: PromptItem | undefined;
 
   function renderList() {
     const rows = prompts
@@ -56,6 +57,7 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
   }
 
   function showEditor(prompt?: PromptItem, scope: string = "user") {
+    editing = prompt;
     const p = prompt;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
@@ -121,8 +123,8 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
           showError(parent, "Prompt name is required");
           return;
         }
-        if (prompt) {
-          vscode.postMessage({ type: "updatePrompt", scope: prompt.scope, data: form });
+        if (editing) {
+          vscode.postMessage({ type: "updatePrompt", scope: editing.scope, data: form });
         } else {
           const scope = (document.getElementById("pt-scope") as HTMLSelectElement)?.value ?? "user";
           vscode.postMessage({ type: "createPrompt", scope, data: form });
@@ -130,6 +132,7 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
         break;
       }
       case "cancel-prompt":
+        editing = undefined;
         renderList();
         break;
     }

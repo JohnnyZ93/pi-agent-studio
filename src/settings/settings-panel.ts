@@ -511,8 +511,8 @@ async function buildTabData(
       const systemPath = getSystemPromptPath();
       const appendPath = getAppendSystemPromptPath();
       return {
-        systemPrompt: { path: systemPath, content: readTextFile(systemPath) },
-        appendSystemPrompt: { path: appendPath, content: readTextFile(appendPath) },
+        systemPrompt: { content: readTextFile(systemPath) },
+        appendSystemPrompt: { content: readTextFile(appendPath) },
       };
     }
     case "commit": {

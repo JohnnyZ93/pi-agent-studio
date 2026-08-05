@@ -29,6 +29,8 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
     return "user";
   }
 
+  let editing: AgentItem | undefined;
+
   function renderList() {
     const rows = agents
       .map(
@@ -64,14 +66,21 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
   }
 
   function modelOptions(selected?: string): string {
-    const opts = models.map(
-      (m) =>
-        `<option value="${escHtml(m)}" ${m === selected ? "selected" : ""}>${escHtml(m)}</option>`,
-    );
-    return `<option value="">(default)</option>${opts.join("")}`;
+    let found = false;
+    const opts = models.map((m) => {
+      const sel = m === selected;
+      if (sel) found = true;
+      return `<option value="${escHtml(m)}" ${sel ? "selected" : ""}>${escHtml(m)}</option>`;
+    });
+    let extra = "";
+    if (selected && !found) {
+      extra = `<option value="${escHtml(selected)}" selected>${escHtml(selected)}</option>`;
+    }
+    return `<option value="">(default)</option>${opts.join("")}${extra}`;
   }
 
   function showEditor(agent?: AgentItem, scope: string = "user") {
+    editing = agent;
     const a = agent;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
@@ -150,8 +159,8 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
           showError(parent, "Agent name is required");
           return;
         }
-        if (agent) {
-          vscode.postMessage({ type: "updateAgent", scope: scopeFor(agent), data: form });
+        if (editing) {
+          vscode.postMessage({ type: "updateAgent", scope: scopeFor(editing), data: form });
         } else {
           const scope = (document.getElementById("ag-scope") as HTMLSelectElement)?.value ?? "user";
           vscode.postMessage({ type: "createAgent", scope, data: form });
@@ -159,6 +168,7 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
         break;
       }
       case "cancel-agent":
+        editing = undefined;
         renderList();
         break;
     }

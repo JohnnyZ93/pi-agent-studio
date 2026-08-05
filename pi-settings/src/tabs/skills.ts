@@ -20,6 +20,7 @@ interface SkillData {
 export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
   const skills = data.skills || [];
   const hasWorkspace = data.hasWorkspace;
+  let editing: SkillItem | undefined;
 
   function renderList() {
     const rows = skills
@@ -30,6 +31,7 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
         <div class="item-title">
           <span class="item-name">${escHtml(sk.name)}</span>
           <span class="badge ${badgeClass(sk.sourceLabel)}">${escHtml(sk.sourceLabel)}</span>
+          ${sk.disableModelInvocation ? `<span class="badge badge-http" title="disable-model-invocation: hidden from system prompt">hidden</span>` : ""}
         </div>
         <div class="item-desc">${escHtml(sk.description || "")}</div>
       </div>
@@ -54,6 +56,7 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
   }
 
   function showEditor(skill?: SkillItem, scope: string = "user") {
+    editing = skill;
     const s = skill;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
@@ -118,8 +121,8 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
           showError(parent, "Skill name is required");
           return;
         }
-        if (skill) {
-          vscode.postMessage({ type: "updateSkill", filePath: skill.filePath, data: form });
+        if (editing) {
+          vscode.postMessage({ type: "updateSkill", filePath: editing.filePath, data: form });
         } else {
           const scope = (document.getElementById("sk-scope") as HTMLSelectElement)?.value ?? "user";
           vscode.postMessage({ type: "createSkill", scope, data: form });
@@ -127,6 +130,7 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
         break;
       }
       case "cancel-skill":
+        editing = undefined;
         renderList();
         break;
     }

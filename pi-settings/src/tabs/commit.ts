@@ -13,11 +13,17 @@ export function renderCommitTab(parent: HTMLElement, data: CommitData) {
   const models = data.models || [];
 
   function modelOptions(selected?: string): string {
-    const opts = models.map(
-      (m) =>
-        `<option value="${escHtml(m)}" ${m === selected ? "selected" : ""}>${escHtml(m)}</option>`,
-    );
-    return `<option value="">(default)</option>${opts.join("")}`;
+    let found = false;
+    const opts = models.map((m) => {
+      const sel = m === selected;
+      if (sel) found = true;
+      return `<option value="${escHtml(m)}" ${sel ? "selected" : ""}>${escHtml(m)}</option>`;
+    });
+    let extra = "";
+    if (selected && !found) {
+      extra = `<option value="${escHtml(selected)}" selected>${escHtml(selected)}</option>`;
+    }
+    return `<option value="">(default)</option>${opts.join("")}${extra}`;
   }
 
   parent.innerHTML = /* html */ `

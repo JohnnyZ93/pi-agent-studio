@@ -130,7 +130,7 @@ function renderProv(parent: HTMLElement, data: ModelsData) {
   const state = provState;
 
   let h =
-    '<div class="section-header"><h3>Custom Providers</h3><button class="btn-primary" data-action="start-add-prov"><span class="codicon codicon-add"></span> Add</button></div>';
+    '<div class="section-header"><h3>Custom Providers</h3><div class="header-actions"><button class="btn-primary" data-action="start-add-prov"><span class="codicon codicon-add"></span> Add</button><button class="btn-secondary" data-action="open-file" title="Open models.json"><span class="codicon codicon-go-to-file"></span> models.json</button></div></div>';
   h += '<div class="item-list">';
   if (!provs.length) h += '<span class="dim">No custom providers</span>';
   for (const p of provs) {

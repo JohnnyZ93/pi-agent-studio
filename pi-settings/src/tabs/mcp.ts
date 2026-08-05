@@ -21,6 +21,7 @@ interface ServerData {
 
 interface McpForm {
   name: string;
+  _transport?: string;
   command?: string;
   url?: string;
   args?: string;
@@ -36,6 +37,7 @@ interface McpForm {
 export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   const servers = data.servers || [];
   const hasWorkspace = data.hasWorkspace;
+  let editing: (typeof servers)[number] | undefined;
 
   function renderList() {
     const rows = servers
@@ -75,9 +77,11 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   }
 
   function showEditor(server?: (typeof servers)[number]) {
+    editing = server;
     const e = server?.entry ?? {};
     const directTools = typeof e.directTools === "boolean" ? "" : (e.directTools ?? []).join("\n");
     const directToolsAll = e.directTools === true;
+    const transport = e.url ? "http" : "stdio";
 
     parent.innerHTML = /* html */ `
 <div class="editor-card">
@@ -92,21 +96,30 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   </select>`
   }
   <label class="field-label">Name</label>
-  <input id="mcp-name" value="${escHtml(server?.name ?? "")}" placeholder="my-server" />
-  <label class="field-label">URL (HTTP transport)</label>
-  <input id="mcp-url" value="${escHtml(e.url ?? "")}" placeholder="https://..." />
-  <label class="field-label">Command (stdio transport)</label>
-  <input id="mcp-command" value="${escHtml(e.command ?? "")}" placeholder="npx" />
-  <label class="field-label">Args (one per line)</label>
-  <textarea id="mcp-args" class="ta" style="height:60px" placeholder="-y&#10;@modelcontextprotocol/server-foo">${escHtml((e.args ?? []).join("\n"))}</textarea>
-  <label class="field-label">Env (KEY=VALUE, one per line)</label>
-  <textarea id="mcp-env" class="ta" style="height:60px" placeholder="API_KEY=xxx">${escHtml(kvToLines(e.env))}</textarea>
-  <label class="field-label">cwd</label>
-  <input id="mcp-cwd" value="${escHtml(e.cwd ?? "")}" />
-  <label class="field-label">Headers (KEY: VALUE, one per line)</label>
-  <textarea id="mcp-headers" class="ta" style="height:60px" placeholder="Authorization: Bearer xxx">${escHtml(kvToLines(e.headers, ": "))}</textarea>
-  <label class="field-label">Bearer token</label>
-  <input id="mcp-bearer" value="${escHtml(e.bearerToken ?? "")}" />
+  <input id="mcp-name" value="${escHtml(server?.name ?? "")}" placeholder="my-server" ${server ? "disabled" : ""} />
+  <label class="field-label">Transport</label>
+  <select id="mcp-transport">
+    <option value="stdio" ${transport === "stdio" ? "selected" : ""}>stdio (local command)</option>
+    <option value="http" ${transport === "http" ? "selected" : ""}>http (remote URL)</option>
+  </select>
+  <div id="mcp-stdio-fields">
+    <label class="field-label">Command</label>
+    <input id="mcp-command" value="${escHtml(e.command ?? "")}" placeholder="npx" />
+    <label class="field-label">Args (one per line)</label>
+    <textarea id="mcp-args" class="ta" style="height:60px" placeholder="-y&#10;@modelcontextprotocol/server-foo">${escHtml((e.args ?? []).join("\n"))}</textarea>
+    <label class="field-label">Env (KEY=VALUE, one per line)</label>
+    <textarea id="mcp-env" class="ta" style="height:60px" placeholder="API_KEY=xxx">${escHtml(kvToLines(e.env))}</textarea>
+    <label class="field-label">cwd</label>
+    <input id="mcp-cwd" value="${escHtml(e.cwd ?? "")}" />
+  </div>
+  <div id="mcp-http-fields">
+    <label class="field-label">URL</label>
+    <input id="mcp-url" value="${escHtml(e.url ?? "")}" placeholder="https://example.com/mcp" />
+    <label class="field-label">Headers (KEY: VALUE, one per line)</label>
+    <textarea id="mcp-headers" class="ta" style="height:60px" placeholder="Authorization: Bearer xxx">${escHtml(kvToLines(e.headers, ": "))}</textarea>
+    <label class="field-label">Bearer token</label>
+    <input id="mcp-bearer" value="${escHtml(e.bearerToken ?? "")}" />
+  </div>
   <label class="field-label">Direct tools (one per line, or "all")</label>
   <textarea id="mcp-dt" class="ta" style="height:60px" placeholder="tool_a&#10;tool_b">${escHtml(directTools)}</textarea>
   <label class="check-label"><input type="checkbox" id="mcp-dt-all" ${directToolsAll ? "checked" : ""} /> All tools direct</label>
@@ -116,12 +129,25 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
     <button class="btn-secondary" data-action="cancel-mcp" title="Cancel"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
+    toggleTransport();
+    const sel = document.getElementById("mcp-transport") as HTMLSelectElement | null;
+    sel?.addEventListener("change", toggleTransport);
+  }
+
+  function toggleTransport() {
+    const t = (document.getElementById("mcp-transport") as HTMLSelectElement | null)?.value;
+    const stdio = document.getElementById("mcp-stdio-fields");
+    const http = document.getElementById("mcp-http-fields");
+    if (!stdio || !http) return;
+    stdio.style.display = t === "stdio" ? "" : "none";
+    http.style.display = t === "http" ? "" : "none";
   }
 
   function readForm(): McpForm {
     const v = (id: string) => (document.getElementById(id) as HTMLInputElement)?.value ?? "";
     return {
       name: v("mcp-name"),
+      _transport: (document.getElementById("mcp-transport") as HTMLSelectElement)?.value,
       url: v("mcp-url"),
       command: v("mcp-command"),
       args: (document.getElementById("mcp-args") as HTMLTextAreaElement)?.value ?? "",
@@ -174,18 +200,18 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
           showError(parent, "Server name is required");
           return;
         }
-        const existing = servers.find((s) => s.name === form.name.trim());
         vscode.postMessage({
-          type: existing ? "updateServer" : "addServer",
+          type: editing ? "updateServer" : "addServer",
           name: form.name.trim(),
-          scope: existing
-            ? existing.source
+          scope: editing
+            ? editing.source
             : ((document.getElementById("mcp-scope") as HTMLSelectElement)?.value ?? "user"),
           entry: form,
         });
         break;
       }
       case "cancel-mcp":
+        editing = undefined;
         renderList();
         break;
     }

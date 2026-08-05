@@ -1,8 +1,8 @@
 import { vscode } from "../globals";
 
 interface SystemPromptData {
-  systemPrompt: { path: string; content: string };
-  appendSystemPrompt: { path: string; content: string };
+  systemPrompt: { content: string };
+  appendSystemPrompt: { content: string };
 }
 
 export function renderSettingsTab(parent: HTMLElement, data: SystemPromptData) {
@@ -13,7 +13,7 @@ export function renderSettingsTab(parent: HTMLElement, data: SystemPromptData) {
 <div class="tab-section">
   <h3>System Prompt — Append</h3>
   <p class="hint">Appends to the default system prompt without replacing.</p>
-  <p class="hint">File: <code>${escHtml(data.appendSystemPrompt.path)}</code></p>
+  <p class="hint">File: <code>~/.pi/agent/APPEND_SYSTEM.md</code></p>
   <textarea id="txt-append" class="ta" placeholder="(empty — nothing appended)">${escHtml(data.appendSystemPrompt.content)}</textarea>
   <div class="btn-row">
     <button class="btn-primary" id="btn-save-append" data-action="saveAppend"><span class="codicon codicon-save"></span> Save</button>
@@ -24,7 +24,7 @@ export function renderSettingsTab(parent: HTMLElement, data: SystemPromptData) {
 <div class="tab-section">
   <h3>System Prompt — Override</h3>
   <div class="msg-warn">⚠ <strong>Warning:</strong> This <strong>replaces</strong> Pi's built-in system prompt entirely and may significantly change Pi's behavior, tool usage, and safety guardrails. Prefer the Append section above unless you know what you're doing.</div>
-  <p class="hint">File: <code>${escHtml(data.systemPrompt.path)}</code></p>
+  <p class="hint">File: <code>~/.pi/agent/SYSTEM.md</code></p>
   <textarea id="txt-system" class="ta" placeholder="(empty — using default system prompt)">${escHtml(data.systemPrompt.content)}</textarea>
   <div class="btn-row">
     <button class="btn-primary" id="btn-save-system" data-action="saveSystem"><span class="codicon codicon-save"></span> Save</button>

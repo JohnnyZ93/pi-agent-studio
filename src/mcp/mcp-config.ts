@@ -144,11 +144,22 @@ export function parseServerEntry(form: {
   disabled?: boolean;
   directTools?: string;
   directToolsAll?: boolean;
+  _transport?: string;
 }): ServerEntry {
   const entry: ServerEntry = {};
+  const transport = form._transport === "http" ? "http" : form._transport === "stdio" ? "stdio" : null;
   const command = form.command?.trim();
   const url = form.url?.trim();
-  if (url) {
+  if (transport === "http" && url) {
+    entry.url = url;
+  } else if (transport === "stdio" && command) {
+    entry.command = command;
+    const args = (form.args ?? "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (args.length > 0) entry.args = args;
+  } else if (url) {
     entry.url = url;
   } else if (command) {
     entry.command = command;

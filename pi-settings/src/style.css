@@ -397,6 +397,12 @@ body {
   margin-bottom: 10px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .section-title {
   font-size: var(--fs-14);
   font-weight: 600;
