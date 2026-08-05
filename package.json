@@ -36,7 +36,7 @@
   "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "pnpm --filter pi-chat build && pnpm --filter pi-mcp build && rolldown -c rolldown.config.ts",
+    "build": "pnpm --filter pi-chat build && pnpm --filter pi-mcp build && pnpm --filter pi-settings build && rolldown -c rolldown.config.ts",
     "dev": "rolldown -c rolldown.config.ts -w",
     "package": "pnpm build && pnpx @vscode/vsce package --no-dependencies",
     "install-local": "pnpm package && code --install-extension *.vsix",
@@ -91,6 +91,14 @@
       {
         "command": "pi-agent-studio.openModelsJson",
         "title": "Pi: Open models.json"
+      },
+      {
+        "command": "pi-agent-studio.openSettings",
+        "title": "Pi: Open Settings",
+        "icon": {
+          "light": "assets/logo-light.svg",
+          "dark": "assets/logo.svg"
+        }
       },
       {
         "command": "pi-agent-studio.openInNewWindow",
@@ -174,31 +182,6 @@
           "type": "webview",
           "id": "pi-agent-studio.sessions",
           "name": "Sessions"
-        },
-        {
-          "type": "webview",
-          "id": "pi-agent-studio.models",
-          "name": "Models"
-        },
-        {
-          "type": "webview",
-          "id": "pi-agent-studio.agents",
-          "name": "Agents"
-        },
-        {
-          "type": "webview",
-          "id": "pi-agent-studio.prompts",
-          "name": "Prompt Templates"
-        },
-        {
-          "type": "webview",
-          "id": "pi-agent-studio.skills",
-          "name": "Skills"
-        },
-        {
-          "type": "webview",
-          "id": "pi-agent-studio.mcp",
-          "name": "MCP Servers"
         },
         {
           "type": "webview",

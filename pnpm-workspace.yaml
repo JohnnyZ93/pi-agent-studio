@@ -1,6 +1,7 @@
 packages:
   - pi-chat
   - pi-mcp
+  - pi-settings
 
 onlyBuiltDependencies:
   - esbuild

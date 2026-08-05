@@ -158,6 +158,10 @@ export async function activate(context: vscode.ExtensionContext) {
       lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.upgrade", upgradePiBinary),
+    vscode.commands.registerCommand("pi-agent-studio.openSettings", async () => {
+      const { openSettingsPanel } = await import("./settings/settings-panel.ts");
+      await openSettingsPanel(extensionUri);
+    }),
     vscode.commands.registerCommand("pi-agent-studio.openSettingsJson", async () => {
       const { ensureSettingsJsonExists } = await import("./settings/settings-config.ts");
       const path = ensureSettingsJsonExists();
@@ -183,41 +187,6 @@ export async function activate(context: vscode.ExtensionContext) {
       lazyViewProvider(async () => {
         const { createSessionsViewProvider } = await import("./sessions/sessions-sidebar.ts");
         return createSessionsViewProvider(extensionUri, bridgeConfig!, sessions, chatTracker);
-      }),
-    ),
-    vscode.window.registerWebviewViewProvider(
-      "pi-agent-studio.models",
-      lazyViewProvider(async () => {
-        const { createModelsViewProvider } = await import("./models/models-sidebar.ts");
-        return createModelsViewProvider();
-      }),
-    ),
-    vscode.window.registerWebviewViewProvider(
-      "pi-agent-studio.agents",
-      lazyViewProvider(async () => {
-        const { createAgentsViewProvider } = await import("./agents/agents-sidebar.ts");
-        return createAgentsViewProvider(extensionUri);
-      }),
-    ),
-    vscode.window.registerWebviewViewProvider(
-      "pi-agent-studio.prompts",
-      lazyViewProvider(async () => {
-        const { createPromptsViewProvider } = await import("./prompts/prompts-sidebar.ts");
-        return createPromptsViewProvider();
-      }),
-    ),
-    vscode.window.registerWebviewViewProvider(
-      "pi-agent-studio.skills",
-      lazyViewProvider(async () => {
-        const { createSkillsViewProvider } = await import("./skills/skills-sidebar.ts");
-        return createSkillsViewProvider();
-      }),
-    ),
-    vscode.window.registerWebviewViewProvider(
-      "pi-agent-studio.mcp",
-      lazyViewProvider(async () => {
-        const { createMcpViewProvider } = await import("./mcp/mcp-sidebar.ts");
-        return createMcpViewProvider();
       }),
     ),
     vscode.window.registerWebviewViewProvider(
