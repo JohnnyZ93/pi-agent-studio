@@ -28,15 +28,17 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
         (p) => /* html */ `
     <div class="item-row" data-name="${escHtml(p.name)}">
       <div class="item-main">
-        <span class="item-name">${escHtml(p.name)}</span>
-        <span class="badge">${escHtml(p.sourceLabel)}</span>
-        ${p.argumentHint ? `<code class="dim">${escHtml(p.argumentHint)}</code>` : ""}
-        <span class="dim">${escHtml(p.description || "")}</span>
+        <div class="item-title">
+          <span class="item-name">${escHtml(p.name)}</span>
+          <span class="badge ${badgeClass(p.sourceLabel)}">${escHtml(p.sourceLabel)}</span>
+          ${p.argumentHint ? `<span class="badge badge-stdio">${escHtml(p.argumentHint)}</span>` : ""}
+        </div>
+        <div class="item-desc">${escHtml(p.description || "")}</div>
       </div>
       <div class="item-actions">
-        ${p.editable ? `<button class="btn-sm" data-action="edit-prompt" data-name="${escHtml(p.name)}">Edit</button>` : ""}
-        <button class="btn-sm" data-action="open-prompt" data-name="${escHtml(p.name)}">Open</button>
-        ${p.editable ? `<button class="btn-sm btn-danger" data-action="delete-prompt" data-name="${escHtml(p.name)}">Delete</button>` : ""}
+        ${p.editable ? `<button class="btn-icon" data-action="edit-prompt" data-name="${escHtml(p.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>` : ""}
+        <button class="btn-icon" data-action="open-prompt" data-name="${escHtml(p.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
+        ${p.editable ? `<button class="btn-icon btn-danger" data-action="delete-prompt" data-name="${escHtml(p.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -46,7 +48,7 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
 <div class="tab-section">
   <div class="section-header">
     <h3>Prompt Templates</h3>
-    <button class="btn-primary" data-action="add-prompt">New Prompt</button>
+    <button class="btn-primary" data-action="add-prompt"><span class="codicon codicon-add"></span> New Prompt</button>
   </div>
   <div class="item-list">${rows || '<span class="dim">No prompts found.</span>'}</div>
   <div class="hint">Prompts are slash-command templates loaded by pi. Editable prompts live in <code>~/.pi/agent/prompts</code>${hasWorkspace ? " or <code>.pi/prompts</code>" : ""}.</div>
@@ -77,8 +79,8 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
   <label class="field-label">Content (template)</label>
   <textarea id="pt-content" class="ta" style="height:220px">${escHtml(p?.content ?? "")}</textarea>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-prompt">Save</button>
-    <button class="btn-secondary" data-action="cancel-prompt">Cancel</button>
+    <button class="btn-primary" data-action="save-prompt"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="cancel-prompt" title="Cancel"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (p === undefined) {
@@ -132,6 +134,24 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
         break;
     }
   });
+  renderList();
+}
+
+function badgeClass(label: string): string {
+  switch (label) {
+    case "user":
+      return "badge-user";
+    case "project":
+      return "badge-project";
+    case "builtin":
+      return "badge-builtin";
+    case "package":
+      return "badge-package";
+    case "cli":
+      return "badge-cli";
+    default:
+      return "badge-other";
+  }
 }
 
 function showError(parent: HTMLElement, msg: string) {

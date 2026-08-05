@@ -53,6 +53,9 @@
 .codicon-gear::before {
   content: "\eaf8";
 }
+.codicon-git-commit::before {
+  content: "\eafc";
+}
 .codicon-globe::before {
   content: "\eb01";
 }
@@ -112,6 +115,12 @@
 }
 .codicon-shield::before {
   content: "\eb53";
+}
+.codicon-sign-in::before {
+  content: "\ea6f";
+}
+.codicon-sign-out::before {
+  content: "\ea6e";
 }
 .codicon-sparkle::before {
   content: "\ec10";
@@ -178,8 +187,56 @@ body {
 
 .app {
   display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 38px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+}
+
+.toolbar-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0.8;
+}
+
+.toolbar-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav {
@@ -249,23 +306,40 @@ body {
   opacity: 0.6;
 }
 
-.btn {
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-sm {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid var(--vscode-widget-border, transparent);
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: none;
   border-radius: 4px;
-  background: var(--vscode-button-secondaryBackground, transparent);
+  background: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-  font-family: var(--vscode-font-family);
-  font-size: var(--fs-12);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.3;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.btn:hover {
-  background: var(--vscode-toolbar-hoverBackground);
+.btn:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-sm:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn .codicon,
+.btn-primary .codicon,
+.btn-secondary .codicon,
+.btn-sm .codicon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .btn:disabled {
@@ -276,7 +350,6 @@ body {
 .btn-primary {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
-  border-color: var(--vscode-button-background);
 }
 
 .btn-primary:hover {
@@ -288,7 +361,7 @@ body {
 }
 
 .btn-icon {
-  padding: 4px;
+  padding: 0;
   width: 26px;
   height: 26px;
   display: inline-flex;
@@ -319,6 +392,7 @@ body {
 .section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -736,37 +810,18 @@ textarea.form-input {
 }
 
 .btn-secondary {
-  background: var(--vscode-button-secondaryBackground, transparent);
+  background: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-  border: 1px solid var(--vscode-widget-border, transparent);
-}
-
-.btn-secondary:hover {
-  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .btn-sm {
-  padding: 2px 8px;
-  font-size: var(--fs-11);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--vscode-textLink-foreground);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--fs-12);
-}
-
-.btn-link:hover {
-  text-decoration: underline;
+  padding: 4px 10px;
+  font-size: 13px;
 }
 
 .btn-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   margin-top: 8px;
   flex-wrap: wrap;
   align-items: center;
@@ -785,7 +840,7 @@ textarea.form-input {
 
 .item-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 6px 8px;
   border-radius: 4px;
@@ -803,11 +858,25 @@ textarea.form-input {
 
 .item-main {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   flex: 1;
   min-width: 0;
+}
+
+.item-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   flex-wrap: wrap;
+}
+
+.item-desc {
+  opacity: 0.6;
+  font-size: var(--fs-11);
+  word-break: break-all;
+  min-width: 0;
 }
 
 .item-name {

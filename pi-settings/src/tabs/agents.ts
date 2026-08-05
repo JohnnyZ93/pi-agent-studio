@@ -35,16 +35,18 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
         (a) => /* html */ `
     <div class="item-row" data-name="${escHtml(a.name)}">
       <div class="item-main">
-        <span class="item-name">${escHtml(a.name)}</span>
-        <span class="badge">${a.source === "builtin" && a.hasOverride ? "builtin+override" : escHtml(a.source)}</span>
-        ${a.model ? `<code class="dim">${escHtml(a.model)}</code>` : ""}
-        <span class="dim">${escHtml(a.description || "")}</span>
+        <div class="item-title">
+          <span class="item-name">${escHtml(a.name)}</span>
+          <span class="badge ${badgeClass(a.source, a.hasOverride)}">${a.source === "builtin" && a.hasOverride ? "builtin+override" : escHtml(a.source)}</span>
+          ${a.model ? `<span class="badge badge-package">${escHtml(a.model)}</span>` : ""}
+        </div>
+        <div class="item-desc">${escHtml(a.description || "")}</div>
       </div>
       <div class="item-actions">
-        <button class="btn-sm" data-action="edit-agent" data-name="${escHtml(a.name)}">Edit</button>
-        <button class="btn-sm" data-action="open-agent" data-name="${escHtml(a.name)}">Open</button>
-        ${a.isBuiltin && a.hasOverride ? `<button class="btn-sm" data-action="reset-agent" data-name="${escHtml(a.name)}">Reset</button>` : ""}
-        ${!a.isBuiltin ? `<button class="btn-sm btn-danger" data-action="delete-agent" data-name="${escHtml(a.name)}">Delete</button>` : ""}
+        <button class="btn-icon" data-action="edit-agent" data-name="${escHtml(a.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>
+        <button class="btn-icon" data-action="open-agent" data-name="${escHtml(a.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
+        ${a.isBuiltin && a.hasOverride ? `<button class="btn-icon" data-action="reset-agent" data-name="${escHtml(a.name)}" title="Reset to builtin"><span class="codicon codicon-discard"></span></button>` : ""}
+        ${!a.isBuiltin ? `<button class="btn-icon btn-danger" data-action="delete-agent" data-name="${escHtml(a.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -54,7 +56,7 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
 <div class="tab-section">
   <div class="section-header">
     <h3>Agents</h3>
-    <button class="btn-primary" data-action="add-agent">New Agent</button>
+    <button class="btn-primary" data-action="add-agent"><span class="codicon codicon-add"></span> New Agent</button>
   </div>
   <div class="item-list">${rows || '<span class="dim">No agents found.</span>'}</div>
   <div class="hint">Agents are markdown files loaded by pi. User agents live in <code>~/.pi/agent/agents</code>${hasWorkspace ? ", project agents in <code>.pi/agents</code>" : ""}.</div>
@@ -96,8 +98,8 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
   <textarea id="ag-tools" class="ta" style="height:60px" placeholder="bash&#10;read">${escHtml((a?.tools ?? []).join("\n"))}</textarea>
   <label class="check-label"><input type="checkbox" id="ag-dmi" ${a?.disableModelInvocation ? "checked" : ""} /> Disable model invocation</label>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-agent">Save</button>
-    <button class="btn-secondary" data-action="cancel-agent">Cancel</button>
+    <button class="btn-primary" data-action="save-agent"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="cancel-agent" title="Cancel"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (a === undefined) {
@@ -161,6 +163,14 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
         break;
     }
   });
+  renderList();
+}
+
+function badgeClass(source: string, hasOverride?: boolean): string {
+  if (source === "user") return "badge-user";
+  if (source === "project") return "badge-project";
+  if (source === "builtin") return hasOverride ? "badge-cli" : "badge-builtin";
+  return "badge-other";
 }
 
 function showError(parent: HTMLElement, msg: string) {

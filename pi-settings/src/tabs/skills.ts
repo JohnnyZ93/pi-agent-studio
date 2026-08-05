@@ -27,14 +27,16 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
         (sk) => /* html */ `
     <div class="item-row" data-name="${escHtml(sk.name)}">
       <div class="item-main">
-        <span class="item-name">${escHtml(sk.name)}</span>
-        <span class="badge">${escHtml(sk.sourceLabel)}</span>
-        <span class="dim">${escHtml(sk.description || "")}</span>
+        <div class="item-title">
+          <span class="item-name">${escHtml(sk.name)}</span>
+          <span class="badge ${badgeClass(sk.sourceLabel)}">${escHtml(sk.sourceLabel)}</span>
+        </div>
+        <div class="item-desc">${escHtml(sk.description || "")}</div>
       </div>
       <div class="item-actions">
-        ${sk.editable ? `<button class="btn-sm" data-action="edit-skill" data-name="${escHtml(sk.name)}">Edit</button>` : ""}
-        <button class="btn-sm" data-action="open-skill" data-name="${escHtml(sk.name)}">Open</button>
-        ${sk.editable ? `<button class="btn-sm btn-danger" data-action="delete-skill" data-name="${escHtml(sk.name)}">Delete</button>` : ""}
+        ${sk.editable ? `<button class="btn-icon" data-action="edit-skill" data-name="${escHtml(sk.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>` : ""}
+        <button class="btn-icon" data-action="open-skill" data-name="${escHtml(sk.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
+        ${sk.editable ? `<button class="btn-icon btn-danger" data-action="delete-skill" data-name="${escHtml(sk.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -44,7 +46,7 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
 <div class="tab-section">
   <div class="section-header">
     <h3>Skills</h3>
-    <button class="btn-primary" data-action="add-skill">New Skill</button>
+    <button class="btn-primary" data-action="add-skill"><span class="codicon codicon-add"></span> New Skill</button>
   </div>
   <div class="item-list">${rows || '<span class="dim">No skills found.</span>'}</div>
   <div class="hint">Skills are markdown files loaded by pi. User skills live in <code>~/.pi/agent/skills</code>${hasWorkspace ? ", project skills in <code>.pi/skills</code>" : ""}.</div>
@@ -74,8 +76,8 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
   <textarea id="sk-body" class="ta" style="height:200px">${escHtml(s?.body ?? "")}</textarea>
   <label class="check-label"><input type="checkbox" id="sk-dmi" ${s?.disableModelInvocation ? "checked" : ""} /> Disable model invocation</label>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-skill">Save</button>
-    <button class="btn-secondary" data-action="cancel-skill">Cancel</button>
+    <button class="btn-primary" data-action="save-skill"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="cancel-skill" title="Cancel"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (scope && s === undefined) {
@@ -129,6 +131,24 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
         break;
     }
   });
+  renderList();
+}
+
+function badgeClass(label: string): string {
+  switch (label) {
+    case "user":
+      return "badge-user";
+    case "project":
+      return "badge-project";
+    case "builtin":
+      return "badge-builtin";
+    case "package":
+      return "badge-package";
+    case "cli":
+      return "badge-cli";
+    default:
+      return "badge-other";
+  }
 }
 
 function showError(parent: HTMLElement, msg: string) {

@@ -43,15 +43,18 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
         (s) => /* html */ `
     <div class="item-row" data-name="${escHtml(s.name)}" data-scope="${s.source}">
       <div class="item-main">
-        <span class="item-name">${escHtml(s.name)}</span>
-        <span class="badge">${s.source}</span>
-        <span class="dim">${escHtml(formatTransport(s.entry))}</span>
-        ${s.entry.disabled ? '<span class="badge badge-warn">disabled</span>' : ""}
+        <div class="item-title">
+          <span class="item-name">${escHtml(s.name)}</span>
+          <span class="badge ${s.source === "project" ? "badge-project" : "badge-user"}">${s.source}</span>
+          <span class="badge ${s.entry.url ? "badge-http" : s.entry.command ? "badge-stdio" : "badge-other"}">${s.entry.url ? "http" : s.entry.command ? "stdio" : "?"}</span>
+          ${s.entry.disabled ? '<span class="badge badge-disabled">disabled</span>' : ""}
+        </div>
+        <div class="item-desc">${escHtml(formatTransport(s.entry))}</div>
       </div>
       <div class="item-actions">
-        <button class="btn-sm" data-action="edit-server" data-name="${escHtml(s.name)}">Edit</button>
-        <button class="btn-sm" data-action="toggle-disabled" data-name="${escHtml(s.name)}">${s.entry.disabled ? "Enable" : "Disable"}</button>
-        <button class="btn-sm btn-danger" data-action="delete-server" data-name="${escHtml(s.name)}">Delete</button>
+        <button class="btn-icon" data-action="edit-server" data-name="${escHtml(s.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>
+        <button class="btn-icon" data-action="toggle-disabled" data-name="${escHtml(s.name)}" title="${s.entry.disabled ? "Enable" : "Disable"}"><span class="codicon ${s.entry.disabled ? "codicon-circle-filled" : "codicon-circle-slash"}"></span></button>
+        <button class="btn-icon btn-danger" data-action="delete-server" data-name="${escHtml(s.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>
       </div>
     </div>`,
       )
@@ -61,12 +64,12 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
 <div class="tab-section">
   <div class="section-header">
     <h3>MCP Servers</h3>
-    <button class="btn-primary" data-action="add-server">Add Server</button>
+    <button class="btn-primary" data-action="add-server"><span class="codicon codicon-add"></span> Add Server</button>
   </div>
   <div class="item-list">${rows || '<span class="dim">No servers configured.</span>'}</div>
   <div class="btn-row">
-    <button class="btn-secondary" data-action="open-mcp-json" data-scope="user">Open user mcp.json</button>
-    ${hasWorkspace ? '<button class="btn-secondary" data-action="open-mcp-json" data-scope="project">Open project mcp.json</button>' : ""}
+    <button class="btn-secondary" data-action="open-mcp-json" data-scope="user" title="Open user mcp.json"><span class="codicon codicon-go-to-file"></span> user mcp.json</button>
+    ${hasWorkspace ? '<button class="btn-secondary" data-action="open-mcp-json" data-scope="project" title="Open project mcp.json"><span class="codicon codicon-go-to-file"></span> project mcp.json</button>' : ""}
   </div>
 </div>`;
   }
@@ -109,8 +112,8 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   <label class="check-label"><input type="checkbox" id="mcp-dt-all" ${directToolsAll ? "checked" : ""} /> All tools direct</label>
   <label class="check-label"><input type="checkbox" id="mcp-disabled" ${e.disabled ? "checked" : ""} /> Disabled</label>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-mcp">Save</button>
-    <button class="btn-secondary" data-action="cancel-mcp">Cancel</button>
+    <button class="btn-primary" data-action="save-mcp"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="cancel-mcp" title="Cancel"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
   }
@@ -187,6 +190,7 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
         break;
     }
   });
+  renderList();
 }
 
 function formatTransport(e: { url?: string; command?: string; args?: string[] }): string {

@@ -76,6 +76,23 @@ import {
 const SETTINGS_VIEW_TYPE = "pi-agent-studio.settingsPanel";
 const SETTINGS_PANEL_TITLE = "Pi Settings";
 
+const COMMIT_LANGUAGES = [
+  "English",
+  "French",
+  "Italian",
+  "German",
+  "Spanish",
+  "Russian",
+  "Chinese (Simplified)",
+  "Chinese (Traditional)",
+  "Japanese",
+  "Korean",
+  "Czech",
+  "Portuguese (Brazil)",
+  "Turkish",
+  "Polish",
+] as const;
+
 let activePanel: vscode.WebviewPanel | undefined;
 
 export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void> {
@@ -134,7 +151,7 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
           panel.webview.postMessage({
             type: "init",
             hasWorkspace: hasWorkspace(),
-            tabs: ["models", "agents", "prompts", "skills", "mcp", "settings"],
+            tabs: ["models", "agents", "prompts", "skills", "mcp", "commit", "settings"],
           });
           break;
 
@@ -346,6 +363,22 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
           writeTextFile(getAppendSystemPromptPath(), msg.content ?? "");
           panel.webview.postMessage({ type: "saved", what: "append" });
           break;
+        case "saveCommitConfig": {
+          const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+          await cfg.update("commitModel", msg.commitModel ?? "", vscode.ConfigurationTarget.Global);
+          await cfg.update(
+            "commitLanguage",
+            msg.commitLanguage ?? "English",
+            vscode.ConfigurationTarget.Global,
+          );
+          await cfg.update(
+            "commitMessagePrompt",
+            msg.commitMessagePrompt ?? "",
+            vscode.ConfigurationTarget.Global,
+          );
+          panel.webview.postMessage({ type: "saved", what: "commit" });
+          break;
+        }
         case "openSystemPromptFile": {
           const doc = await vscode.workspace.openTextDocument(
             ensurePromptFileExists(getSystemPromptPath()),
@@ -480,6 +513,16 @@ async function buildTabData(
       return {
         systemPrompt: { path: systemPath, content: readTextFile(systemPath) },
         appendSystemPrompt: { path: appendPath, content: readTextFile(appendPath) },
+      };
+    }
+    case "commit": {
+      const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+      return {
+        commitModel: cfg.get<string>("commitModel", ""),
+        commitLanguage: cfg.get<string>("commitLanguage", "English"),
+        commitMessagePrompt: cfg.get<string>("commitMessagePrompt", ""),
+        languages: COMMIT_LANGUAGES,
+        models: await getAvailableAgentModels(),
       };
     }
     default:

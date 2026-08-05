@@ -6,6 +6,7 @@ import { renderAgentsTab } from "./tabs/agents";
 import { renderPromptsTab } from "./tabs/prompts";
 import { renderSkillsTab } from "./tabs/skills";
 import { renderMcpTab } from "./tabs/mcp";
+import { renderCommitTab } from "./tabs/commit";
 import { renderSettingsTab } from "./tabs/settings";
 
 const codiconStyle = document.createElement("style");
@@ -20,7 +21,7 @@ if (typeof (window as any).__PI_FONTSIZE__ === "number" && (window as any).__PI_
 }
 
 const nav = document.querySelector(".nav")!;
-const content = document.getElementById("content")!;
+let content = document.getElementById("content")!;
 
 let activeTab = "models";
 const tabData: Record<string, any> = {};
@@ -31,6 +32,13 @@ nav.addEventListener("click", (e) => {
   const tab = btn.dataset.tab;
   if (!tab || tab === activeTab) return;
   switchTab(tab);
+});
+
+document.addEventListener("click", (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".toolbar-btn[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  if (action === "reload") vscode.postMessage({ type: "refresh", tab: activeTab });
 });
 
 function switchTab(tab: string) {
@@ -77,7 +85,9 @@ window.addEventListener("message", (ev) => {
       handleOAuthProgress(msg.event);
       break;
     case "saved":
-      showToast(msg.what === "system" ? "System prompt saved" : "Append prompt saved", "success");
+      if (msg.what === "system") showToast("System prompt saved", "success");
+      else if (msg.what === "append") showToast("Append prompt saved", "success");
+      else if (msg.what === "commit") showToast("Commit message settings saved", "success");
       break;
     default:
       break;
@@ -85,7 +95,9 @@ window.addEventListener("message", (ev) => {
 });
 
 function renderTab(tab: string, data: any) {
-  content.innerHTML = "";
+  const fresh = content.cloneNode(false) as HTMLElement;
+  content.replaceWith(fresh);
+  content = fresh;
   const loader = tabRenderers[tab];
   if (loader) {
     loader(content, data);
@@ -100,6 +112,7 @@ const tabRenderers: Record<string, (parent: HTMLElement, data: any) => void> = {
   prompts: renderPromptsTab,
   skills: renderSkillsTab,
   mcp: renderMcpTab,
+  commit: renderCommitTab,
   settings: renderSettingsTab,
 };
 

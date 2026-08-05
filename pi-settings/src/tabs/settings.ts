@@ -16,9 +16,9 @@ export function renderSettingsTab(parent: HTMLElement, data: SystemPromptData) {
   <p class="hint">File: <code>${escHtml(data.appendSystemPrompt.path)}</code></p>
   <textarea id="txt-append" class="ta" placeholder="(empty — nothing appended)">${escHtml(data.appendSystemPrompt.content)}</textarea>
   <div class="btn-row">
-    <button class="btn-primary" id="btn-save-append" data-action="saveAppend">Save</button>
-    <button class="btn-secondary" data-action="resetAppend">Reset</button>
-    <button class="btn-link" data-action="openAppend">Open file</button>
+    <button class="btn-primary" id="btn-save-append" data-action="saveAppend"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="resetAppend" title="Reset"><span class="codicon codicon-discard"></span></button>
+    <button class="btn-secondary" data-action="openAppend" title="Open file"><span class="codicon codicon-go-to-file"></span> Open file</button>
   </div>
 </div>
 <div class="tab-section">
@@ -27,9 +27,9 @@ export function renderSettingsTab(parent: HTMLElement, data: SystemPromptData) {
   <p class="hint">File: <code>${escHtml(data.systemPrompt.path)}</code></p>
   <textarea id="txt-system" class="ta" placeholder="(empty — using default system prompt)">${escHtml(data.systemPrompt.content)}</textarea>
   <div class="btn-row">
-    <button class="btn-primary" id="btn-save-system" data-action="saveSystem">Save</button>
-    <button class="btn-secondary" data-action="resetSystem">Reset</button>
-    <button class="btn-link" data-action="openSystem">Open file</button>
+    <button class="btn-primary" id="btn-save-system" data-action="saveSystem"><span class="codicon codicon-save"></span> Save</button>
+    <button class="btn-secondary" data-action="resetSystem" title="Reset"><span class="codicon codicon-discard"></span></button>
+    <button class="btn-secondary" data-action="openSystem" title="Open file"><span class="codicon codicon-go-to-file"></span> Open file</button>
   </div>
 </div>`;
 
