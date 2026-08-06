@@ -21,10 +21,10 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 .kv .v.placeholder { opacity:0.5; font-style:italic; }
 .kv .v.with-action { display:flex; align-items:center; gap:6px; }
 .kv .v.with-action .v-text { flex:1; min-width:0; word-break:break-all; }
-.kv .inline-btn { padding:1px 6px; cursor:pointer; background:transparent; color:var(--vscode-foreground); border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:11px; opacity:0.7; white-space:nowrap; flex-shrink:0; }
-.kv .inline-btn:hover { opacity:1; background:var(--vscode-toolbar-hoverBackground); }
-.kv .inline-btn.primary { background:var(--vscode-button-background); color:var(--vscode-button-foreground); border-color:transparent; opacity:1; }
-.kv .inline-btn.primary:hover { background:var(--vscode-button-hoverBackground); }
+.inline-btn { padding:1px 6px; cursor:pointer; background:transparent; color:var(--vscode-foreground); border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:11px; opacity:0.7; white-space:nowrap; flex-shrink:0; }
+.inline-btn:hover { opacity:1; background:var(--vscode-toolbar-hoverBackground); }
+.inline-btn.primary { background:var(--vscode-button-background); color:var(--vscode-button-foreground); border-color:transparent; opacity:1; }
+.inline-btn.primary:hover { background:var(--vscode-button-hoverBackground); }
 .kv .copy-btn { padding:1px 6px; cursor:pointer; background:transparent; color:var(--vscode-foreground); border:1px solid var(--vscode-widget-border,transparent); border-radius:3px; font-size:11px; opacity:0.6; }
 .kv .copy-btn:hover { opacity:1; background:var(--vscode-toolbar-hoverBackground); }
 .row { display:flex; align-items:center; gap:8px; padding:4px 0; }
@@ -38,6 +38,24 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 .btn.secondary:hover { background:var(--vscode-toolbar-hoverBackground); }
 .btn-block { display:block; width:100%; text-align:left; }
 .error { padding:6px 10px; background:var(--vscode-inputValidation-errorBackground,#5a1d1d); color:var(--vscode-inputValidation-errorForeground,#fff); border:1px solid var(--vscode-inputValidation-errorBorder,transparent); border-radius:3px; font-size:12px; margin:8px 12px; }
+.onboarding { margin:8px 12px; border:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent)); border-radius:4px; padding:10px 12px; background:var(--vscode-editorWidget-background,transparent); }
+.onboarding h3 { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; margin:0 0 8px 0; font-weight:600; }
+.check-item { display:flex; align-items:center; gap:6px; padding:2px 0; font-size:12px; }
+.check-item .mark { width:14px; height:14px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; }
+.mark.ok { background:var(--vscode-testing-iconPassed,#388a34); color:#fff; }
+.mark.fail { background:var(--vscode-testing-iconFailed,#e51400); color:#fff; }
+.steps { margin:8px 0; padding-left:18px; font-size:12px; }
+.steps li { margin:2px 0; }
+.steps a { color:var(--vscode-textLink-foreground); text-decoration:none; }
+.steps a:hover { text-decoration:underline; }
+.hint { font-size:11px; opacity:0.8; margin-top:6px; }
+.hint a { color:var(--vscode-textLink-foreground); text-decoration:none; }
+.hint a:hover { text-decoration:underline; }
+.next-steps { display:flex; flex-direction:column; gap:6px; }
+.next-row { display:flex; align-items:center; gap:8px; font-size:12px; }
+.next-row .step-num { width:16px; height:16px; border-radius:50%; background:var(--vscode-button-background); color:var(--vscode-button-foreground); display:inline-flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; }
+.next-row .step-text { flex:1; min-width:0; }
+.onboarding .btn { margin-top:8px; }
 .toast { position:fixed; bottom:10px; left:50%; transform:translateX(-50%); background:var(--vscode-notifications-background,#252526); color:var(--vscode-notifications-foreground,#cccccc); border:1px solid var(--vscode-widget-border,transparent); padding:4px 10px; border-radius:3px; font-size:11px; opacity:0; transition:opacity 0.15s; pointer-events:none; z-index:10; }
 .toast.show { opacity:1; }
 </style></head>
@@ -51,6 +69,7 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 </div>
 <div class="scroll" id="scroll">
   <div id="error-host"></div>
+  <div id="onboarding-host"></div>
 
   <div class="section">
     <h3>${t("Environment")}</h3>
@@ -84,6 +103,9 @@ function t(key, args) {
 }
 const vsc = acquireVsCodeApi();
 let piPath = "";
+let piVersion = null;
+let envCheck = null;
+let platform = "";
 
 function escHtml(s) { var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
 
@@ -92,6 +114,57 @@ function setText(id, text, placeholder) {
   if (!el) return;
   el.textContent = text;
   if (placeholder) el.classList.add('placeholder'); else el.classList.remove('placeholder');
+}
+
+function renderOnboarding() {
+  var host = document.getElementById('onboarding-host');
+  if (!host || piVersion === null) return;
+  var piOk = piVersion !== '(unknown)';
+  if (!envCheck) {
+    host.innerHTML = piOk ? '' : '<div class="onboarding"><h3>' + t('Environment check') + '</h3><div class="hint">' + t('Checking environment…') + '</div></div>';
+    return;
+  }
+  var nodeOk = !!envCheck.nodeSupported;
+  var npmOk = !!envCheck.npmVersion;
+  if (!piOk) {
+    var nodeLine = nodeOk
+      ? '<span class="mark ok">✓</span>Node.js ' + escHtml(envCheck.nodeVersion || '')
+      : '<span class="mark fail">✗</span>Node.js — ' + t('needs 22.19.0 or newer');
+    var npmLine = npmOk
+      ? '<span class="mark ok">✓</span>npm ' + escHtml(envCheck.npmVersion || '')
+      : '<span class="mark fail">✗</span>npm — ' + t('not detected');
+    var piLine = '<span class="mark fail">✗</span>Pi — ' + t('not detected');
+    var steps = '<ol class="steps">';
+    if (!nodeOk) {
+      steps += '<li>' + t('Install Node.js') + ': <a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a> — ' + t('Download LTS (22.19.0 or newer); npm is included.') + '</li>';
+    }
+    steps += '<li>' + t('Install Pi') + ': <a href="https://pi.dev" target="_blank" rel="noopener">pi.dev</a> — ' + t('follow the official install guide.') + '</li>';
+    steps += '<li>' + t('Verify') + ': ' + t('Restart VS Code, then reopen this panel.') + '</li></ol>';
+    var git = platform === 'win32'
+      ? '<div class="hint">' + t('Windows tip') + ': <a href="https://git-scm.com" target="_blank" rel="noopener">' + t('Git Bash') + '</a> — ' + t('needed for bash-based features.') + '</div>'
+      : '';
+    host.innerHTML =
+      '<div class="onboarding">' +
+      '<h3>' + t('Environment check') + '</h3>' +
+      '<div class="check-item">' + nodeLine + '</div>' +
+      '<div class="check-item">' + npmLine + '</div>' +
+      '<div class="check-item">' + piLine + '</div>' +
+      steps + git +
+      '</div>';
+    return;
+  }
+  if (nodeOk && npmOk) {
+    host.innerHTML =
+      '<div class="onboarding">' +
+      '<h3>' + t('Environment ready') + '</h3>' +
+      '<div class="next-steps">' +
+      '<div class="next-row"><span class="step-num">1</span><span class="step-text">' + t('Configure a model provider and API key') + '</span><button class="inline-btn primary" data-action="open-settings-tab" data-tab="models">' + t('Open Models settings') + '</button></div>' +
+      '<div class="next-row"><span class="step-num">2</span><span class="step-text">' + t('Choose the UI mode (terminal or webview)') + '</span><button class="inline-btn primary" data-action="open-vscode-settings" data-query="pi-agent-studio.ui">' + t('Open VS Code settings') + '</button></div>' +
+      '<div class="next-row"><span class="step-num">3</span><span class="step-text">' + t('Set pi-agent-studio.path if pi is not on your PATH') + '</span><button class="inline-btn primary" data-action="open-vscode-settings" data-query="pi-agent-studio.path">' + t('Open VS Code settings') + '</button></div>' +
+      '</div></div>';
+  } else {
+    host.innerHTML = '';
+  }
 }
 
 function showError(msg) {
@@ -148,15 +221,26 @@ document.addEventListener('click', function(ev) {
     case 'copy-pi-path':
       copyToClipboard(piPath);
       break;
+    case 'open-settings-tab':
+      vsc.postMessage({ type: 'openSettings', tab: btn.getAttribute('data-tab') });
+      break;
+    case 'open-vscode-settings':
+      vsc.postMessage({ type: 'openVscodeSettings', query: btn.getAttribute('data-query') });
+      break;
   }
 });
 
 function applyData(msg) {
   var env = msg.env || {};
   piPath = env.piPath || '';
+  piVersion = null;
+  envCheck = null;
+  platform = msg.platform || '';
   setText('env-pi-path', piPath || t('(unknown)'), !piPath);
   setText('env-ext-version', env.extensionVersion || t('(unknown)'), false);
   setText('env-node-version', env.nodeVersion || t('(loading…)'), env.nodeVersion === t('(loading…)'));
+  var host = document.getElementById('onboarding-host');
+  if (host) host.innerHTML = '';
   if (env.piVersion !== undefined) {
     var loading = env.piVersion === t('(loading…)');
     setText('env-pi-version', env.piVersion || t('(unknown)'), loading);
@@ -175,7 +259,12 @@ window.addEventListener('message', function(e) {
   if (msg.type === 'data') {
     applyData(msg);
   } else if (msg.type === 'piVersion') {
-    setText('env-pi-version', msg.piVersion || t('(unknown)'), false);
+    piVersion = msg.piVersion || '(unknown)';
+    setText('env-pi-version', piVersion, false);
+    renderOnboarding();
+  } else if (msg.type === 'envCheck') {
+    envCheck = msg;
+    renderOnboarding();
   } else if (msg.type === 'nodeVersion') {
     setText('env-node-version', msg.nodeVersion || t('(unknown)'), false);
   } else if (msg.type === 'error') {

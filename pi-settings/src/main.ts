@@ -128,8 +128,12 @@ window.addEventListener("message", (ev) => {
   if (!msg || typeof msg.type !== "string") return;
   switch (msg.type) {
     case "init":
+      if (msg.initialTab && msg.initialTab !== activeTab) switchTab(msg.initialTab);
       setModelsTabActive(activeTab === "models");
       vscode.postMessage({ type: "tabLoad", tab: activeTab });
+      break;
+    case "setTab":
+      if (msg.tab && msg.tab !== activeTab) switchTab(msg.tab);
       break;
     case "error":
       showToast(msg.message || t("Unknown error"), "error");

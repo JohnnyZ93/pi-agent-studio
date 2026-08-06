@@ -99,9 +99,13 @@ const COMMIT_LANGUAGES = [
 
 let activePanel: vscode.WebviewPanel | undefined;
 
-export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void> {
+export async function openSettingsPanel(
+  extensionUri: vscode.Uri,
+  initialTab?: string,
+): Promise<void> {
   if (activePanel) {
     activePanel.reveal(activePanel.viewColumn ?? vscode.ViewColumn.Active, false);
+    if (initialTab) activePanel.webview.postMessage({ type: "setTab", tab: initialTab });
     return;
   }
 
@@ -167,6 +171,7 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
             type: "init",
             lang: getLocale(),
             hasWorkspace: hasWorkspace(),
+            initialTab: initialTab ?? null,
             tabs: [
               "models",
               "agents",

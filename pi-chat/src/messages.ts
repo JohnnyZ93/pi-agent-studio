@@ -474,7 +474,7 @@ export function applyTextCollapsible(b: any): void {
   btn.textContent = t("Show more");
   btn.addEventListener("click", function () {
     const expanded = textEl.classList.toggle("is-expanded");
-    btn.textContent = expanded ? "Show less" : "Show more";
+    btn.textContent = expanded ? t("Show less") : t("Show more");
   });
   const host = b.el ? b.el.parentNode : textEl.parentNode;
   const ref = b.el ? b.el.nextSibling : textEl.nextSibling;

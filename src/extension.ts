@@ -163,9 +163,9 @@ export async function activate(context: vscode.ExtensionContext) {
       lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.upgrade", upgradePiBinary),
-    vscode.commands.registerCommand("pi-agent-studio.openSettings", async () => {
+    vscode.commands.registerCommand("pi-agent-studio.openSettings", async (tab?: string) => {
       const { openSettingsPanel } = await import("./settings/settings-panel.ts");
-      await openSettingsPanel(extensionUri);
+      await openSettingsPanel(extensionUri, tab);
     }),
     vscode.commands.registerCommand("pi-agent-studio.openSettingsJson", async () => {
       const { ensureSettingsJsonExists } = await import("./settings/settings-config.ts");

@@ -1,13 +1,65 @@
 import { execFile } from "node:child_process";
-import { accessSync, constants, realpathSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import * as vscode from "vscode";
 import { findPiBinary } from "../pi.ts";
+import { isNodeVersionSupported } from "./node-version.ts";
 
 const execFileAsync = promisify(execFile);
 
 const EXTENSION_ID = "johnny-zhao.pi-agent-studio";
+
+/**
+ * Run a system command resolved from PATH, tolerating Windows shims
+ * (.cmd/.bat). Returns trimmed stdout, or undefined on failure/timeout.
+ */
+async function execOnPath(
+  command: string,
+  args: readonly string[],
+  timeoutMs: number,
+): Promise<string | undefined> {
+  const isWin = process.platform === "win32";
+  const opts = { timeout: timeoutMs, windowsHide: true, encoding: "utf8" as const };
+  try {
+    if (!isWin) {
+      const { stdout } = await execFileAsync(command, args, opts);
+      return stdout.trim();
+    }
+    const lower = command.toLowerCase();
+    const needsCmd = lower.endsWith(".cmd") || lower.endsWith(".bat") || lower.endsWith(".ps1");
+    if (needsCmd) {
+      const { stdout } = await execFileAsync("cmd.exe", ["/d", "/s", "/c", command, ...args], opts);
+      return stdout.trim();
+    }
+    // Windows, no extension: try the binary directly (node.exe), then retry
+    // through cmd.exe for PATHEXT shims like npm.cmd that CreateProcess cannot
+    // execute on its own.
+    try {
+      const { stdout } = await execFileAsync(command, args, opts);
+      return stdout.trim();
+    } catch {
+      const { stdout } = await execFileAsync("cmd.exe", ["/d", "/s", "/c", command, ...args], opts);
+      return stdout.trim();
+    }
+  } catch {
+    return undefined;
+  }
+}
+
+/** System-level Node.js/npm availability on PATH (used by the onboarding card —
+ *  deliberately NOT the extension-host node, which may mislead new users). */
+export async function detectSystemNodeEnv(): Promise<{
+  nodeVersion: string | undefined;
+  npmVersion: string | undefined;
+}> {
+  const [nodeVersion, npmVersion] = await Promise.all([
+    execOnPath("node", ["--version"], 5000),
+    execOnPath("npm", ["--version"], 5000),
+  ]);
+  return {
+    nodeVersion: nodeVersion ? nodeVersion.replace(/^v/, "") : undefined,
+    npmVersion: npmVersion ?? undefined,
+  };
+}
 
 export interface SettingsStaticEnv {
   piPath: string;
@@ -28,54 +80,6 @@ export function collectStaticEnv(): SettingsStaticEnv {
     extensionVersion: getExtensionVersion(),
     nodeVersion: "(loading…)",
   };
-}
-
-/**
- * Locate the `node` binary that actually runs `pi`.
- */
-export function findPiNodeBinary(piPath: string): string | undefined {
-  const isWin = process.platform === "win32";
-  const nodeName = isWin ? "node.exe" : "node";
-  const accessFlag = isWin ? constants.F_OK : constants.X_OK;
-
-  const candidates: string[] = [];
-  // 1. Same directory as the (real) pi binary — handles nvm/nvm4w/bun/pnpm.
-  try {
-    const real = realpathSync(piPath);
-    candidates.push(join(dirname(real), nodeName));
-  } catch {}
-  // 2. Same directory as the (configured) pi path, in case the shim itself is the
-  //    canonical location (npm global bin where shim and node sit side-by-side).
-  try {
-    candidates.push(join(dirname(piPath), nodeName));
-  } catch {}
-
-  for (const c of candidates) {
-    try {
-      accessSync(c, accessFlag);
-      return c;
-    } catch {}
-  }
-  return undefined;
-}
-
-/**
- * Detect the Node.js version that actually runs pi.
- * Falls back to the extension host's `process.version` (annotated) when detection fails.
- */
-export async function detectNodeVersion(piPath: string): Promise<string> {
-  const nodePath = findPiNodeBinary(piPath);
-  if (nodePath) {
-    try {
-      const { stdout } = await execFileAsync(nodePath, ["-p", "process.versions.node"], {
-        timeout: 5000,
-        windowsHide: true,
-      });
-      const v = stdout.trim();
-      if (v) return `v${v.replace(/^v/, "")}`;
-    } catch {}
-  }
-  return `(unknown)`;
 }
 
 /**

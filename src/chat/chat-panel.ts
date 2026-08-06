@@ -144,6 +144,7 @@ export async function openChatPanel(
     homedir(),
     sep,
     vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+    getLocale(),
   );
   lockChatEditorGroup();
 

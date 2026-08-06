@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ensureSettingsJsonExists } from "./settings-config.ts";
-import { collectStaticEnv, detectNodeVersion, detectPiVersion } from "./settings-env.ts";
+import { collectStaticEnv, detectPiVersion, detectSystemNodeEnv } from "./settings-env.ts";
+import { isNodeVersionSupported } from "./node-version.ts";
 import { getSettingsHtml } from "./settings-sidebar-html.ts";
 import { t } from "../i18n.ts";
 
@@ -28,53 +29,70 @@ export function createSettingsViewProvider(): vscode.WebviewViewProvider {
           type: "data",
           env: { ...env, piVersion: t("(loading…)") },
           links: { home: LINK_HOME, packages: LINK_PACKAGES, github: LINK_GITHUB },
+          platform: process.platform,
         });
         try {
-          const piVersion = await detectPiVersion(env.piPath);
+          const [piVersion, sysEnv] = await Promise.all([
+            detectPiVersion(env.piPath),
+            detectSystemNodeEnv(),
+          ]);
           webviewView.webview.postMessage({ type: "piVersion", piVersion });
+          webviewView.webview.postMessage({
+            type: "envCheck",
+            nodeVersion: sysEnv.nodeVersion ?? null,
+            npmVersion: sysEnv.npmVersion ?? null,
+            nodeSupported: sysEnv.nodeVersion ? isNodeVersionSupported(sysEnv.nodeVersion) : false,
+          });
+          webviewView.webview.postMessage({
+            type: "nodeVersion",
+            nodeVersion: sysEnv.nodeVersion ? `v${sysEnv.nodeVersion}` : "(unknown)",
+          });
         } catch {
           webviewView.webview.postMessage({ type: "piVersion", piVersion: "(unknown)" });
         }
-        try {
-          const nodeVersion = await detectNodeVersion(env.piPath);
-          webviewView.webview.postMessage({ type: "nodeVersion", nodeVersion });
-        } catch {
-          webviewView.webview.postMessage({
-            type: "nodeVersion",
-            nodeVersion: `${process.version} (extension host)`,
-          });
-        }
       };
 
-      webviewView.webview.onDidReceiveMessage(async (msg: { type?: string; content?: string }) => {
-        try {
-          switch (msg.type) {
-            case "ready":
-            case "refresh":
-              await postData();
-              return;
+      webviewView.webview.onDidReceiveMessage(
+        async (msg: { type?: string; content?: string; tab?: string; query?: string }) => {
+          try {
+            switch (msg.type) {
+              case "ready":
+              case "refresh":
+                await postData();
+                return;
 
-            case "openSettings":
-              await vscode.commands.executeCommand("pi-agent-studio.openSettings");
-              return;
+              case "openSettings":
+                await vscode.commands.executeCommand(
+                  "pi-agent-studio.openSettings",
+                  typeof msg.tab === "string" ? msg.tab : undefined,
+                );
+                return;
 
-            case "openSettingsJson": {
-              const doc = await vscode.workspace.openTextDocument(ensureSettingsJsonExists());
-              await vscode.window.showTextDocument(doc);
-              return;
+              case "openVscodeSettings":
+                await vscode.commands.executeCommand(
+                  "workbench.action.openSettings",
+                  typeof msg.query === "string" ? msg.query : undefined,
+                );
+                return;
+
+              case "openSettingsJson": {
+                const doc = await vscode.workspace.openTextDocument(ensureSettingsJsonExists());
+                await vscode.window.showTextDocument(doc);
+                return;
+              }
+
+              case "upgrade":
+                await vscode.commands.executeCommand("pi-agent-studio.upgrade");
+                return;
             }
-
-            case "upgrade":
-              await vscode.commands.executeCommand("pi-agent-studio.upgrade");
-              return;
+          } catch (err) {
+            webviewView.webview.postMessage({
+              type: "error",
+              message: err instanceof Error ? err.message : String(err),
+            });
           }
-        } catch (err) {
-          webviewView.webview.postMessage({
-            type: "error",
-            message: err instanceof Error ? err.message : String(err),
-          });
-        }
-      });
+        },
+      );
 
       webviewView.onDidChangeVisibility(() => {
         if (webviewView.visible) void postData();
