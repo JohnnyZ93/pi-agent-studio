@@ -47,8 +47,8 @@
     "test": "pnpm lint && pnpm typecheck"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.83.0",
-    "@earendil-works/pi-coding-agent": "^0.83.0"
+    "@earendil-works/pi-ai": "^0.84.0",
+    "@earendil-works/pi-coding-agent": "^0.84.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

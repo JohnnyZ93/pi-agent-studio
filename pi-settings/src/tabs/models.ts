@@ -17,6 +17,7 @@ interface ModelEntry {
   };
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string | null>;
+  samplingParams?: Record<string, unknown>;
   input?: string[];
   headers?: Record<string, string>;
   compat?: Record<string, unknown>;
@@ -102,6 +103,7 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
   { name: "requiresReasoningContentOnAssistantMessages", type: "bool", group: "openai" },
   { name: "sendSessionAffinityHeaders", type: "bool", group: "openai" },
   { name: "supportsLongCacheRetention", type: "bool", group: "openai" },
+  { name: "supportsFinishReason", type: "bool", group: "openai" },
   {
     name: "maxTokensField",
     type: "select",
@@ -118,6 +120,7 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
       "openrouter",
       "deepseek",
       "together",
+      "baseten",
       "zai",
       "qwen",
       "chat-template",
@@ -135,6 +138,7 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
   },
   { name: "deferredToolsMode", type: "select", group: "openai", options: ["", "kimi"] },
   { name: "chatTemplateKwargs", type: "json", group: "openai" },
+  { name: "chatTemplateArgs", type: "json", group: "openai" },
   { name: "openRouterRouting", type: "json", group: "openai" },
   { name: "vercelGatewayRouting", type: "json", group: "openai" },
   { name: "supportsEagerToolInputStreaming", type: "bool", group: "anthropic" },
@@ -497,6 +501,7 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
   const costTiers = e?.cost?.tiers != null ? safeJsonStringify(e.cost.tiers) : "";
   const hasImage = !!e?.input?.includes("image");
   const tlm = e?.thinkingLevelMap != null ? safeJsonStringify(e.thinkingLevelMap) : "";
+  const sp = e?.samplingParams != null ? safeJsonStringify(e.samplingParams) : "";
   return `<div class="editor-card" style="border:1px solid var(--vscode-focusBorder);border-radius:4px;margin:4px 0"><h3>${isNew ? t("Add Model") : t("Edit Model")}</h3>
     <div class="form-row"><div class="form-group"><label class="field-label">${t("Model ID")}</label><input id="mf-id" value="${escAttr(e?.id ?? "")}" placeholder="model-id" ${isNew ? "" : "readonly"} /></div>
     <div class="form-group"><label class="field-label">${t("Display Name")}</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="${t("Optional")}" /></div></div>
@@ -515,6 +520,7 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
       <label class="check-label"><input type="checkbox" id="mf-image" ${hasImage ? "checked" : ""} /> ${t("Image input")}</label>
     </div>
     <label class="field-label">${t("Thinking Level Map (JSON)")}</label><textarea id="mf-thinkingLevelMap" class="ta" style="height:90px" placeholder='{ "high": "high", "max": "max", "low": null }'>${escHtml(tlm)}</textarea>
+    <label class="field-label">${t("Sampling Parameters (JSON)")}</label><textarea id="mf-samplingParams" class="ta" style="height:90px" placeholder='{ "temperature": 1.0, "top_p": 0.95 }'>${escHtml(sp)}</textarea>
     ${renderHeadersField("mf-headers", e?.headers)}
     <label class="field-label">${t("Compatibility")}</label>
     ${renderCompatSection("mf-cx", e?.compat)}
@@ -898,6 +904,18 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
     }
   } else {
     m.thinkingLevelMap = null;
+  }
+  const spTxt = (
+    (document.getElementById("mf-samplingParams") as HTMLTextAreaElement)?.value ?? ""
+  ).trim();
+  if (spTxt) {
+    try {
+      m.samplingParams = JSON.parse(spTxt);
+    } catch {
+      errors.push(t("Invalid JSON in Sampling Parameters"));
+    }
+  } else {
+    m.samplingParams = null;
   }
   m.headers = readHeadersField("mf-headers");
   const compat = readCompatSection("mf-cx");

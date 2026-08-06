@@ -2,6 +2,10 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [Unreleased]
+
+- **Dependencies**: `pi-*` packages updated to v0.84.0 (root + `pi-mcp`). The chat RPC client, commit-message generator, and MCP bridge already consumed the delta-style `message_update` events and passed `getApiKeyAndHeaders()` headers through unchanged, so no code changes were required for the 0.84.0 breaking changes.
+
 ## [1.2.2] - 2026-08-06
 
 - **Localization (en + zh-cn)**: new `pi-agent-studio.language` setting (`auto` follows the VS Code display language, or explicit `en` / `zh-cn`) localizes the extension manifest, extension-host UI (sidebars, chat panel, settings panel, git commit generator), and webview UIs. Changing the setting reloads open webviews in place.

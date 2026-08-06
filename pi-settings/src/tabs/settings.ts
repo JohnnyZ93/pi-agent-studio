@@ -138,6 +138,24 @@ const GROUPS: SettingGroup[] = [
         type: "bool",
         desc: t("Show the terminal cursor while TUI positions it for IME support"),
       },
+      {
+        key: "tuiMode",
+        label: t("TUI mode"),
+        type: "enum",
+        options: ["regular", "fullscreen"],
+        def: "regular",
+        desc: t('Interactive TUI mode: "regular" or experimental "fullscreen"'),
+      },
+      {
+        key: "fullscreenScrollbar",
+        label: t("Fullscreen scrollbar"),
+        type: "enum",
+        options: ["auto", "always", "hidden"],
+        def: "auto",
+        desc: t(
+          'Fullscreen transcript scrollbar: "auto" shows it while scrolling, "always" keeps it visible, "hidden" hides it',
+        ),
+      },
     ],
   },
   {
@@ -349,6 +367,14 @@ const GROUPS: SettingGroup[] = [
     title: t("Markdown"),
     fields: [
       { key: "markdown.codeBlockIndent", label: t("Code block indent"), type: "string", def: "  " },
+      {
+        key: "markdown.mermaid",
+        label: t("Mermaid rendering"),
+        type: "enum",
+        options: ["off", "final", "streaming"],
+        def: "streaming",
+        desc: t('Mermaid rendering mode: "off", "final", or "streaming"'),
+      },
     ],
   },
   {

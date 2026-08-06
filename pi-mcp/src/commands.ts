@@ -6,10 +6,10 @@ import type { McpSession } from "./connection.ts";
 export const MCP_STATUS_MARKER = "__mcp_status__";
 
 /**
- * pi's active-tool whitelist API (present at runtime in 0.83+; not yet in the
- * type defs). setActiveTools rebuilds the system prompt and takes effect on the
- * next agent turn, so stopped servers' tool definitions are no longer sent to
- * the LLM (saving tokens).
+ * pi's active-tool whitelist API (in the type defs since 0.84; kept optional
+ * here for runtime safety). setActiveTools rebuilds the system prompt and
+ * takes effect on the next agent turn, so stopped servers' tool definitions
+ * are no longer sent to the LLM (saving tokens).
  */
 type ActiveToolsApi = {
   getActiveTools?: () => string[];
