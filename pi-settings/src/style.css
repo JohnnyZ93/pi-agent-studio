@@ -23,6 +23,9 @@
 .codicon-chevron-down::before {
   content: "\eab4";
 }
+.codicon-chevron-left::before {
+  content: "\eab5";
+}
 .codicon-circle::before {
   content: "\eabc";
 }
@@ -255,6 +258,42 @@ body {
   border-right: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
   background: var(--vscode-sideBar-background, var(--vscode-editor-background));
   overflow-y: auto;
+}
+
+.nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 8px 4px auto;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.nav-toggle:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.nav.collapsed {
+  width: 40px;
+}
+
+.nav.collapsed .nav-toggle {
+  margin: 0 auto 4px;
+}
+
+.nav.collapsed .nav-label {
+  display: none;
+}
+
+.nav.collapsed .nav-tab {
+  justify-content: center;
+  padding: 8px 0;
 }
 
 .nav-tab {
@@ -1042,6 +1081,40 @@ textarea.form-input {
 
 .cfg-field {
   margin-bottom: 12px;
+}
+
+.mcp-cfg {
+  margin-bottom: 10px;
+}
+
+.mcp-cfg .check-label {
+  margin-bottom: 6px;
+}
+
+.mcp-cfg-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mcp-cfg-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mcp-cfg-row .check-label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mcp-cfg-row .field-label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mcp-cfg-row input[type="number"] {
+  width: 90px;
 }
 
 .cfg-desc {

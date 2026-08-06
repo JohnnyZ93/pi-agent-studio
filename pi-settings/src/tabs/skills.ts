@@ -50,8 +50,8 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
     <h3>Skills</h3>
     <button class="btn-primary" data-action="add-skill"><span class="codicon codicon-add"></span> New Skill</button>
   </div>
+  <div class="hint">Skills are markdown files loaded by pi. User skills live in <code>~/.pi/agent/skills</code> or <code>~/.agents/skills</code>${hasWorkspace ? ", project skills in <code>.pi/skills</code> or <code>.agents/skills</code>" : ""}.</div>
   <div class="item-list">${rows || '<span class="dim">No skills found.</span>'}</div>
-  <div class="hint">Skills are markdown files loaded by pi. User skills live in <code>~/.pi/agent/skills</code>${hasWorkspace ? ", project skills in <code>.pi/skills</code>" : ""}.</div>
 </div>`;
   }
 

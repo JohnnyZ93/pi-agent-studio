@@ -17,6 +17,8 @@ interface ServerData {
     source: "user" | "project";
   }>;
   hasWorkspace: boolean;
+  mcpEnabled: boolean;
+  mcpIdleTimeout: number;
 }
 
 interface McpForm {
@@ -66,13 +68,23 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
 <div class="tab-section">
   <div class="section-header">
     <h3>MCP Servers</h3>
-    <button class="btn-primary" data-action="add-server"><span class="codicon codicon-add"></span> Add Server</button>
+    <div class="header-actions">
+      <button class="btn-primary" data-action="add-server"><span class="codicon codicon-add"></span> Add Server</button>
+      <button class="btn-secondary" data-action="open-mcp-json" data-scope="user" title="Open user mcp.json"><span class="codicon codicon-go-to-file"></span> user mcp.json</button>
+      ${hasWorkspace ? '<button class="btn-secondary" data-action="open-mcp-json" data-scope="project" title="Open project mcp.json"><span class="codicon codicon-go-to-file"></span> project mcp.json</button>' : ""}
+    </div>
+  </div>
+  <div class="editor-card mcp-cfg">
+    <div class="mcp-cfg-row">
+      <label class="check-label"><input type="checkbox" id="mcp-enabled" ${data.mcpEnabled ? "checked" : ""} /> Enable MCP tools</label>
+      <div class="mcp-cfg-field">
+        <label class="field-label">Idle timeout (minutes)</label>
+        <input id="mcp-idle" type="number" min="0" value="${data.mcpIdleTimeout ?? 10}" title="Minutes before idle MCP servers disconnect. 0 disables idle disconnect." />
+      </div>
+      <button class="btn-primary" data-action="save-mcp-config"><span class="codicon codicon-save"></span> Save</button>
+    </div>
   </div>
   <div class="item-list">${rows || '<span class="dim">No servers configured.</span>'}</div>
-  <div class="btn-row">
-    <button class="btn-secondary" data-action="open-mcp-json" data-scope="user" title="Open user mcp.json"><span class="codicon codicon-go-to-file"></span> user mcp.json</button>
-    ${hasWorkspace ? '<button class="btn-secondary" data-action="open-mcp-json" data-scope="project" title="Open project mcp.json"><span class="codicon codicon-go-to-file"></span> project mcp.json</button>' : ""}
-  </div>
 </div>`;
   }
 
@@ -194,6 +206,21 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
           scope: btn.getAttribute("data-scope") ?? "user",
         });
         break;
+      case "save-mcp-config": {
+        const enabled = (document.getElementById("mcp-enabled") as HTMLInputElement)?.checked ?? false;
+        const idleEl = document.getElementById("mcp-idle") as HTMLInputElement | null;
+        const idle = idleEl ? Number(idleEl.value) : 10;
+        if (idleEl && idleEl.value.trim() === "") {
+          showError(parent, "Idle timeout must be a number");
+          return;
+        }
+        vscode.postMessage({
+          type: "saveMcpConfig",
+          enabled,
+          idleTimeout: Number.isNaN(idle) ? 10 : idle,
+        });
+        break;
+      }
       case "save-mcp": {
         const form = readForm();
         if (!form.name.trim()) {

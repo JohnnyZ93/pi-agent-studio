@@ -22,7 +22,36 @@ if (typeof (window as any).__PI_FONTSIZE__ === "number" && (window as any).__PI_
 }
 
 const nav = document.querySelector(".nav")!;
+const navToggle = document.getElementById("nav-toggle");
 let content = document.getElementById("content")!;
+
+const NAV_BREAKPOINT = 640;
+let navCollapsed = false;
+
+function applyNavCollapse() {
+  nav.classList.toggle("collapsed", navCollapsed);
+  const icon = navToggle?.querySelector(".codicon");
+  if (icon) {
+    icon.className = "codicon " + (navCollapsed ? "codicon-chevron-right" : "codicon-chevron-left");
+  }
+  if (navToggle) {
+    navToggle.title = navCollapsed ? "Expand sidebar" : "Collapse sidebar";
+  }
+}
+
+navToggle?.addEventListener("click", () => {
+  navCollapsed = !navCollapsed;
+  applyNavCollapse();
+});
+
+const navResizeObserver = new ResizeObserver(() => {
+  const want = document.body.clientWidth < NAV_BREAKPOINT;
+  if (want !== navCollapsed) {
+    navCollapsed = want;
+    applyNavCollapse();
+  }
+});
+navResizeObserver.observe(document.body);
 
 let activeTab = "models";
 const tabData: Record<string, any> = {};
@@ -89,6 +118,7 @@ window.addEventListener("message", (ev) => {
       if (msg.what === "system") showToast("System prompt saved", "success");
       else if (msg.what === "append") showToast("Append prompt saved", "success");
       else if (msg.what === "commit") showToast("Commit message settings saved", "success");
+      else if (msg.what === "mcp") showToast("MCP settings saved", "success");
       else if (msg.what === "settings")
         showToast("Settings saved — restart pi to apply", "success");
       break;

@@ -386,6 +386,17 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
           writeTextFile(getAppendSystemPromptPath(), msg.content ?? "");
           panel.webview.postMessage({ type: "saved", what: "append" });
           break;
+        case "saveMcpConfig": {
+          const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+          await cfg.update("mcp.enabled", !!msg.enabled, vscode.ConfigurationTarget.Global);
+          await cfg.update(
+            "mcp.idleTimeout",
+            typeof msg.idleTimeout === "number" ? msg.idleTimeout : 10,
+            vscode.ConfigurationTarget.Global,
+          );
+          panel.webview.postMessage({ type: "saved", what: "mcp" });
+          break;
+        }
         case "saveCommitConfig": {
           const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
           await cfg.update("commitModel", msg.commitModel ?? "", vscode.ConfigurationTarget.Global);
@@ -528,7 +539,15 @@ async function buildTabData(
       const userPath = getMcpUserPath();
       const projectPath = cwd ? getMcpProjectPath(cwd) : "";
       const servers = listMergedServers(userPath, projectPath);
-      return { servers, hasWorkspace: !!cwd, userPath, projectPath };
+      const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+      return {
+        servers,
+        hasWorkspace: !!cwd,
+        userPath,
+        projectPath,
+        mcpEnabled: cfg.get<boolean>("mcp.enabled", false),
+        mcpIdleTimeout: cfg.get<number>("mcp.idleTimeout", 10),
+      };
     }
     case "sysprompt": {
       const systemPath = getSystemPromptPath();

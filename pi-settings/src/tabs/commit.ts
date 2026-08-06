@@ -31,6 +31,7 @@ export function renderCommitTab(parent: HTMLElement, data: CommitData) {
   <div class="section-header">
     <h3>Commit Message</h3>
   </div>
+  <div class="hint">Settings are stored in VS Code configuration (<code>pi-agent-studio.commitModel</code>, <code>pi-agent-studio.commitLanguage</code>, <code>pi-agent-studio.commitMessagePrompt</code>).</div>
   <div class="editor-card">
     <label class="field-label">Model</label>
     <select id="cm-model">${modelOptions(data.commitModel)}</select>
@@ -46,7 +47,6 @@ export function renderCommitTab(parent: HTMLElement, data: CommitData) {
       <button class="btn-primary" data-action="save-commit"><span class="codicon codicon-save"></span> Save</button>
     </div>
   </div>
-  <div class="hint">Settings are stored in VS Code configuration (<code>pi-agent-studio.commitModel</code>, <code>pi-agent-studio.commitLanguage</code>, <code>pi-agent-studio.commitMessagePrompt</code>).</div>
 </div>`;
 
   parent.addEventListener("click", (e) => {

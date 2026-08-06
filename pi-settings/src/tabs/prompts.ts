@@ -51,8 +51,8 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
     <h3>Prompt Templates</h3>
     <button class="btn-primary" data-action="add-prompt"><span class="codicon codicon-add"></span> New Prompt</button>
   </div>
-  <div class="item-list">${rows || '<span class="dim">No prompts found.</span>'}</div>
   <div class="hint">Prompts are slash-command templates loaded by pi. Editable prompts live in <code>~/.pi/agent/prompts</code>${hasWorkspace ? " or <code>.pi/prompts</code>" : ""}.</div>
+  <div class="item-list">${rows || '<span class="dim">No prompts found.</span>'}</div>
 </div>`;
   }
 

@@ -75,6 +75,7 @@ export const attachPreviewEl = document.getElementById("attach-preview")!;
 export const infoBtn = document.getElementById("info-btn") as HTMLButtonElement;
 export const refreshBtn = document.getElementById("refresh-btn") as HTMLButtonElement;
 export const mcpBtn = document.getElementById("mcp-btn") as HTMLButtonElement;
+export const settingsBtn = document.getElementById("settings-btn") as HTMLButtonElement;
 export const modelWrap = document.getElementById("model-wrap")!;
 export const modelTrigger = document.getElementById("model-trigger") as HTMLButtonElement;
 export const modelTriggerLabel = document.getElementById("model-trigger-label")!;
@@ -660,6 +661,14 @@ mcpBtn.addEventListener("mouseenter", function () {
   showTooltip(mcpBtn, "Manage MCP");
 });
 mcpBtn.addEventListener("mouseleave", hideTooltip);
+
+settingsBtn.addEventListener("click", function () {
+  vscode.postMessage({ type: "openSettings" });
+});
+settingsBtn.addEventListener("mouseenter", function () {
+  showTooltip(settingsBtn, "Settings");
+});
+settingsBtn.addEventListener("mouseleave", hideTooltip);
 
 nameInput.addEventListener("keydown", function (ev: KeyboardEvent) {
   if (!nameEditing) return;

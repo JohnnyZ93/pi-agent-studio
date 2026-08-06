@@ -65,6 +65,9 @@
 .codicon-server::before {
   content: "\eb50";
 }
+.codicon-settings-gear::before {
+  content: "\eb51";
+}
 :root {
   --chat-fs: 13px;
   --chat-fs-8: calc(var(--chat-fs) * 8 / 13);

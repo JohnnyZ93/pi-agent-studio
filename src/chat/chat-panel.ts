@@ -811,6 +811,9 @@ export async function openChatPanel(
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;
+      case "openSettings":
+        void vscode.commands.executeCommand("pi-agent-studio.openSettings");
+        break;
       case "mcpOpen": {
         const mcpEnabled = vscode.workspace
           .getConfiguration("pi-agent-studio.mcp")

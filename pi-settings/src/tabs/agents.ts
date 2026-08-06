@@ -60,8 +60,8 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
     <h3>Agents</h3>
     <button class="btn-primary" data-action="add-agent"><span class="codicon codicon-add"></span> New Agent</button>
   </div>
-  <div class="item-list">${rows || '<span class="dim">No agents found.</span>'}</div>
   <div class="hint">Agents are markdown files loaded by pi. User agents live in <code>~/.pi/agent/agents</code>${hasWorkspace ? ", project agents in <code>.pi/agents</code>" : ""}.</div>
+  <div class="item-list">${rows || '<span class="dim">No agents found.</span>'}</div>
 </div>`;
   }
 
