@@ -29,7 +29,8 @@
 - **Slash 命令** —— `/vscode-selection` 与 `/vscode-diagnostics` 将当前选区或诊断以用户消息的形式注入对话；其余编辑器能力刻意不对模型开放
 - **AI 驱动的 Git 提交信息** —— 基于 pi 从暂存区变更生成语义化 commit message，支持 14 种语言与自定义提示模板
 - **会话恢复** —— 按工作区持久化 pi 会话，IDE 重启后通过 `--session` 自动续接
-- **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（stdio / http 传输选择器）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`
+- **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（stdio / http 传输选择器）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`；Models 标签页还提供**高级 Provider / 模型兼容性选项**：按模型覆盖 API 协议与 base URL、支持 env / command 占位符的自定义请求头、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
+- **本地化** —— 扩展内置**英文与简体中文**两套语言：`pi-agent-studio.language`（`auto` 跟随 VS Code 显示语言，也可强制 `en` / `zh-cn`）覆盖清单、侧边栏、聊天面板、设置面板与 commit message 生成器
 - **侧边栏视图** —— `Sessions`（新建 / 恢复 / 切换会话，含实时状态图标）与精简版 `Settings` 侧边栏（环境信息、升级、跳转完整设置面板）
 - **危险命令审批** —— 内置 permission gate，拦截 `rm -rf`、`sudo` 等危险 bash 命令，执行前需人工批准；支持 `AskForApproval` / `FullAccess` 模式与自定义危险模式
 - **编辑器标题栏按钮** —— 编辑器标题栏快捷打开 pi
@@ -73,6 +74,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | `Pi: Upgrade Pi`                     | —             | 调用 `pi update` 升级 pi（离线时回退到推断的包管理器）                       |
 | `Pi: Open settings.json`             | —             | 在编辑器中打开 `~/.pi/agent/settings.json`（不存在时创建 `{}`）              |
 | `Pi: Open models.json`               | —             | 在编辑器中打开 `~/.pi/agent/models.json`（不存在时创建 `{ providers: {} }`） |
+| `Pi: Open Settings`                  | `Alt+Shift+,` | 打开完整设置面板（聊天面板齿轮按钮与状态栏按钮亦可）                         |
 | `Pi: Generate Commit Message`        | —             | 基于 pi 从暂存区生成 AI Git commit message                                   |
 | `Pi: Generate Commit Message - Stop` | —             | 中止正在进行的 commit message 生成                                           |
 
@@ -83,14 +85,14 @@ ovsx get johnny-zhao/pi-agent-studio
 活动栏中的 **Pi** 图标会展开包含两个 webview 的侧边栏：
 
 - **Sessions** -- 按工作区显示会话列表，带实时运行 / 空闲状态图标；多根工作区时显示下拉切换
-- **Settings** -- 环境信息、快捷链接、`Upgrade Pi` 按钮，以及 `Full Settings` 跳转按钮
+- **Settings** -- 环境信息、快捷链接、`Upgrade Pi` 按钮，以及 `Full Settings` 跳转按钮；当 pi 缺失时显示首次运行**引导卡片**（Node ≥ 22.19.0 / npm / pi 检查项、仅链接的安装步骤与重启提示——PATH 变更需重启 VS Code 生效）
 
 ### 完整设置面板
 
 **Settings** 侧边栏的跳转按钮（或 `Pi: Open Settings` 命令）会打开一个单实例编辑器面板，共七个标签页，数据按标签页惰性加载：
 
 - **Models** —— 三个子标签页：
-  - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider
+  - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider；支持按 Provider 配置 `authHeader` 开关与自定义请求头（env / command 占位符）、按模型覆盖 API 协议与 base URL、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
   - **OAuth** —— 通过内置 `AuthStorage` 登录支持 OAuth 的 Provider
   - **API Keys** —— 管理 `~/.pi/agent/auth.json` 中保存的 API Key
 - **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
@@ -161,6 +163,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | 设置项                                         | 类型      | 默认值              | 说明                                                                                 |
 | ---------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------ |
 | `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                |
+| `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                           |
 | `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                             |
 | `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                             |
 | `pi-agent-studio.commitLanguage`               | `string`  | `"English"`         | 生成 Git commit message 的语言（支持 14 种语言）                                     |

@@ -29,7 +29,8 @@ English | [简体中文](README.zh-CN.md)
 - **Slash commands** — `/vscode-selection` and `/vscode-diagnostics` inject the current editor selection or diagnostics into the conversation, with the rest of the editor surface intentionally kept off-limits to the model
 - **AI-powered Git commit messages** — Generate semantic commit messages from staged changes using pi, with support for 14 languages and custom prompt templates
 - **Session restoration** — Per-workspace pi sessions are persisted and relaunched with `--session` after IDE reload
-- **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (stdio/http with a transport selector), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O
+- **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (stdio/http with a transport selector), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O. The Models tab exposes **advanced provider/model compatibility options**: per-model API protocol and base URL overrides, custom headers with env/command placeholders, OpenAI/Anthropic compatibility fields, cost tiers, and thinking levels
+- **Localization** — The extension ships in **English and Simplified Chinese**: `pi-agent-studio.language` (`auto` follows the VS Code display language, or force `en` / `zh-cn`) localizes the manifest, sidebars, chat panel, settings panel, and commit message generator
 - **Sidebar views** — `Sessions` (new/restore/switch) and a compact `Settings` sidebar (env info, upgrade, jump to the full panel)
 - **Status bar / title bar buttons** — Pi button on the editor title bar for quick access
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`; on Windows `%APPDATA%/npm`, `%LOCALAPPDATA%/pnpm`)
@@ -72,6 +73,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | `Pi: Upgrade Pi`                     | —             | Upgrade pi via `pi update` (falls back to the inferred package manager when offline)           |
 | `Pi: Open settings.json`             | —             | Open `~/.pi/agent/settings.json` in the editor (creates an empty `{}` if missing)              |
 | `Pi: Open models.json`               | —             | Open `~/.pi/agent/models.json` in the editor (creates an empty `{ providers: {} }` if missing) |
+| `Pi: Open Settings`                  | `Alt+Shift+,` | Open the full Settings panel (chat panel gear button and status bar item do the same)          |
 | `Pi: Generate Commit Message`        | —             | Generate an AI-powered Git commit message from staged changes using pi                         |
 | `Pi: Generate Commit Message - Stop` | —             | Abort an ongoing commit message generation                                                     |
 
@@ -82,14 +84,14 @@ The **Pi: Open** command is also wired to the editor title bar for one-click acc
 The **Pi** activity bar icon opens a sidebar with two webviews:
 
 - **Sessions** - Per-workspace session list with live running/idle status icons; dropdown when multiple workspace folders exist
-- **Settings** - Environment info, quick links, `Upgrade Pi` button, and a `Full Settings` jump button
+- **Settings** - Environment info, quick links, `Upgrade Pi` button, and a `Full Settings` jump button; when pi is missing it shows a first-run **onboarding card** with Node ≥ 22.19.0 / npm / pi checks, link-only install steps, and a restart hint (PATH changes apply on VS Code restart)
 
 ### Full Settings panel
 
 The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) opens a single-instance editor panel with seven tabs, each loading its data lazily:
 
 - **Models** — three subtabs:
-  - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`
+  - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`; per-provider `authHeader` toggle and custom headers (env/command placeholders), per-model API protocol / base URL overrides, OpenAI / Anthropic compatibility fields, cost tiers and thinking-level maps
   - **OAuth** — Sign in to providers that support OAuth, managed through the bundled `AuthStorage`
   - **API Keys** — Manage stored API keys in `~/.pi/agent/auth.json`
 - **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
@@ -160,6 +162,7 @@ Example:
 | Setting                                        | Type      | Default            | Description                                                                                                   |
 | ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                                       |
+| `pi-agent-studio.language`                     | `string`  | `"auto"`           | UI language: `auto` (follows the VS Code display language), `en`, or `zh-cn`                                  |
 | `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)                          |
 | `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args                         |
 | `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                                           |

@@ -2,7 +2,13 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
-## [1.2.1] - 2026-08-05
+## [1.2.2] - 2026-08-06
+
+- **Localization (en + zh-cn)**: new `pi-agent-studio.language` setting (`auto` follows the VS Code display language, or explicit `en` / `zh-cn`) localizes the extension manifest, extension-host UI (sidebars, chat panel, settings panel, git commit generator), and webview UIs. Changing the setting reloads open webviews in place.
+- **Advanced model compatibility options** (Settings → Models → Providers): per-model API protocol and base URL overrides, custom headers with `env`/`command` placeholder syntax, an `authHeader` toggle, OpenAI / Anthropic compatibility fields (per-field default/true/false + JSON input), and cost-tier / thinking-level map editors.
+- **OAuth fixes**: pi-ai OAuth flows are now registered explicitly (fixes bundled auth resolution) and the OAuth input value is always submitted, making provider sign-in reliable.
+- **First-run onboarding card**: the Settings sidebar shows an environment checklist (Node ≥ 22.19.0, npm, pi) with link-only install steps and a restart hint when pi is missing; PATH-level Node detection replaces sibling-based probing (with cmd.exe shim handling on Windows).
+- **Settings UX**: chat panel gains a gear button that opens the Settings panel, `Alt+Shift+,` opens Settings from anywhere, the status bar item now opens Settings, the Settings sidebar is collapsible, and the MCP tab gains an enable toggle and idle-timeout field with save feedback.
 
 - **Unified Settings panel**: the separate Models / Agents / Prompt Templates / Skills / MCP Servers sidebar webviews are consolidated into a single **Full Settings** editor panel (`pi-agent-studio.openSettings`). Seven lazy-loaded tabs: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers, **Commit Message** (model / language / custom prompt), and Settings (inline **`settings.json` editor** + System Prompt Append / Override).
 - **MCP editor**: explicit **transport selector** (stdio / http) with dynamic field visibility; server names are locked when editing an existing server.
