@@ -926,7 +926,7 @@ function submitOAuthCode() {
 
 function submitOAuthInput(token: string) {
   const val = (document.getElementById("oauth-input") as HTMLInputElement)?.value.trim() ?? "";
-  if (val) vscode.postMessage({ type: "oauthRespond", token, value: val });
+  vscode.postMessage({ type: "oauthRespond", token, value: val });
 }
 
 function saveApiKey(parent: HTMLElement, _data: ModelsData, id: string) {
