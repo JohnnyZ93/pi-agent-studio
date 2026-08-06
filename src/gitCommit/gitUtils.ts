@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { t } from "../i18n.ts";
 
 const execAsync = promisify(exec);
 const GIT_OUTPUT_LINE_LIMIT = 500;
@@ -194,12 +195,12 @@ export async function getGitDiff(cwd: string, stagedOnly = false): Promise<strin
   try {
     const isInstalled = await checkGitInstalled();
     if (!isInstalled) {
-      throw new Error("Git is not installed");
+      throw new Error(t("Git is not installed"));
     }
 
     const isRepo = await checkGitRepo(cwd);
     if (!isRepo) {
-      throw new Error("Not a git repository");
+      throw new Error(t("Not a git repository"));
     }
 
     const execOpts = { cwd, maxBuffer: 10 * 1024 * 1024 } as const;
@@ -218,7 +219,7 @@ export async function getGitDiff(cwd: string, stagedOnly = false): Promise<strin
     }
 
     if (!diff) {
-      throw new Error("No changes in workspace for commit message");
+      throw new Error(t("No changes in workspace for commit message"));
     }
 
     return `'${command}' Output:\n\n${diff}`.trim();

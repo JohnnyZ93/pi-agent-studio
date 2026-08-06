@@ -7,6 +7,7 @@ import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
 import { readEnabledModelKeys, toggleFavoriteModel } from "../settings/settings-config.ts";
 import { getChatWebviewHtml } from "./chat-webview.ts";
+import { getLocale, t } from "../i18n.ts";
 import type { ChatTracker } from "./chat-tracker.ts";
 import type { ExtensionUiRequest, RpcClient, RpcEvent, RpcSessionStats } from "./chat-types.ts";
 import { createRpcClient } from "./rpc-client.ts";
@@ -160,10 +161,21 @@ export async function openChatPanel(
   let branchResolved = false;
   let streaming = false;
 
+  const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration("pi-agent-studio.language")) {
+      panel.webview.html = getChatWebviewHtml(
+        homedir(),
+        sep,
+        vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+        getLocale(),
+      );
+    }
+  });
+
   function updatePanelTitle(running: boolean): void {
     if (disposed) return;
     panel.title =
-      (running ? "🔵 " : "🟢 ") + CHAT_PANEL_TITLE + (sessionName ? ` \u2014 ${sessionName}` : "");
+      (running ? "🔵 " : "🟢 ") + t("Pi Chat") + (sessionName ? ` \u2014 ${sessionName}` : "");
   }
 
   function syncRegistryStatus(running: boolean): void {
@@ -879,6 +891,7 @@ export async function openChatPanel(
   });
 
   panel.onDidDispose(() => {
+    langSub.dispose();
     disposed = true;
     activePanels.delete(panelId);
     if (handle.sessionFile) {

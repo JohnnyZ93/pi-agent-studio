@@ -8,6 +8,7 @@ import {
   overlayEl,
   shortenToolPath,
 } from "./globals";
+import { t } from "./i18n";
 
 const ICON_CHEVRON = '<span class="codicon codicon-chevron-right"></span>';
 const ICON_ACCEPT = '<span class="codicon codicon-check"></span>';
@@ -75,7 +76,7 @@ export function applyRewindWidget(lines: string[]) {
   head.appendChild(chev);
 
   const title = el("span", "rewind-title");
-  title.textContent = "Modified files (" + files.length + ")";
+  title.textContent = t("Modified files ({0})", files.length);
   head.appendChild(title);
 
   const totalsEl = el("span", "rewind-totals");
@@ -85,10 +86,10 @@ export function applyRewindWidget(lines: string[]) {
   const headActions = el("span", "rewind-head-actions");
   const acceptAll = el("button", "rewind-btn rewind-accept") as HTMLButtonElement;
   acceptAll.type = "button";
-  acceptAll.innerHTML = ICON_ACCEPT + "<span>Accept all</span>";
+  acceptAll.innerHTML = ICON_ACCEPT + "<span>" + t("Accept all") + "</span>";
   acceptAll.addEventListener("click", function () {
     if (state.isStreaming) {
-      showToast("Stop the agent before changing files.", "error");
+      showToast(t("Stop the agent before changing files."), "error");
       return;
     }
     vscode.postMessage({ type: "rewindAccept" });
@@ -97,19 +98,21 @@ export function applyRewindWidget(lines: string[]) {
 
   const revertAll = el("button", "rewind-btn rewind-revert") as HTMLButtonElement;
   revertAll.type = "button";
-  revertAll.innerHTML = ICON_REVERT_FILE + "<span>Revert all</span>";
+  revertAll.innerHTML = ICON_REVERT_FILE + "<span>" + t("Revert all") + "</span>";
   revertAll.addEventListener("click", function () {
     if (state.isStreaming) {
-      showToast("Stop the agent before reverting.", "error");
+      showToast(t("Stop the agent before reverting."), "error");
       return;
     }
     showRewindConfirm(
-      "Revert all " + files.length + " file" + (files.length === 1 ? "" : "s") + "?",
-      "Files will be restored to their last accepted state. Conversation history is not affected.",
+      t("Revert all {0} file{1}?", files.length, files.length === 1 ? "" : "s"),
+      t(
+        "Files will be restored to their last accepted state. Conversation history is not affected.",
+      ),
       function () {
         vscode.postMessage({ type: "rewindRevert" });
       },
-      "Confirm revert",
+      t("Confirm revert"),
     );
   });
   headActions.appendChild(revertAll);
@@ -147,13 +150,13 @@ export function applyRewindWidget(lines: string[]) {
       const accBtn = el("button", "rewind-btn rewind-accept") as HTMLButtonElement;
       accBtn.type = "button";
       accBtn.innerHTML = ICON_ACCEPT;
-      tipBtn(accBtn, "Accept");
+      tipBtn(accBtn, t("Accept"));
       accBtn.addEventListener(
         "click",
         (function (id: any) {
           return function () {
             if (state.isStreaming) {
-              showToast("Stop the agent before changing files.", "error");
+              showToast(t("Stop the agent before changing files."), "error");
               return;
             }
             vscode.postMessage({ type: "rewindAcceptFile", id: id });
@@ -165,13 +168,13 @@ export function applyRewindWidget(lines: string[]) {
       const revBtn = el("button", "rewind-btn rewind-revert") as HTMLButtonElement;
       revBtn.type = "button";
       revBtn.innerHTML = ICON_REVERT_FILE;
-      tipBtn(revBtn, "Revert");
+      tipBtn(revBtn, t("Revert"));
       revBtn.addEventListener(
         "click",
         (function (id: any) {
           return function () {
             if (state.isStreaming) {
-              showToast("Stop the agent before reverting.", "error");
+              showToast(t("Stop the agent before reverting."), "error");
               return;
             }
             vscode.postMessage({ type: "rewindRevertFile", id: id });
@@ -202,33 +205,33 @@ export function renderRewindDialog(box: HTMLElement, request: any) {
   if (!isFinite(affected)) affected = 0;
 
   const h = box.querySelector("h3");
-  if (h) h.textContent = "Revert";
+  if (h) h.textContent = t("Revert");
   if (label) {
     const p = document.createElement("p");
     p.textContent = label;
     box.appendChild(p);
   }
   const p2 = document.createElement("p");
-  p2.textContent = affected + " file" + (affected === 1 ? "" : "s") + " affected";
+  p2.textContent = t("{0} file{1} affected", affected, affected === 1 ? "" : "s");
   box.appendChild(p2);
 
   const actions = el("div", "dialog-actions");
   const msgOnly = el("button", "btn btn-secondary") as HTMLButtonElement;
-  msgOnly.textContent = "Revert message only";
+  msgOnly.textContent = t("Revert message only");
   msgOnly.addEventListener("click", function () {
     respond(request.id, { value: "message-only" });
   });
   actions.appendChild(msgOnly);
 
   const msgAndCode = el("button", "btn btn-primary") as HTMLButtonElement;
-  msgAndCode.textContent = "Revert message + code";
+  msgAndCode.textContent = t("Revert message + code");
   msgAndCode.addEventListener("click", function () {
     respond(request.id, { value: "message+code" });
   });
   actions.appendChild(msgAndCode);
 
   const cancel = el("button", "btn btn-secondary") as HTMLButtonElement;
-  cancel.textContent = "Cancel";
+  cancel.textContent = t("Cancel");
   cancel.addEventListener("click", function () {
     respond(request.id, { cancelled: true });
   });
@@ -252,20 +255,20 @@ export function showRewindConfirm(
   overlayEl.innerHTML = "";
   const box = el("div", "dialog rewind-dialog");
   const h = document.createElement("h3");
-  h.textContent = title || "Confirm";
+  h.textContent = title || t("Confirm");
   box.appendChild(h);
   const p = document.createElement("p");
   p.textContent = description || "";
   box.appendChild(p);
   const actions = el("div", "dialog-actions");
   const cancel = el("button", "btn btn-secondary") as HTMLButtonElement;
-  cancel.textContent = "Cancel";
+  cancel.textContent = t("Cancel");
   cancel.addEventListener("click", function () {
     overlayEl.style.display = "none";
     overlayEl.innerHTML = "";
   });
   const confirm = el("button", "btn btn-primary") as HTMLButtonElement;
-  confirm.textContent = confirmText || "Confirm";
+  confirm.textContent = confirmText || t("Confirm");
   confirm.addEventListener("click", function () {
     (confirm as HTMLButtonElement).disabled = true;
     overlayEl.style.display = "none";

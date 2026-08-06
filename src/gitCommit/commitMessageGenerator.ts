@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import * as path from "path";
 import * as vscode from "vscode";
+import { t } from "../i18n.ts";
 import { getGitDiff } from "./gitUtils.ts";
 
 /**
@@ -40,12 +41,12 @@ export async function generateCommitMsg(scm?: vscode.SourceControl) {
   try {
     const gitExtension = vscode.extensions.getExtension("vscode.git")?.exports;
     if (!gitExtension) {
-      throw new Error("Git extension not found");
+      throw new Error(t("Git extension not found"));
     }
 
     const git = gitExtension.getAPI(1);
     if (git.repositories.length === 0) {
-      throw new Error("No Git repositories available");
+      throw new Error(t("No Git repositories available"));
     }
 
     // If scm is provided, then the user specified one repository by clicking the "Source Control" menu button
@@ -53,7 +54,7 @@ export async function generateCommitMsg(scm?: vscode.SourceControl) {
       const repository = git.getRepository(scm.rootUri);
 
       if (!repository) {
-        throw new Error("Repository not found for provided SCM");
+        throw new Error(t("Repository not found for provided SCM"));
       }
 
       await generateCommitMsgForRepository(repository);
@@ -63,7 +64,7 @@ export async function generateCommitMsg(scm?: vscode.SourceControl) {
     await orchestrateWorkspaceCommitMsgGeneration(git.repositories);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`[Commit Generation Failed] ${errorMessage}`);
+    vscode.window.showErrorMessage(t("[Commit Generation Failed] {0}", errorMessage));
   }
 }
 
@@ -71,7 +72,7 @@ async function orchestrateWorkspaceCommitMsgGeneration(repos: any[]) {
   const reposWithChanges = await filterForReposWithChanges(repos);
 
   if (reposWithChanges.length === 0) {
-    vscode.window.showInformationMessage(`No changes found in any workspace repositories.`);
+    vscode.window.showInformationMessage(t("No changes found in any workspace repositories."));
     return;
   }
 
@@ -130,13 +131,13 @@ async function promptRepoSelection(repos: any[]) {
   }));
 
   repoItems.unshift({
-    label: "$(git-commit) Generate for all repositories with changes",
-    description: `Generate commit messages for ${repos.length} repositories`,
+    label: "$(git-commit) " + t("Generate for all repositories with changes"),
+    description: t("Generate commit messages for {0} repositories", repos.length),
     repo: null as any,
   });
 
   return await vscode.window.showQuickPick(repoItems, {
-    placeHolder: "Select repository for commit message generation",
+    placeHolder: t("Select repository for commit message generation"),
   });
 }
 
@@ -147,14 +148,20 @@ async function generateCommitMsgForRepository(repository: any) {
 
   if (!gitDiff) {
     throw new Error(
-      `No changes in repository ${repoPath.split(path.sep).pop() || "repository"} for commit message`,
+      t(
+        "No changes in repository {0} for commit message",
+        repoPath.split(path.sep).pop() || "repository",
+      ),
     );
   }
 
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.SourceControl,
-      title: `Generating commit message for ${repoPath.split(path.sep).pop() || "repository"}...`,
+      title: t(
+        "Generating commit message for {0}...",
+        repoPath.split(path.sep).pop() || "repository",
+      ),
       cancellable: true,
     },
     (_progress, token) => {
@@ -223,18 +230,27 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
       const parsed = parseProviderModel(commitModelRaw);
       if (!parsed) {
         throw new Error(
-          `Invalid "pi-agent-studio.commitModel": "${commitModelRaw}". Expected format "provider/model".`,
+          t(
+            'Invalid "pi-agent-studio.commitModel": "{0}". Expected format "provider/model".',
+            commitModelRaw,
+          ),
         );
       }
       model = modelRuntime.getModel(parsed.provider, parsed.modelId);
       if (!model) {
         throw new Error(
-          `Commit model "${parsed.provider}/${parsed.modelId}" not found in ~/.pi/agent/models.json.`,
+          t(
+            'Commit model "{0}" not found in ~/.pi/agent/models.json.',
+            `${parsed.provider}/${parsed.modelId}`,
+          ),
         );
       }
       if (!modelRuntime.hasConfiguredAuth(model.provider)) {
         throw new Error(
-          `Commit model "${parsed.provider}/${parsed.modelId}" has no configured auth (API key or OAuth).`,
+          t(
+            'Commit model "{0}" has no configured auth (API key or OAuth).',
+            `${parsed.provider}/${parsed.modelId}`,
+          ),
         );
       }
     }
@@ -271,17 +287,17 @@ async function performCommitMsgGeneration(gitDiff: string, inputBox: any) {
     await session.prompt(userPrompt);
 
     if (commitGenerationAbortController.signal.aborted) {
-      throw new Error("Commit message generation was cancelled");
+      throw new Error(t("Commit message generation was cancelled"));
     }
 
     inputBox.value = removeThinkTags(extractCommitMessage(response));
 
     if (!inputBox.value) {
-      throw new Error("empty API response");
+      throw new Error(t("empty API response"));
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`Failed to generate commit message: ${errorMessage}`);
+    vscode.window.showErrorMessage(t("Failed to generate commit message: {0}", errorMessage));
   } finally {
     vscode.commands.executeCommand("setContext", "pi-agent-studio.isGeneratingCommit", false);
     if (abortListener) {

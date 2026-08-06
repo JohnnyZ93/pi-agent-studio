@@ -41,6 +41,7 @@ import {
   setCurrentAssistant,
 } from "./globals";
 import { showRewindConfirm, tipBtn } from "./rewind";
+import { t } from "./i18n";
 
 // ---- message DOM ----
 let pendingCompactionBlockRef: HTMLElement | null = null;
@@ -71,10 +72,10 @@ export function addUserMessage(text: string, images?: any[]) {
     bubble.classList.add("is-collapsible");
     const btn = el("button", "expand-btn");
     btn.type = "button";
-    btn.textContent = "Show more";
+    btn.textContent = t("Show more");
     btn.addEventListener("click", function () {
       const expanded = bubble.classList.toggle("is-expanded");
-      btn.textContent = expanded ? "Show less" : "Show more";
+      btn.textContent = expanded ? t("Show less") : t("Show more");
     });
     row.appendChild(btn);
   }
@@ -105,12 +106,12 @@ export function addCompactionMessage(m: any) {
   det.className = "compaction-block";
   const summ = document.createElement("summary");
   const label = el("span", "compaction-label");
-  label.textContent = "[compaction]";
+  label.textContent = t("[compaction]");
   summ.appendChild(label);
   const tokensBefore = m && typeof m.tokensBefore === "number" ? m.tokensBefore : null;
   summ.appendChild(
     document.createTextNode(
-      "Compacted from " + (tokensBefore != null ? tokensBefore.toLocaleString() : "?") + " tokens",
+      t("Compacted from {0} tokens", tokensBefore != null ? tokensBefore.toLocaleString() : "?"),
     ),
   );
   det.appendChild(summ);
@@ -131,14 +132,14 @@ export function addCompactionPlaceholder() {
   det.setAttribute("open", "");
   const summ = document.createElement("summary");
   const label = el("span", "compaction-label");
-  label.textContent = "[compaction]";
+  label.textContent = t("[compaction]");
   summ.appendChild(label);
-  summ.appendChild(document.createTextNode(" Compacting\u2026"));
+  summ.appendChild(document.createTextNode(" " + t("Compacting…")));
   const spin = el("span", "tool-status is-running");
   summ.appendChild(spin);
   det.appendChild(summ);
   const body = el("div", "compaction-body");
-  body.textContent = "Summarizing conversation\u2026";
+  body.textContent = t("Summarizing conversation…");
   det.appendChild(body);
   row.appendChild(det);
   messagesInner.appendChild(row);
@@ -171,7 +172,7 @@ export function addBtwPlaceholder(question: string, model?: string) {
   det.setAttribute("open", "");
   const summ = document.createElement("summary");
   const label = el("span", "btw-label");
-  label.textContent = "[btw]";
+  label.textContent = t("[btw]");
   summ.appendChild(label);
   const q = el("span", "btw-q");
   q.textContent = question || "";
@@ -181,12 +182,12 @@ export function addBtwPlaceholder(question: string, model?: string) {
   summ.appendChild(spin);
   det.appendChild(summ);
   const body = el("div", "btw-body btw-loading-text");
-  body.textContent = "Answering" + (model ? " with " + model : "") + "\u2026";
+  body.textContent = t("Answering") + (model ? " " + t("with {0}", model) : "") + "\u2026";
   det.appendChild(body);
   row.appendChild(det);
   messagesInner.appendChild(row);
   pendingBtwBlockRef = row;
-  setBtwStatus("Answering /btw" + (model ? " with " + model : "") + "\u2026");
+  setBtwStatus(t("Answering /btw") + (model ? " " + t("with {0}", model) : "") + "\u2026");
   scheduleScroll();
 }
 
@@ -226,7 +227,7 @@ export function showBtwError(message: string) {
   setBtwLoading(false);
   setBtwStatus(null);
   const eb = el("div", "error-banner");
-  eb.textContent = message || "Error";
+  eb.textContent = message || t("Error");
   messagesInner.appendChild(eb);
   scrollToBottom();
 }
@@ -345,17 +346,19 @@ export function applyAssistantStopError(
 ) {
   if (stopReason === "length") {
     appendAssistantError(
-      "Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.",
+      t(
+        "Error: Model stopped because it reached the maximum output token limit. The response may be incomplete.",
+      ),
     );
   } else if (stopReason === "error") {
-    const em = errorMessage || "Unknown error";
+    const em = errorMessage || t("Unknown error");
     if (assistantHasToolCalls()) markAssistantToolErrors(em);
-    else appendAssistantError("Error: " + em);
+    else appendAssistantError(t("Error: {0}", em));
   } else if (stopReason === "aborted") {
     const am =
       retryCount > 0
-        ? "Aborted after " + retryCount + " retry attempt" + (retryCount > 1 ? "s" : "")
-        : "Operation aborted";
+        ? t("Aborted after {0} retry attempt{1}", retryCount, retryCount > 1 ? "s" : "")
+        : t("Operation aborted");
     if (assistantHasToolCalls()) markAssistantToolErrors(am);
     else appendAssistantError(am);
   }
@@ -390,7 +393,7 @@ export function createBlock(type: string): any {
     det.setAttribute("open", "");
     const tSumm = document.createElement("summary");
     const tLabel = el("span", "thinking-label");
-    tLabel.textContent = "Thinking";
+    tLabel.textContent = t("Thinking");
     tSumm.appendChild(tLabel);
     det.appendChild(tSumm);
     const body = el("div", "thinking-body");
@@ -406,7 +409,7 @@ export function createBlock(type: string): any {
   const head = document.createElement("summary");
   head.className = "tool-head";
   const name = el("span", "tool-name");
-  name.textContent = "tool";
+  name.textContent = t("tool");
   const summary = el("span", "tool-summary");
   const st = el("span", "tool-status");
   head.appendChild(name);
@@ -468,7 +471,7 @@ export function applyTextCollapsible(b: any): void {
   textEl.classList.add("is-collapsible");
   const btn = el("button", "expand-btn");
   btn.type = "button";
-  btn.textContent = "Show more";
+  btn.textContent = t("Show more");
   btn.addEventListener("click", function () {
     const expanded = textEl.classList.toggle("is-expanded");
     btn.textContent = expanded ? "Show less" : "Show more";
@@ -485,7 +488,7 @@ export function setClamped(preEl: HTMLElement, text: string): void {
   text = typeof text === "string" ? text : "";
   if (text.length > MAX_INLINE) {
     preEl.textContent =
-      text.slice(0, MAX_INLINE) + " ... (truncated, " + (text.length - MAX_INLINE) + " more chars)";
+      text.slice(0, MAX_INLINE) + t(" ... (truncated, {0} more chars)", text.length - MAX_INLINE);
   } else {
     preEl.textContent = text;
   }
@@ -714,7 +717,7 @@ export function formatToolSummary(name: string, args: any): string {
     let cmd = toolStr(args.command);
     if (cmd.length > 80) cmd = cmd.slice(0, 80) + "\u2026";
     s = cmd || "...";
-    if (args.timeout) s += " (timeout " + args.timeout + "s)";
+    if (args.timeout) s += t(" (timeout {0}s)", args.timeout);
   } else if (name === "read") {
     s = shortenToolPath(toolPathArg(args)) || "...";
     const rng = formatReadRange(args);
@@ -723,19 +726,29 @@ export function formatToolSummary(name: string, args: any): string {
     s = shortenToolPath(toolPathArg(args)) || "...";
   } else if (name === "ls") {
     s = shortenToolPath(toolStr(args.path) || ".");
-    if (args.limit != null) s += " (limit " + args.limit + ")";
+    if (args.limit != null) s += t(" (limit {0})", args.limit);
   } else if (name === "find") {
-    s = toolStr(args.pattern) + " in " + shortenToolPath(toolStr(args.path) || ".");
-    if (args.limit != null) s += " (limit " + args.limit + ")";
+    s = toolStr(args.pattern) + " " + t("in") + " " + shortenToolPath(toolStr(args.path) || ".");
+    if (args.limit != null) s += t(" (limit {0})", args.limit);
   } else if (name === "grep") {
-    s = "/" + toolStr(args.pattern) + "/ in " + shortenToolPath(toolStr(args.path) || ".");
+    s =
+      "/" +
+      toolStr(args.pattern) +
+      "/ " +
+      t("in") +
+      " " +
+      shortenToolPath(toolStr(args.path) || ".");
     if (args.glob) s += " (" + toolStr(args.glob) + ")";
-    if (args.limit != null) s += " limit " + args.limit;
+    if (args.limit != null) s += " " + t("limit {0}", args.limit);
   } else if (name === "todo") {
     s = toolStr(args.action) || "...";
   } else if (name === "subagent") {
     if (args && args.tasks && args.tasks.length) {
-      s = "parallel \u00b7 " + args.tasks.length + (args.tasks.length > 1 ? " tasks" : " task");
+      s =
+        t("parallel") +
+        " \u00b7 " +
+        args.tasks.length +
+        (args.tasks.length > 1 ? " " + t("tasks") : " " + t("task"));
     } else if (args && args.agent) {
       s = args.agent;
       let ttl = args.title ? String(args.title) : "";
@@ -743,7 +756,7 @@ export function formatToolSummary(name: string, args: any): string {
         ttl = args.task.length > 60 ? args.task.slice(0, 60) + "\u2026" : args.task;
       if (ttl) s += " \u00b7 " + ttl;
     } else {
-      s = "subagent";
+      s = t("subagent");
     }
   } else if (name.startsWith("mcp__")) {
     s = mcpArgsPreview(args);
@@ -759,8 +772,8 @@ export function formatToolSummary(name: string, args: any): string {
     const q = toolStr(args && args.query);
     s = q ? `"${q}"` : "...";
     const opts: string[] = [];
-    if (args && args.limit != null) opts.push("limit " + args.limit);
-    if (args && args.offset != null) opts.push("offset " + args.offset);
+    if (args && args.limit != null) opts.push(t("limit {0}", args.limit));
+    if (args && args.offset != null) opts.push(t("offset {0}", args.offset));
     if (opts.length) s += ` (${opts.join(", ")})`;
   }
   return s;
@@ -1120,9 +1133,9 @@ export function detectCacheMiss(usage: any, modelId: string, ts: number): any {
   const idleMs = typeof ts === "number" && typeof prevTurn.ts === "number" ? ts - prevTurn.ts : 0;
   const modelChanged = !!modelId && !!prevTurn.modelId && modelId !== prevTurn.modelId;
   let label: string;
-  if (modelChanged) label = "Cache miss after model switch";
-  else if (idleMs >= 300000) label = "Cache miss after " + Math.round(idleMs / 60000) + "m idle";
-  else label = "Cache miss";
+  if (modelChanged) label = t("Cache miss after model switch");
+  else if (idleMs >= 300000) label = t("Cache miss after {0}m idle", Math.round(idleMs / 60000));
+  else label = t("Cache miss");
   return { label, missedTokens, missedCost };
 }
 
@@ -1143,7 +1156,8 @@ export function recordCacheUsage(usage: any, modelId: string, ts: number) {
           miss.label +
           " \u00b7 " +
           formatTokens(miss.missedTokens) +
-          " tokens re-billed" +
+          " " +
+          t("tokens re-billed") +
           costStr,
         "warning",
       );
@@ -1248,7 +1262,7 @@ function renderAgentBody(parent: HTMLElement, r: any): string {
   }
   if (r && r.task) {
     const tLabel = el("div", "sub-section-label");
-    tLabel.textContent = "Task";
+    tLabel.textContent = t("Task");
     parent.appendChild(tLabel);
     const tBody = el("div", "sub-task-text sub-md text-block");
     renderSubMd(tBody, r.task);
@@ -1262,7 +1276,7 @@ function renderAgentBody(parent: HTMLElement, r: any): string {
   const hasCalls = callItems.length > 0;
   if (hasCalls) {
     const sLabel = el("div", "sub-section-label");
-    sLabel.textContent = "Steps";
+    sLabel.textContent = t("Steps");
     parent.appendChild(sLabel);
     for (let i = 0; i < callItems.length; i++) {
       const cdiv = el("div", "sub-toolcall");
@@ -1282,20 +1296,20 @@ function renderAgentBody(parent: HTMLElement, r: any): string {
   }
   if (failed && r.errorMessage) {
     const errDiv = el("div", "sub-error");
-    errDiv.textContent = "Error: " + r.errorMessage;
+    errDiv.textContent = t("Error: {0}", r.errorMessage);
     parent.appendChild(errDiv);
   }
   const final = getFinalOutput(r.messages || []);
   if (final) {
     const fLabel = el("div", "sub-section-label");
-    fLabel.textContent = "Result";
+    fLabel.textContent = t("Result");
     parent.appendChild(fLabel);
     const mdDiv = el("div", "sub-final sub-md text-block");
     renderSubMd(mdDiv, final.trim());
     parent.appendChild(mdDiv);
   } else if (!failed && !hasCalls && !(r && r.task)) {
     const empty = el("div", "sub-empty");
-    empty.textContent = r && r.exitCode === -1 ? "(running\u2026)" : "(no output)";
+    empty.textContent = r && r.exitCode === -1 ? t("(running…)") : t("(no output)");
     parent.appendChild(empty);
   }
   return usageStr;
@@ -1349,7 +1363,7 @@ export function renderSubagentResult(b: any, details: any) {
       }
       const sstatus = el("span", "sub-task-status");
       sstatus.textContent =
-        sr.exitCode === -1 ? "running" : isFailedSubagent(sr) ? "failed" : "done";
+        sr.exitCode === -1 ? t("running") : isFailedSubagent(sr) ? t("failed") : t("done");
       shead.appendChild(sstatus);
       sdet.appendChild(shead);
       const sbody = el("div", "sub-task-body");
@@ -1361,17 +1375,23 @@ export function renderSubagentResult(b: any, details: any) {
     const tus = formatUsage(tu);
     if (tus) {
       const tud = el("div", "sub-total");
-      tud.textContent = "Total: " + tus;
+      tud.textContent = t("Total: {0}", tus);
       wrap.appendChild(tud);
     }
     if (b.summaryEl) {
       b.summaryEl.textContent =
         pic +
-        " parallel \u00b7 " +
+        " " +
+        t("parallel") +
+        " \u00b7 " +
         done +
         "/" +
         results.length +
-        (running > 0 ? " running" : fail > 0 ? " (" + fail + " failed)" : " done");
+        (running > 0
+          ? " " + t("running")
+          : fail > 0
+            ? " (" + t("{0} failed", fail) + ")"
+            : " " + t("done"));
     }
   } else {
     return;
@@ -1398,7 +1418,7 @@ export function hydrateMessages(list: any[]) {
     rebuildCtxRingTooltip();
     return;
   }
-  setStatus("Loading history...");
+  setStatus(t("Loading history..."));
   let i = 0;
   const CHUNK = 8;
   function step() {
@@ -1488,13 +1508,13 @@ export function extractImages(content: any): any[] {
 export function formatDuration(ms: number): string {
   if (typeof ms !== "number" || !isFinite(ms) || ms < 0) return "";
   const s = Math.round(ms / 1000);
-  if (s < 1) return ms > 0 ? "<1s" : "0s";
+  if (s < 1) return ms > 0 ? t("<1s") : t("0s");
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  if (h > 0) return h + "h " + m + "m " + sec + "s";
-  if (m > 0) return m + "m " + sec + "s";
-  return sec + "s";
+  if (h > 0) return t("{0}h {1}m {2}s", h, m, sec);
+  if (m > 0) return t("{0}m {1}s", m, sec);
+  return t("{0}s", sec);
 }
 
 export function formatWorkTitle(
@@ -1504,26 +1524,26 @@ export function formatWorkTitle(
   added: number,
   removed: number,
 ): string {
-  let t = turns + " Turn" + (turns === 1 ? "" : "s");
+  let w = turns + " " + (turns === 1 ? t("Turn") : t("Turns"));
   if (typeof startTs === "number" && typeof endTs === "number" && endTs >= startTs) {
     const d = formatDuration(endTs - startTs);
-    if (d) t += "  \u00b7  Worked for " + d;
+    if (d) w += "  \u00b7  " + t("Worked for {0}", d);
   }
   if (added > 0 || removed > 0) {
-    t += "  \u00b7  ";
+    w += "  \u00b7  ";
     if (added > 0)
-      t +=
+      w +=
         '<span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' +
         added +
         "</span>";
-    if (added > 0 && removed > 0) t += " ";
+    if (added > 0 && removed > 0) w += " ";
     if (removed > 0)
-      t +=
+      w +=
         '<span style="color:var(--vscode-gitDecoration-deletedResourceForeground, #f48771)">-' +
         removed +
         "</span>";
   }
-  return t;
+  return w;
 }
 
 export function wrapWorkSegment(userRow: HTMLElement) {
@@ -1730,7 +1750,7 @@ export function handleEvent(event: any) {
       endToolExecution(event);
       break;
     case "compaction_start":
-      showToast("Compacting\u2026", undefined, true);
+      showToast(t("Compacting…"), undefined, true);
       addCompactionPlaceholder();
       break;
     case "compaction_end":
@@ -1745,15 +1765,15 @@ export function handleEvent(event: any) {
       break;
     case "auto_retry_start":
       setRetryAttempt(event.attempt);
-      showToast("Retrying " + event.attempt + "/" + event.maxAttempts + "\u2026", undefined, true);
+      showToast(t("Retrying {0}/{1}…", event.attempt, event.maxAttempts), undefined, true);
       break;
     case "auto_retry_end":
       hideToast();
       setRetryAttempt(0);
       if (event.success === false) {
-        const rfe = event.finalError || "Unknown error";
+        const rfe = event.finalError || t("Unknown error");
         const reb = el("div", "error-banner");
-        reb.textContent = "Error: Retry failed after " + event.attempt + " attempts: " + rfe;
+        reb.textContent = t("Error: Retry failed after {0} attempts: {1}", event.attempt, rfe);
         messagesInner.appendChild(reb);
         scrollToBottom();
       }
@@ -1779,7 +1799,7 @@ export function appendUserActions(
   const actions = el("div", "bubble-actions");
   const copyBtn = el("button", "icon-btn");
   copyBtn.type = "button";
-  tipBtn(copyBtn, "Copy");
+  tipBtn(copyBtn, t("Copy"));
   copyBtn.innerHTML = '<span class="codicon codicon-copy"></span>';
   copyBtn.addEventListener("click", function () {
     vscode.postMessage({ type: "copy", text: text || "" });
@@ -1788,35 +1808,35 @@ export function appendUserActions(
 
   const forkBtn = el("button", "icon-btn");
   forkBtn.type = "button";
-  tipBtn(forkBtn, "Fork");
+  tipBtn(forkBtn, t("Fork"));
   forkBtn.innerHTML = '<span class="codicon codicon-repo-forked"></span>';
   forkBtn.addEventListener("click", function () {
     const ts = (bubble as any)._piTs;
     if (state.isStreaming) return;
     if (ts == null) {
-      showToast("Message not ready yet.", "info");
+      showToast(t("Message not ready yet."), "info");
       return;
     }
     showRewindConfirm(
-      "Fork from this message?",
-      "Create a new branch from this message. Current file changes are kept.",
+      t("Fork from this message?"),
+      t("Create a new branch from this message. Current file changes are kept."),
       function () {
         vscode.postMessage({ type: "fork", ts });
       },
-      "Fork",
+      t("Fork"),
     );
   });
   actions.appendChild(forkBtn);
 
   const revertBtn = el("button", "icon-btn");
   revertBtn.type = "button";
-  tipBtn(revertBtn, "Revert");
+  tipBtn(revertBtn, t("Revert"));
   revertBtn.innerHTML = '<span class="codicon codicon-discard"></span>';
   revertBtn.addEventListener("click", function () {
     const ts = (bubble as any)._piTs;
     if (state.isStreaming) return;
     if (ts == null) {
-      showToast("Message not ready yet.", "info");
+      showToast(t("Message not ready yet."), "info");
       return;
     }
     vscode.postMessage({ type: "revert", ts });

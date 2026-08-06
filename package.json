@@ -62,10 +62,11 @@
     "rolldown": "^1.0.0-rc.10",
     "vitest": "^4.1.0"
   },
+  "l10n": "./l10n",
   "contributes": {
     "icons": {
       "pi-logo": {
-        "description": "Pi logo icon",
+        "description": "%pi.icon.piLogo.desc%",
         "default": {
           "fontPath": "assets/fonts/pi-icons.woff2",
           "fontCharacter": "\\F101"
@@ -75,7 +76,7 @@
     "commands": [
       {
         "command": "pi-agent-studio.open",
-        "title": "Pi: Open",
+        "title": "%pi.cmd.open%",
         "icon": {
           "light": "assets/logo-light.svg",
           "dark": "assets/logo.svg"
@@ -83,19 +84,19 @@
       },
       {
         "command": "pi-agent-studio.upgrade",
-        "title": "Pi: Upgrade Pi"
+        "title": "%pi.cmd.upgrade%"
       },
       {
         "command": "pi-agent-studio.openSettingsJson",
-        "title": "Pi: Open Settings (JSON)"
+        "title": "%pi.cmd.openSettingsJson%"
       },
       {
         "command": "pi-agent-studio.openModelsJson",
-        "title": "Pi: Open Models (JSON)"
+        "title": "%pi.cmd.openModelsJson%"
       },
       {
         "command": "pi-agent-studio.openSettings",
-        "title": "Pi: Open Settings",
+        "title": "%pi.cmd.openSettings%",
         "icon": {
           "light": "assets/logo-light.svg",
           "dark": "assets/logo.svg"
@@ -103,7 +104,7 @@
       },
       {
         "command": "pi-agent-studio.openInNewWindow",
-        "title": "Pi: Open in New Window",
+        "title": "%pi.cmd.openInNewWindow%",
         "icon": {
           "light": "assets/logo-light.svg",
           "dark": "assets/logo.svg"
@@ -111,7 +112,7 @@
       },
       {
         "command": "pi-agent-studio.openInFolder",
-        "title": "Pi: Open Here",
+        "title": "%pi.cmd.openInFolder%",
         "icon": {
           "light": "assets/logo-light.svg",
           "dark": "assets/logo.svg"
@@ -119,7 +120,7 @@
       },
       {
         "command": "pi-agent-studio.generateGitCommitMessage",
-        "title": "Generate Commit Message with Pi",
+        "title": "%pi.cmd.generateGitCommitMessage%",
         "icon": {
           "light": "assets/logo-light.svg",
           "dark": "assets/logo.svg"
@@ -127,7 +128,7 @@
       },
       {
         "command": "pi-agent-studio.abortGitCommitMessage",
-        "title": "Generate Commit Message with Pi - Stop",
+        "title": "%pi.cmd.abortGitCommitMessage%",
         "icon": "$(debug-stop)"
       }
     ],
@@ -172,7 +173,7 @@
       "activitybar": [
         {
           "id": "pi",
-          "title": "Pi",
+          "title": "%pi.activitybar.title%",
           "icon": "assets/logo.svg"
         }
       ]
@@ -182,27 +183,42 @@
         {
           "type": "webview",
           "id": "pi-agent-studio.sessions",
-          "name": "Sessions"
+          "name": "%pi.view.sessions%"
         },
         {
           "type": "webview",
           "id": "pi-agent-studio.settings",
-          "name": "Settings"
+          "name": "%pi.view.settings%"
         }
       ]
     },
     "configuration": {
-      "title": "Pi",
+      "title": "%pi.config.title%",
       "properties": {
+        "pi-agent-studio.language": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "en",
+            "zh-cn"
+          ],
+          "enumDescriptions": [
+            "%pi.config.language.enumDesc.auto%",
+            "%pi.config.language.enumDesc.en%",
+            "%pi.config.language.enumDesc.zhcn%"
+          ],
+          "description": "%pi.config.language.desc%"
+        },
         "pi-agent-studio.path": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the pi binary. Leave empty for auto-detection."
+          "description": "%pi.config.path.desc%"
         },
         "pi-agent-studio.env": {
           "type": "object",
           "default": {},
-          "description": "Environment variables to set in the pi terminal session."
+          "description": "%pi.config.env.desc%"
         },
         "pi-agent-studio.args": {
           "type": "array",
@@ -210,7 +226,7 @@
             "type": "string"
           },
           "default": [],
-          "description": "Extra command-line arguments passed to pi."
+          "description": "%pi.config.args.desc%"
         },
         "pi-agent-studio.commitLanguage": {
           "type": "string",
@@ -231,24 +247,24 @@
             "Turkish",
             "Polish"
           ],
-          "description": "Language for generated Git commit messages. Default is English."
+          "description": "%pi.config.commitLanguage.desc%"
         },
         "pi-agent-studio.commitMessagePrompt": {
           "type": "string",
           "default": "",
-          "description": "Custom system prompt for commit message generation. If not provided, uses the default prompt."
+          "description": "%pi.config.commitMessagePrompt.desc%"
         },
         "pi-agent-studio.commitModel": {
           "type": "string",
           "default": "",
           "pattern": "^$|^[^/]+/.+$",
-          "patternErrorMessage": "Format must be \"provider/model\", e.g. \"Zai/glm-5.2\".",
-          "description": "Model used to generate Git commit messages, in \"provider/model\" format (e.g. \"Zai/glm-5.2\")."
+          "patternErrorMessage": "%pi.config.commitModel.patternError%",
+          "description": "%pi.config.commitModel.desc%"
         },
         "pi-agent-studio.statusBar": {
           "type": "boolean",
           "default": true,
-          "description": "Show live VS Code context (active editor, selection, diagnostics) in the pi TUI footer. Disable to stop the bundled bridge from updating the footer."
+          "description": "%pi.config.statusBar.desc%"
         },
         "pi-agent-studio.ui": {
           "type": "string",
@@ -258,10 +274,10 @@
           ],
           "default": "terminal",
           "enumDescriptions": [
-            "Launch the pi TUI in an integrated terminal (default).",
-            "Open a webview chat panel backed by a `pi --mode rpc` subprocess."
+            "%pi.config.ui.enumDesc.0%",
+            "%pi.config.ui.enumDesc.1%"
           ],
-          "description": "Interface for the Pi: Open command. \"webview\" uses a chat panel instead of a terminal."
+          "description": "%pi.config.ui.desc%"
         },
         "pi-agent-studio.disabledTools": {
           "type": "array",
@@ -275,18 +291,18 @@
             ]
           },
           "default": [],
-          "description": "LLM tools registered by bundled extensions to disable (blocklist). Defaults to none (all enabled)."
+          "description": "%pi.config.disabledTools.desc%"
         },
         "pi-agent-studio.mcp.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Load the bundled MCP (Model Context Protocol) bridge extension, which exposes configured MCP servers' tools/resources/prompts to the agent. When disabled, no MCP servers are connected."
+          "description": "%pi.config.mcp.enabled.desc%"
         },
         "pi-agent-studio.mcp.idleTimeout": {
           "type": "number",
           "default": 10,
           "minimum": 0,
-          "description": "Minutes before idle MCP servers disconnect (cached metadata keeps mcp_tool_search working). 0 disables idle disconnect. Requires restarting the pi terminal to take effect."
+          "description": "%pi.config.mcp.idleTimeout.desc%"
         },
         "pi-agent-studio.permission.mode": {
           "type": "string",
@@ -296,10 +312,10 @@
           ],
           "default": "AskForApproval",
           "enumDescriptions": [
-            "Prompt before running bash commands that match permission.dangerousPatterns.",
-            "No gating — all bash commands run without confirmation."
+            "%pi.config.permission.mode.enumDesc.0%",
+            "%pi.config.permission.mode.enumDesc.1%"
           ],
-          "description": "Permission mode for dangerous bash commands. AskForApproval prompts before matched commands run; FullAccess disables gating."
+          "description": "%pi.config.permission.mode.desc%"
         },
         "pi-agent-studio.permission.dangerousPatterns": {
           "type": "array",
@@ -347,19 +363,19 @@
             "\\bcolumn\\b.*\\s+-c\\s+\\d+",
             "\\bdate\\b.*\\s+(?:-s|--set)\\b"
           ],
-          "description": "Case-insensitive regexes marking a bash command as dangerous (requires approval in AskForApproval mode). User config fully replaces the defaults; an empty array gates nothing."
+          "description": "%pi.config.permission.dangerousPatterns.desc%"
         },
         "pi-agent-studio.rpcTrace": {
           "type": "boolean",
           "default": false,
-          "description": "Log all RPC traffic (requests, responses, events) and pi stderr to the \"Pi Chat RPC\" Output channel for debugging. Each webview panel is tagged by its panel id prefix."
+          "description": "%pi.config.rpcTrace.desc%"
         },
         "pi-agent-studio.chatFontSize": {
           "type": "number",
           "default": 13,
           "minimum": 8,
           "maximum": 32,
-          "description": "Font size for the webview chat panel. Reopen the panel to apply changes."
+          "description": "%pi.config.chatFontSize.desc%"
         }
       }
     },
@@ -381,7 +397,7 @@
   "badges": [
     {
       "url": "https://img.shields.io/github/stars/JohnnyZ93/pi-agent-studio?style=social",
-      "description": "Star pi-agent-studio on Github",
+      "description": "%pi.badge.stars.desc%",
       "href": "https://github.com/JohnnyZ93/pi-agent-studio"
     }
   ],

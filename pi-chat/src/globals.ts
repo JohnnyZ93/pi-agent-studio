@@ -1,4 +1,5 @@
 import markdownit from "markdown-it";
+import { t } from "./i18n";
 
 const acquireVscodeApi: any =
   typeof acquireVsCodeApi === "function"
@@ -124,27 +125,54 @@ export const ICON_CHECK = '<span class="codicon codicon-check"></span>';
 export const ICON_INFO = '<span class="codicon codicon-info"></span>';
 export const ICON_REFRESH = '<span class="codicon codicon-refresh"></span>';
 export const ICON_EDIT = '<span class="codicon codicon-edit"></span>';
-export const EMPTY_HTML =
-  '<div class="empty">' +
-  '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>' +
-  '<div class="empty-line">There are many agent harnesses</div>' +
-  '<div class="empty-line">but this one is <span class="empty-accent">yours</span></div>' +
-  '<div class="empty-hints">' +
-  '<span class="empty-hint"><kbd>Enter</kbd>send / steer</span>' +
-  '<span class="empty-hint"><kbd>Shift+Enter</kbd>newline</span>' +
-  '<span class="empty-hint"><kbd>Alt+Enter</kbd>follow-up</span>' +
-  '<span class="empty-hint"><kbd>\u2191\u2193</kbd>history</span>' +
-  '<span class="empty-hint"><kbd>/</kbd>commands</span>' +
-  '<span class="empty-hint"><kbd>@</kbd>files</span>' +
-  '<span class="empty-hint"><kbd>' +
-  (/Mac/i.test(navigator.platform || "") ? "\u2318V" : "Ctrl+V") +
-  "</kbd>paste image</span>" +
-  '<span class="empty-hint"><kbd>Tab</kbd>complete</span>' +
-  '<span class="empty-hint"><kbd>' +
-  (/Mac/i.test(navigator.platform || "") ? "\u2318U" : "Ctrl+U") +
-  "</kbd>clear</span>" +
-  "</div>" +
-  "</div>";
+export function getEmptyHtml(): string {
+  return (
+    '<div class="empty">' +
+    '<div class="empty-logo"><svg viewBox="0 0 800 800" fill="currentColor"><path fill-rule="evenodd" d="M165.29 165.29H517.36V400H400V517.36H282.65V634.72H165.29ZM282.65 282.65V400H400V282.65Z"/><path d="M517.36 400H634.72V634.72H517.36Z"/></svg></div>' +
+    '<div class="empty-line">' +
+    t("There are many agent harnesses") +
+    "</div>" +
+    '<div class="empty-line">' +
+    t("but this one is") +
+    ' <span class="empty-accent">' +
+    t("yours") +
+    "</span></div>" +
+    '<div class="empty-hints">' +
+    '<span class="empty-hint"><kbd>Enter</kbd>' +
+    t("send / steer") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>Shift+Enter</kbd>' +
+    t("newline") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>Alt+Enter</kbd>' +
+    t("follow-up") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>\u2191\u2193</kbd>' +
+    t("history") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>/</kbd>' +
+    t("commands") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>@</kbd>' +
+    t("files") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>' +
+    (/Mac/i.test(navigator.platform || "") ? "\u2318V" : "Ctrl+V") +
+    "</kbd>" +
+    t("paste image") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>Tab</kbd>' +
+    t("complete") +
+    "</span>" +
+    '<span class="empty-hint"><kbd>' +
+    (/Mac/i.test(navigator.platform || "") ? "\u2318U" : "Ctrl+U") +
+    "</kbd>" +
+    t("clear") +
+    "</span>" +
+    "</div>" +
+    "</div>"
+  );
+}
 
 // ---- helpers ----
 export function el(tag: "button", cls?: string): HTMLButtonElement;
@@ -281,12 +309,12 @@ export function updateSendButton(): void {
   if (state.isStreaming || state.isBtwLoading) {
     sendBtn.innerHTML = ICON_STOP;
     sendBtn.classList.add("is-stop");
-    sendBtnTip = state.isBtwLoading ? "Stop /btw" : "Stop generation";
+    sendBtnTip = state.isBtwLoading ? t("Stop /btw") : t("Stop generation");
     sendBtn.disabled = false;
   } else {
     sendBtn.innerHTML = ICON_SEND;
     sendBtn.classList.remove("is-stop");
-    sendBtnTip = "Send message";
+    sendBtnTip = t("Send message");
     sendBtn.disabled = !inputEl.value.trim() && !pendingImages.length;
   }
 }
@@ -341,14 +369,14 @@ export function rebuildCtxRingTooltip(): void {
       0,
       Math.min(100, usage && typeof usage.percent === "number" ? usage.percent : 0),
     );
-    lines.push("Usage:   " + p.toFixed(1) + "%");
-    lines.push("Context: " + formatTokens(tokens) + " / " + formatTokens(cw));
+    lines.push(t("Usage:") + "   " + p.toFixed(1) + "%");
+    lines.push(t("Context:") + " " + formatTokens(tokens) + " / " + formatTokens(cw));
   }
   if (latestCacheHitPct != null) {
-    lines.push("Cache:   " + latestCacheHitPct.toFixed(1) + "% hit");
+    lines.push(t("Cache:") + "   " + latestCacheHitPct.toFixed(1) + "% " + t("hit"));
   }
   if (sessionCost != null) {
-    lines.push("Cost:    $" + sessionCost.toFixed(3));
+    lines.push(t("Cost:") + "    $" + sessionCost.toFixed(3));
   }
   ctxRingText = lines.join("\n");
 }
@@ -361,7 +389,7 @@ export function formatTokens(count: number): string {
 }
 
 export function clearMessages(): void {
-  messagesInner.innerHTML = EMPTY_HTML;
+  messagesInner.innerHTML = getEmptyHtml();
 }
 
 // ---- widget ----
@@ -393,19 +421,19 @@ export function applyWidget(key: string, lines: string[]): void {
   const head = el("div", "widget-head");
   const toggle = el("button", "widget-toggle");
   toggle.type = "button";
-  toggle.setAttribute("aria-label", todoCollapsed ? "Expand" : "Collapse");
+  toggle.setAttribute("aria-label", t("Collapse"));
   toggle.innerHTML = '<span class="codicon codicon-chevron-right"></span>';
   toggle.addEventListener("click", function () {
     todoCollapsed = !todoCollapsed;
     applyWidget(key, lines);
   });
   toggle.addEventListener("mouseenter", function () {
-    showTooltip(toggle, todoCollapsed ? "Expand" : "Collapse");
+    showTooltip(toggle, t("Expand"));
   });
   toggle.addEventListener("mouseleave", hideTooltip);
   head.appendChild(toggle);
   const title = el("span", "widget-title");
-  title.innerHTML = ICON_TODO + "<span>Todos</span>";
+  title.innerHTML = ICON_TODO + "<span>" + t("Todos") + "</span>";
   head.appendChild(title);
   if (totalCount > 0) {
     const stats = el("span", "widget-stats");
@@ -415,13 +443,13 @@ export function applyWidget(key: string, lines: string[]): void {
   if (items.length) {
     const clearBtn = el("button", "widget-clear");
     clearBtn.type = "button";
-    clearBtn.setAttribute("aria-label", "Clear all todos");
+    clearBtn.setAttribute("aria-label", t("Clear all todos"));
     clearBtn.innerHTML = '<span class="codicon codicon-clear-all"></span>';
     clearBtn.addEventListener("click", function () {
       vscode.postMessage({ type: "todoClear" });
     });
     clearBtn.addEventListener("mouseenter", function () {
-      showTooltip(clearBtn, "Clear all todos");
+      showTooltip(clearBtn, t("Clear all todos"));
     });
     clearBtn.addEventListener("mouseleave", hideTooltip);
     head.appendChild(clearBtn);
@@ -460,7 +488,7 @@ export const queueState: { steering: string[]; followUp: string[] } = {
 export function makeQueueItem(text: string, kind: string): HTMLElement {
   const item = el("div", "queue-item" + (kind === "followUp" ? " is-followup" : ""));
   const badge = el("span", "queue-badge");
-  badge.textContent = kind === "followUp" ? "Follow-up" : "Steering";
+  badge.textContent = kind === "followUp" ? t("Follow-up") : t("Steering");
   const txt = el("div", "queue-text");
   txt.textContent = text;
   txt.title = text;
@@ -550,14 +578,14 @@ export function showInfoPanel(title: string, markdown: string): void {
   renderMarkdown(body, markdown || "");
   const actions = el("div", "info-panel-actions");
   const copyBtn = el("button", "btn btn-secondary");
-  copyBtn.textContent = "Copy";
+  copyBtn.textContent = t("Copy");
   copyBtn.addEventListener("click", function () {
     vscode.postMessage({ type: "copy", text: markdown || "" });
-    showToast("Copied", "success");
+    showToast(t("Copied"), "success");
   });
   actions.appendChild(copyBtn);
   const closeBtn = el("button", "btn btn-primary");
-  closeBtn.textContent = "Close";
+  closeBtn.textContent = t("Close");
   closeBtn.addEventListener("click", closeInfoPanel);
   actions.appendChild(closeBtn);
   box.appendChild(actions);
@@ -633,7 +661,7 @@ export function exitNameEdit(submit: boolean): void {
 
 nameBtn.addEventListener("click", enterNameEdit);
 nameBtn.addEventListener("mouseenter", function () {
-  showTooltip(nameBtn, "Rename session");
+  showTooltip(nameBtn, t("Rename session"));
 });
 nameBtn.addEventListener("mouseleave", hideTooltip);
 
@@ -641,7 +669,7 @@ infoBtn.addEventListener("click", function () {
   vscode.postMessage({ type: "prompt", message: "/session" });
 });
 infoBtn.addEventListener("mouseenter", function () {
-  showTooltip(infoBtn, "Session info");
+  showTooltip(infoBtn, t("Session info"));
 });
 infoBtn.addEventListener("mouseleave", hideTooltip);
 
@@ -650,7 +678,7 @@ refreshBtn.addEventListener("click", function () {
   vscode.postMessage({ type: "reload" });
 });
 refreshBtn.addEventListener("mouseenter", function () {
-  showTooltip(refreshBtn, "Reload messages");
+  showTooltip(refreshBtn, t("Reload messages"));
 });
 refreshBtn.addEventListener("mouseleave", hideTooltip);
 
@@ -658,7 +686,7 @@ mcpBtn.addEventListener("click", function () {
   vscode.postMessage({ type: "mcpOpen" });
 });
 mcpBtn.addEventListener("mouseenter", function () {
-  showTooltip(mcpBtn, "Manage MCP");
+  showTooltip(mcpBtn, t("Manage MCP"));
 });
 mcpBtn.addEventListener("mouseleave", hideTooltip);
 
@@ -666,7 +694,7 @@ settingsBtn.addEventListener("click", function () {
   vscode.postMessage({ type: "openSettings" });
 });
 settingsBtn.addEventListener("mouseenter", function () {
-  showTooltip(settingsBtn, "Settings");
+  showTooltip(settingsBtn, t("Settings"));
 });
 settingsBtn.addEventListener("mouseleave", hideTooltip);
 

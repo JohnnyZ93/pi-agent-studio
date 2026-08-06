@@ -12,6 +12,7 @@ import {
   SUBAGENT_EXTENSION_PATH,
   TODO_EXTENSION_PATH,
 } from "./constants.ts";
+import { t } from "./i18n.ts";
 import { resolvePiBinary } from "./_resolve.ts";
 import {
   createPiGlobalInstallCommand,
@@ -56,12 +57,12 @@ export async function ensurePiBinary(): Promise<string | undefined> {
 
   const managers = PI_PACKAGE_MANAGERS.filter((manager) => manager !== "yarn");
   const action = await vscode.window.showErrorMessage(
-    "Pi binary not found. Install it globally?",
+    t("Pi binary not found. Install it globally?"),
     ...managers,
   );
   if (action) {
     invalidatePiBinaryCache();
-    const terminal = vscode.window.createTerminal({ name: "Install Pi" });
+    const terminal = vscode.window.createTerminal({ name: t("Install Pi") });
     terminal.show();
     terminal.sendText(createPiGlobalInstallCommand(action));
   }
@@ -72,7 +73,7 @@ export async function upgradePiBinary(): Promise<void> {
   const piPath = await ensurePiBinary();
   if (!piPath) return;
 
-  const terminal = vscode.window.createTerminal({ name: "Upgrade Pi" });
+  const terminal = vscode.window.createTerminal({ name: t("Upgrade Pi") });
   terminal.show();
 
   // PI_OFFLINE=1 或 PI_SKIP_VERSION_CHECK=1 会跳过版本更新网络请求
@@ -88,18 +89,21 @@ export async function upgradePiBinary(): Promise<void> {
     }
     if (!manager) {
       manager = (await vscode.window.showQuickPick([...PI_PACKAGE_MANAGERS], {
-        placeHolder: `Could not infer the package manager for ${piPath}. Choose one to upgrade Pi globally.`,
+        placeHolder: t(
+          "Could not infer the package manager for {0}. Choose one to upgrade Pi globally.",
+          piPath,
+        ),
       })) as PiPackageManager | undefined;
     }
     if (!manager) return;
     terminal.sendText(createPiGlobalInstallCommand(manager));
     void vscode.window.showInformationMessage(
-      `Upgrading Pi with ${manager} (PI_OFFLINE detected). Found pi at: ${piPath}`,
+      t("Upgrading Pi with {0} (PI_OFFLINE detected). Found pi at: {1}", manager, piPath),
     );
   } else {
     // 正常环境，使用 pi update（更简洁）
     terminal.sendText(createPiUpdateCommand(piPath, process.platform));
-    void vscode.window.showInformationMessage(`Upgrading Pi via "pi update".`);
+    void vscode.window.showInformationMessage(t('Upgrading Pi via "pi update".'));
   }
 }
 

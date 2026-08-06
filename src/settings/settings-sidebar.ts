@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ensureSettingsJsonExists } from "./settings-config.ts";
 import { collectStaticEnv, detectNodeVersion, detectPiVersion } from "./settings-env.ts";
 import { getSettingsHtml } from "./settings-sidebar-html.ts";
+import { t } from "../i18n.ts";
 
 const LINK_HOME = "https://pi.dev";
 const LINK_PACKAGES = "https://pi.dev/packages";
@@ -13,11 +14,19 @@ export function createSettingsViewProvider(): vscode.WebviewViewProvider {
       webviewView.webview.options = { enableScripts: true };
       webviewView.webview.html = getSettingsHtml();
 
+      const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("pi-agent-studio.language")) {
+          webviewView.webview.html = getSettingsHtml();
+          void postData();
+        }
+      });
+      webviewView.onDidDispose(() => langSub.dispose());
+
       const postData = async () => {
         const env = collectStaticEnv();
         webviewView.webview.postMessage({
           type: "data",
-          env: { ...env, piVersion: "(loading…)" },
+          env: { ...env, piVersion: t("(loading…)") },
           links: { home: LINK_HOME, packages: LINK_PACKAGES, github: LINK_GITHUB },
         });
         try {

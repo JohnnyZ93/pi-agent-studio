@@ -58,6 +58,7 @@ import {
   setBtwLoading,
   addUserMessage,
 } from "./messages";
+import { t } from "./i18n";
 
 import { applyRewindWidget, renderRewindDialog } from "./rewind";
 import { openMcpDrawer, setMcpStatus } from "./mcp-panel";
@@ -143,14 +144,14 @@ function renderModelList() {
   modelList.innerHTML = "";
   if (!models.length) {
     const empty = el("div", "model-empty");
-    empty.textContent = "No models configured";
+    empty.textContent = t("No models configured");
     modelList.appendChild(empty);
     modelHighlight = -1;
     return;
   }
   if (!modelFiltered.length) {
     const empty = el("div", "model-empty");
-    empty.textContent = "No matching models";
+    empty.textContent = t("No matching models");
     modelList.appendChild(empty);
     modelHighlight = -1;
     return;
@@ -181,7 +182,7 @@ function renderModelList() {
     const star = el("button", "model-star" + (isFavorite(m) ? " is-on" : ""));
     star.type = "button";
     star.setAttribute("data-i", String(i));
-    star.title = isFavorite(m) ? "Remove from favorites" : "Add to favorites";
+    star.title = isFavorite(m) ? t("Remove from favorites") : t("Add to favorites");
     star.innerHTML = isFavorite(m)
       ? '<span class="codicon codicon-star-full"></span>'
       : '<span class="codicon codicon-star-empty"></span>';
@@ -198,7 +199,7 @@ function renderModels() {
   if (m) {
     modelTriggerLabel.textContent = modelLabel(m);
   } else if (!models.length) {
-    modelTriggerLabel.textContent = "No models configured";
+    modelTriggerLabel.textContent = t("No models configured");
   } else {
     modelTriggerLabel.textContent = "";
   }
@@ -323,8 +324,8 @@ function updatePermissionColor(mode: string) {
   permissionSelect.classList.toggle("permission-safe", safe);
   permissionSelect.classList.toggle("permission-danger", !safe);
   permissionTip = safe
-    ? "Ask for approval before running commands"
-    : "Full access: run commands without asking";
+    ? t("Ask for approval before running commands")
+    : t("Full access: run commands without asking");
   if (permissionIcon) {
     permissionIcon.classList.toggle("codicon-shield", safe);
     permissionIcon.classList.toggle("codicon-unlock", !safe);
@@ -735,7 +736,7 @@ function renderPendingImages() {
       thumb.appendChild(img);
       const rm = el("button", "attach-remove") as HTMLButtonElement;
       rm.type = "button";
-      rm.title = "Remove image";
+      rm.title = t("Remove image");
       rm.textContent = "\u00d7";
       rm.addEventListener("click", function () {
         removePendingImage(idx);
@@ -837,7 +838,7 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
     for (let i = 0; i < qs.length; i++) {
       if (answers[qs[i].id]) answered++;
     }
-    h.textContent = answered + "/" + qs.length + " questions";
+    h.textContent = t("{0}/{1} questions", answered, qs.length);
   }
 
   function updateSubmit() {
@@ -867,12 +868,12 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
       prompt.textContent = q.prompt;
       block.appendChild(prompt);
       const opts = (q.options || []).slice();
-      if (q.allowOther !== false) opts.push({ label: "Type something.", isOther: true });
+      if (q.allowOther !== false) opts.push({ label: t("Type something."), isOther: true });
       const optList = el("div", "q-options");
       const ta = document.createElement("textarea");
       ta.className = "q-textarea dialog-input";
       ta.style.display = "none";
-      ta.placeholder = "Type your answer...";
+      ta.placeholder = t("Type your answer...");
       for (let oi = 0; oi < opts.length; oi++) {
         (function (opt, oIndex) {
           const btn = el("button", "opt-btn") as HTMLButtonElement;
@@ -893,7 +894,7 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
             if (opt.isOther) {
               ta.style.display = "block";
               ta.focus();
-              const v = ta.value.trim() || "(no response)";
+              const v = ta.value.trim() || t("(no response)");
               answers[q.id] = { id: q.id, value: v, label: v, wasCustom: true };
               updateSubmit();
             } else {
@@ -916,7 +917,7 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
       block.appendChild(ta);
       ta.addEventListener("input", function () {
         if (answers[q.id] && answers[q.id].wasCustom) {
-          const v = ta.value.trim() || "(no response)";
+          const v = ta.value.trim() || t("(no response)");
           answers[q.id] = { id: q.id, value: v, label: v, wasCustom: true };
         }
       });
@@ -926,12 +927,12 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
 
   const actions = el("div", "dialog-actions");
   const cancel = el("button", "btn btn-secondary") as HTMLButtonElement;
-  cancel.textContent = "Cancel";
+  cancel.textContent = t("Cancel");
   cancel.addEventListener("click", function () {
     respond(request.id, { cancelled: true });
   });
   submitBtn = el("button", "btn btn-primary") as HTMLButtonElement;
-  submitBtn.textContent = "Submit";
+  submitBtn.textContent = t("Submit");
   submitBtn.addEventListener("click", function () {
     const arr: any[] = [];
     for (let qi2 = 0; qi2 < qs.length; qi2++) {
@@ -950,7 +951,7 @@ function showDialog(request: any) {
   overlayEl.innerHTML = "";
   const box = el("div", "dialog");
   const method = request.method;
-  const title = request.title || (method === "confirm" ? "Confirm" : "Input required");
+  const title = request.title || (method === "confirm" ? t("Confirm") : t("Input required"));
   const h = document.createElement("h3");
   h.textContent = title;
   const isPermission =
@@ -995,12 +996,12 @@ function showDialog(request: any) {
   } else if (method === "confirm") {
     const actions = el("div", "dialog-actions");
     const no = el("button", "btn btn-secondary") as HTMLButtonElement;
-    no.textContent = "No";
+    no.textContent = t("No");
     no.addEventListener("click", function () {
       respond(request.id, { confirmed: false });
     });
     const yes = el("button", "btn btn-primary") as HTMLButtonElement;
-    yes.textContent = "Yes";
+    yes.textContent = t("Yes");
     yes.addEventListener("click", function () {
       respond(request.id, { confirmed: true });
     });
@@ -1014,12 +1015,12 @@ function showDialog(request: any) {
     box.appendChild(inputField);
     const actions = el("div", "dialog-actions");
     const cancel = el("button", "btn btn-secondary") as HTMLButtonElement;
-    cancel.textContent = "Cancel";
+    cancel.textContent = t("Cancel");
     cancel.addEventListener("click", function () {
       respond(request.id, { cancelled: true });
     });
     const ok = el("button", "btn btn-primary") as HTMLButtonElement;
-    ok.textContent = "OK";
+    ok.textContent = t("OK");
     ok.addEventListener("click", function () {
       respond(request.id, { value: inputField!.value });
     });
@@ -1296,7 +1297,7 @@ ctxRing.addEventListener("mouseenter", function () {
 });
 ctxRing.addEventListener("mouseleave", hideTooltip);
 modelTrigger.addEventListener("mouseenter", function () {
-  showTooltip(modelTrigger, "Model");
+  showTooltip(modelTrigger, t("Model"));
 });
 modelTrigger.addEventListener("mouseleave", hideTooltip);
 const permissionWrap = document.querySelector(".permission-wrap") as HTMLElement;
@@ -1305,7 +1306,7 @@ permissionWrap.addEventListener("mouseenter", function () {
 });
 permissionWrap.addEventListener("mouseleave", hideTooltip);
 thinkingSelect.addEventListener("mouseenter", function () {
-  showTooltip(thinkingSelect, "Thinking level");
+  showTooltip(thinkingSelect, t("Thinking level"));
 });
 thinkingSelect.addEventListener("mouseleave", hideTooltip);
 sendBtn.addEventListener("mouseenter", function () {
@@ -1313,13 +1314,13 @@ sendBtn.addEventListener("mouseenter", function () {
 });
 sendBtn.addEventListener("mouseleave", hideTooltip);
 attachBtn.addEventListener("mouseenter", function () {
-  showTooltip(attachBtn, "Add file or folder");
+  showTooltip(attachBtn, t("Add file or folder"));
 });
 attachBtn.addEventListener("mouseleave", hideTooltip);
 
 const OPEN_FILE_HINT = /Mac/i.test(navigator.platform || "")
-  ? "\u2318 Click to open file"
-  : "Ctrl+Click to open file";
+  ? t("\u2318 Click to open file")
+  : t("Ctrl+Click to open file");
 
 function toolHeadOfFile(target: HTMLElement): HTMLElement | null {
   if (!target || !target.closest) return null;

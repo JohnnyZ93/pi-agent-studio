@@ -1,4 +1,5 @@
 import { vscode } from "../globals";
+import { t } from "../i18n";
 
 interface SettingsData {
   values: Record<string, any>;
@@ -23,97 +24,109 @@ interface SettingGroup {
 
 const GROUPS: SettingGroup[] = [
   {
-    title: "Model & Thinking",
+    title: t("Model & Thinking"),
     fields: [
       {
         key: "defaultProvider",
-        label: "Default provider",
+        label: t("Default provider"),
         type: "string",
         placeholder: "anthropic",
       },
       {
         key: "defaultModel",
-        label: "Default model",
+        label: t("Default model"),
         type: "string",
         placeholder: "claude-sonnet-4-20250514",
       },
       {
         key: "defaultThinkingLevel",
-        label: "Default thinking level",
+        label: t("Default thinking level"),
         type: "enum",
         options: ["off", "minimal", "low", "medium", "high", "xhigh", "max"],
       },
       {
         key: "hideThinkingBlock",
-        label: "Hide thinking block",
+        label: t("Hide thinking block"),
         type: "bool",
-        desc: "Hide thinking blocks in output",
+        desc: t("Hide thinking blocks in output"),
       },
       {
         key: "showCacheMissNotices",
-        label: "Show cache-miss notices",
+        label: t("Show cache-miss notices"),
         type: "bool",
-        desc: "Show transcript notices for significant prompt-cache misses",
+        desc: t("Show transcript notices for significant prompt-cache misses"),
       },
       {
         key: "thinkingBudgets",
-        label: "Thinking budgets",
+        label: t("Thinking budgets"),
         type: "json",
-        desc: 'Custom token budgets per thinking level, e.g. {"low": 4096}',
+        desc: t('Custom token budgets per thinking level, e.g. {"low": 4096}'),
       },
     ],
   },
   {
-    title: "UI & Display",
+    title: t("UI & Display"),
     fields: [
-      { key: "theme", label: "Theme", type: "string", def: "dark", placeholder: "dark" },
+      { key: "theme", label: t("Theme"), type: "string", def: "dark", placeholder: "dark" },
       {
         key: "externalEditor",
-        label: "External editor",
+        label: t("External editor"),
         type: "string",
-        desc: 'Command for Ctrl+G external editor (e.g. "code --wait")',
+        desc: t('Command for Ctrl+G external editor (e.g. "code --wait")'),
       },
-      { key: "quietStartup", label: "Quiet startup", type: "bool", desc: "Hide startup header" },
+      {
+        key: "quietStartup",
+        label: t("Quiet startup"),
+        type: "bool",
+        desc: t("Hide startup header"),
+      },
       {
         key: "defaultProjectTrust",
-        label: "Default project trust",
+        label: t("Default project trust"),
         type: "enum",
         options: ["ask", "always", "never"],
-        desc: "Fallback project trust behavior (global only)",
+        desc: t("Fallback project trust behavior (global only)"),
       },
       {
         key: "collapseChangelog",
-        label: "Collapse changelog",
+        label: t("Collapse changelog"),
         type: "bool",
-        desc: "Show condensed changelog after updates",
+        desc: t("Show condensed changelog after updates"),
       },
-      { key: "enableInstallTelemetry", label: "Install telemetry", type: "bool", def: true },
+      { key: "enableInstallTelemetry", label: t("Install telemetry"), type: "bool", def: true },
       {
         key: "enableAnalytics",
-        label: "Analytics",
+        label: t("Analytics"),
         type: "bool",
-        desc: "Opt-in analytics data sharing",
+        desc: t("Opt-in analytics data sharing"),
       },
-      { key: "trackingId", label: "Tracking ID", type: "string" },
+      { key: "trackingId", label: t("Tracking ID"), type: "string" },
       {
         key: "doubleEscapeAction",
-        label: "Double-escape action",
+        label: t("Double-escape action"),
         type: "enum",
         options: ["tree", "fork", "none"],
         def: "tree",
       },
       {
         key: "treeFilterMode",
-        label: "Tree filter mode",
+        label: t("Tree filter mode"),
         type: "enum",
         options: ["default", "no-tools", "user-only", "labeled-only", "all"],
         def: "default",
       },
-      { key: "editorPaddingX", label: "Editor padding X", type: "number", min: 0, max: 3, def: 0 },
-      { key: "outputPad", label: "Output pad", type: "number", min: 0, max: 1, def: 1 },
+      {
+        key: "editorPaddingX",
+        label: t("Editor padding X"),
+        type: "number",
+        min: 0,
+        max: 3,
+        def: 0,
+      },
+      { key: "outputPad", label: t("Output pad"), type: "number", min: 0, max: 1, def: 1 },
       {
         key: "autocompleteMaxVisible",
-        label: "Autocomplete max visible",
+        label: t("Autocomplete max visible"),
         type: "number",
         min: 3,
         max: 20,
@@ -121,257 +134,262 @@ const GROUPS: SettingGroup[] = [
       },
       {
         key: "showHardwareCursor",
-        label: "Show hardware cursor",
+        label: t("Show hardware cursor"),
         type: "bool",
-        desc: "Show the terminal cursor while TUI positions it for IME support",
+        desc: t("Show the terminal cursor while TUI positions it for IME support"),
       },
     ],
   },
   {
-    title: "Network",
+    title: t("Network"),
     fields: [
       {
         key: "httpProxy",
-        label: "HTTP proxy",
+        label: t("HTTP proxy"),
         type: "string",
         placeholder: "http://127.0.0.1:7890",
-        desc: "Applied as HTTP_PROXY and HTTPS_PROXY (global only)",
+        desc: t("Applied as HTTP_PROXY and HTTPS_PROXY (global only)"),
       },
     ],
   },
   {
-    title: "Warnings",
+    title: t("Warnings"),
     fields: [
       {
         key: "warnings.anthropicExtraUsage",
-        label: "Anthropic extra usage warning",
+        label: t("Anthropic extra usage warning"),
         type: "bool",
         def: true,
-        desc: "Show a warning when Anthropic subscription auth may use paid extra usage",
+        desc: t("Show a warning when Anthropic subscription auth may use paid extra usage"),
       },
     ],
   },
   {
-    title: "Compaction",
+    title: t("Compaction"),
     fields: [
       {
         key: "compaction.enabled",
-        label: "Enabled",
+        label: t("Enabled"),
         type: "bool",
         def: true,
-        desc: "Enable auto-compaction",
+        desc: t("Enable auto-compaction"),
       },
       {
         key: "compaction.reserveTokens",
-        label: "Reserve tokens",
+        label: t("Reserve tokens"),
         type: "number",
         def: 16384,
-        desc: "Tokens reserved for LLM response",
+        desc: t("Tokens reserved for LLM response"),
       },
       {
         key: "compaction.keepRecentTokens",
-        label: "Keep recent tokens",
+        label: t("Keep recent tokens"),
         type: "number",
         def: 20000,
-        desc: "Recent tokens to keep (not summarized)",
+        desc: t("Recent tokens to keep (not summarized)"),
       },
     ],
   },
   {
-    title: "Branch Summary",
+    title: t("Branch Summary"),
     fields: [
       {
         key: "branchSummary.reserveTokens",
-        label: "Reserve tokens",
+        label: t("Reserve tokens"),
         type: "number",
         def: 16384,
-        desc: "Tokens reserved for branch summarization",
+        desc: t("Tokens reserved for branch summarization"),
       },
       {
         key: "branchSummary.skipPrompt",
-        label: "Skip prompt",
+        label: t("Skip prompt"),
         type: "bool",
-        desc: 'Skip "Summarize branch?" prompt on /tree navigation',
+        desc: t('Skip "Summarize branch?" prompt on /tree navigation'),
       },
     ],
   },
   {
-    title: "Retry",
+    title: t("Retry"),
     fields: [
       {
         key: "retry.enabled",
-        label: "Enabled",
+        label: t("Enabled"),
         type: "bool",
         def: true,
-        desc: "Enable automatic agent-level retry on transient errors",
+        desc: t("Enable automatic agent-level retry on transient errors"),
       },
-      { key: "retry.maxRetries", label: "Max retries", type: "number", def: 3 },
+      { key: "retry.maxRetries", label: t("Max retries"), type: "number", def: 3 },
       {
         key: "retry.baseDelayMs",
-        label: "Base delay (ms)",
+        label: t("Base delay (ms)"),
         type: "number",
         def: 2000,
-        desc: "Exponential backoff base (2s, 4s, 8s)",
+        desc: t("Exponential backoff base (2s, 4s, 8s)"),
       },
-      { key: "retry.provider.timeoutMs", label: "Provider timeout (ms)", type: "number" },
-      { key: "retry.provider.maxRetries", label: "Provider max retries", type: "number", def: 0 },
+      { key: "retry.provider.timeoutMs", label: t("Provider timeout (ms)"), type: "number" },
+      {
+        key: "retry.provider.maxRetries",
+        label: t("Provider max retries"),
+        type: "number",
+        def: 0,
+      },
       {
         key: "retry.provider.maxRetryDelayMs",
-        label: "Provider max retry delay (ms)",
+        label: t("Provider max retry delay (ms)"),
         type: "number",
         def: 60000,
       },
     ],
   },
   {
-    title: "Message Delivery",
+    title: t("Message Delivery"),
     fields: [
       {
         key: "steeringMode",
-        label: "Steering mode",
+        label: t("Steering mode"),
         type: "enum",
         options: ["all", "one-at-a-time"],
         def: "one-at-a-time",
       },
       {
         key: "followUpMode",
-        label: "Follow-up mode",
+        label: t("Follow-up mode"),
         type: "enum",
         options: ["all", "one-at-a-time"],
         def: "one-at-a-time",
       },
       {
         key: "transport",
-        label: "Transport",
+        label: t("Transport"),
         type: "enum",
         options: ["sse", "websocket", "websocket-cached", "auto"],
         def: "auto",
       },
-      { key: "httpIdleTimeoutMs", label: "HTTP idle timeout (ms)", type: "number", def: 300000 },
+      { key: "httpIdleTimeoutMs", label: t("HTTP idle timeout (ms)"), type: "number", def: 300000 },
       {
         key: "websocketConnectTimeoutMs",
-        label: "WebSocket connect timeout (ms)",
+        label: t("WebSocket connect timeout (ms)"),
         type: "number",
         def: 15000,
       },
     ],
   },
   {
-    title: "Terminal & Images",
+    title: t("Terminal & Images"),
     fields: [
-      { key: "terminal.showImages", label: "Show images in terminal", type: "bool", def: true },
-      { key: "terminal.imageWidthCells", label: "Image width (cells)", type: "number", def: 60 },
+      { key: "terminal.showImages", label: t("Show images in terminal"), type: "bool", def: true },
+      { key: "terminal.imageWidthCells", label: t("Image width (cells)"), type: "number", def: 60 },
       {
         key: "terminal.clearOnShrink",
-        label: "Clear on shrink",
+        label: t("Clear on shrink"),
         type: "bool",
-        desc: "Clear empty rows when content shrinks",
+        desc: t("Clear empty rows when content shrinks"),
       },
       {
         key: "images.autoResize",
-        label: "Auto-resize images",
+        label: t("Auto-resize images"),
         type: "bool",
         def: true,
-        desc: "Resize images to 2000x2000 max",
+        desc: t("Resize images to 2000x2000 max"),
       },
       {
         key: "images.blockImages",
-        label: "Block images",
+        label: t("Block images"),
         type: "bool",
-        desc: "Block all images from being sent to the LLM",
+        desc: t("Block all images from being sent to the LLM"),
       },
     ],
   },
   {
-    title: "Shell",
+    title: t("Shell"),
     fields: [
       {
         key: "shellPath",
-        label: "Shell path",
+        label: t("Shell path"),
         type: "string",
-        desc: "Custom shell path (e.g. for Cygwin on Windows)",
+        desc: t("Custom shell path (e.g. for Cygwin on Windows)"),
       },
       {
         key: "shellCommandPrefix",
-        label: "Command prefix",
+        label: t("Command prefix"),
         type: "string",
-        desc: 'Prefix for every bash command (e.g. "shopt -s expand_aliases")',
+        desc: t('Prefix for every bash command (e.g. "shopt -s expand_aliases")'),
       },
       {
         key: "npmCommand",
-        label: "npm command",
+        label: t("npm command"),
         type: "string[]",
-        desc: "Command argv for npm operations (one entry per line)",
+        desc: t("Command argv for npm operations (one entry per line)"),
       },
     ],
   },
   {
-    title: "Sessions",
+    title: t("Sessions"),
     fields: [
       {
         key: "sessionDir",
-        label: "Session directory",
+        label: t("Session directory"),
         type: "string",
         placeholder: ".pi/sessions",
       },
     ],
   },
   {
-    title: "Model Cycling",
+    title: t("Model Cycling"),
     fields: [
       {
         key: "enabledModels",
-        label: "Enabled models",
+        label: t("Enabled models"),
         type: "string[]",
-        desc: "Model patterns for Ctrl+P cycling (one per line, globs like claude-* supported)",
+        desc: t("Model patterns for Ctrl+P cycling (one per line, globs like claude-* supported)"),
       },
     ],
   },
   {
-    title: "Markdown",
+    title: t("Markdown"),
     fields: [
-      { key: "markdown.codeBlockIndent", label: "Code block indent", type: "string", def: "  " },
+      { key: "markdown.codeBlockIndent", label: t("Code block indent"), type: "string", def: "  " },
     ],
   },
   {
-    title: "Resources",
+    title: t("Resources"),
     fields: [
       {
         key: "packages",
-        label: "Packages",
+        label: t("Packages"),
         type: "json",
-        desc: "npm/git packages to load resources from (JSON array)",
+        desc: t("npm/git packages to load resources from (JSON array)"),
       },
       {
         key: "extensions",
-        label: "Extensions",
+        label: t("Extensions"),
         type: "string[]",
-        desc: "Local extension file paths or directories (one per line)",
+        desc: t("Local extension file paths or directories (one per line)"),
       },
       {
         key: "skills",
-        label: "Skills",
+        label: t("Skills"),
         type: "string[]",
-        desc: "Local skill file paths or directories (one per line)",
+        desc: t("Local skill file paths or directories (one per line)"),
       },
       {
         key: "prompts",
-        label: "Prompts",
+        label: t("Prompts"),
         type: "string[]",
-        desc: "Local prompt template paths or directories (one per line)",
+        desc: t("Local prompt template paths or directories (one per line)"),
       },
       {
         key: "themes",
-        label: "Themes",
+        label: t("Themes"),
         type: "string[]",
-        desc: "Local theme file paths or directories (one per line)",
+        desc: t("Local theme file paths or directories (one per line)"),
       },
       {
         key: "enableSkillCommands",
-        label: "Enable skill commands",
+        label: t("Enable skill commands"),
         type: "bool",
         def: true,
-        desc: "Register skills as /skill:name commands",
+        desc: t("Register skills as /skill:name commands"),
       },
     ],
   },
@@ -417,9 +435,9 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
   parent.innerHTML = /* html */ `
 <div class="tab-section">
   <div class="cfg-search-row">
-    <input id="cfg-search" class="cfg-search" placeholder="Search settings…" />
-    <button class="btn-primary" data-action="save-settings"><span class="codicon codicon-save"></span> Save</button>
-    <button class="btn-secondary" data-action="open-settings-file" title="Open settings.json"><span class="codicon codicon-go-to-file"></span> settings.json</button>
+    <input id="cfg-search" class="cfg-search" placeholder="${t("Search settings…")}" />
+    <button class="btn-primary" data-action="save-settings"><span class="codicon codicon-save"></span> ${t("Save")}</button>
+    <button class="btn-secondary" data-action="open-settings-file" title="${t("Open settings.json")}"><span class="codicon codicon-go-to-file"></span> settings.json</button>
   </div>
   <div id="cfg-error"></div>
   <div id="cfg-groups">
@@ -429,7 +447,7 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
       <div class="cfg-group-header">
         <span class="codicon codicon-chevron-down"></span>
         <span>${escHtml(g.title)}</span>
-        <button class="btn-icon cfg-reset" data-action="reset-group" data-gi="${gi}" title="Reset to defaults"><span class="codicon codicon-discard"></span></button>
+        <button class="btn-icon cfg-reset" data-action="reset-group" data-gi="${gi}" title="${t("Reset to defaults")}"><span class="codicon codicon-discard"></span></button>
         <span class="cfg-dirty-dot" hidden>●</span>
       </div>
       <div class="cfg-group-body">${g.fields.map(fieldHtml).join("")}</div>
@@ -499,7 +517,7 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
         const r = currentValue(f);
         if (!r.dirty) continue;
         if (r.error) {
-          return { patch: {}, error: `Invalid JSON in "${f.label}"` };
+          return { patch: {}, error: t('Invalid JSON in "{0}"', f.label) };
         }
         setAt(patch, f.key, r.value);
       }

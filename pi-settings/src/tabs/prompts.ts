@@ -1,4 +1,5 @@
 import { vscode } from "../globals";
+import { t } from "../i18n";
 
 interface PromptItem {
   name: string;
@@ -31,15 +32,15 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
       <div class="item-main">
         <div class="item-title">
           <span class="item-name">${escHtml(p.name)}</span>
-          <span class="badge ${badgeClass(p.sourceLabel)}">${escHtml(p.sourceLabel)}</span>
+          <span class="badge ${badgeClass(p.sourceLabel)}">${t(p.sourceLabel)}</span>
           ${p.argumentHint ? `<span class="badge badge-stdio">${escHtml(p.argumentHint)}</span>` : ""}
         </div>
         <div class="item-desc">${escHtml(p.description || "")}</div>
       </div>
       <div class="item-actions">
-        ${p.editable ? `<button class="btn-icon" data-action="edit-prompt" data-name="${escHtml(p.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>` : ""}
-        <button class="btn-icon" data-action="open-prompt" data-name="${escHtml(p.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
-        ${p.editable ? `<button class="btn-icon btn-danger" data-action="delete-prompt" data-name="${escHtml(p.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
+        ${p.editable ? `<button class="btn-icon" data-action="edit-prompt" data-name="${escHtml(p.name)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button>` : ""}
+        <button class="btn-icon" data-action="open-prompt" data-name="${escHtml(p.name)}" title="${t("Open file")}"><span class="codicon codicon-go-to-file"></span></button>
+        ${p.editable ? `<button class="btn-icon btn-danger" data-action="delete-prompt" data-name="${escHtml(p.name)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -48,11 +49,11 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
     parent.innerHTML = /* html */ `
 <div class="tab-section">
   <div class="section-header">
-    <h3>Prompt Templates</h3>
-    <button class="btn-primary" data-action="add-prompt"><span class="codicon codicon-add"></span> New Prompt</button>
+    <h3>${t("Prompt Templates")}</h3>
+    <button class="btn-primary" data-action="add-prompt"><span class="codicon codicon-add"></span> ${t("New Prompt")}</button>
   </div>
-  <div class="hint">Prompts are slash-command templates loaded by pi. Editable prompts live in <code>~/.pi/agent/prompts</code>${hasWorkspace ? " or <code>.pi/prompts</code>" : ""}.</div>
-  <div class="item-list">${rows || '<span class="dim">No prompts found.</span>'}</div>
+  <div class="hint">${t("Prompts are slash-command templates loaded by pi. Editable prompts live in <code>~/.pi/agent/prompts</code>{0}.", hasWorkspace ? t(" or <code>.pi/prompts</code>") : "")}</div>
+  <div class="item-list">${rows || `<span class="dim">${t("No prompts found.")}</span>`}</div>
 </div>`;
   }
 
@@ -61,28 +62,28 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
     const p = prompt;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
-  <h3>${p ? `Edit: ${escHtml(p.name)}` : "New Prompt"}</h3>
+  <h3>${p ? t("Edit: {0}", escHtml(p.name)) : t("New Prompt")}</h3>
   ${
     p
       ? ""
       : `
-  <label class="field-label">Scope</label>
+  <label class="field-label">${t("Scope")}</label>
   <select id="pt-scope">
-    <option value="user" selected>user</option>
-    ${hasWorkspace ? '<option value="project">project</option>' : ""}
+    <option value="user" selected>${t("user")}</option>
+    ${hasWorkspace ? `<option value="project">${t("project")}</option>` : ""}
   </select>`
   }
-  <label class="field-label">Name</label>
+  <label class="field-label">${t("Name")}</label>
   <input id="pt-name" value="${escHtml(p?.name ?? "")}" placeholder="my-prompt" ${p ? "disabled" : ""} />
-  <label class="field-label">Description</label>
-  <input id="pt-desc" value="${escHtml(p?.description ?? "")}" placeholder="What this prompt does" />
-  <label class="field-label">Argument hint</label>
+  <label class="field-label">${t("Description")}</label>
+  <input id="pt-desc" value="${escHtml(p?.description ?? "")}" placeholder="${t("What this prompt does")}" />
+  <label class="field-label">${t("Argument hint")}</label>
   <input id="pt-arg" value="${escHtml(p?.argumentHint ?? "")}" placeholder="[question]" />
-  <label class="field-label">Content (template)</label>
+  <label class="field-label">${t("Content (template)")}</label>
   <textarea id="pt-content" class="ta" style="height:220px">${escHtml(p?.content ?? "")}</textarea>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-prompt"><span class="codicon codicon-save"></span> Save</button>
-    <button class="btn-secondary" data-action="cancel-prompt" title="Cancel"><span class="codicon codicon-close"></span></button>
+    <button class="btn-primary" data-action="save-prompt"><span class="codicon codicon-save"></span> ${t("Save")}</button>
+    <button class="btn-secondary" data-action="cancel-prompt" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (p === undefined) {
@@ -120,7 +121,7 @@ export function renderPromptsTab(parent: HTMLElement, data: PromptData) {
           content: (document.getElementById("pt-content") as HTMLTextAreaElement)?.value ?? "",
         };
         if (!form.name) {
-          showError(parent, "Prompt name is required");
+          showError(parent, t("Prompt name is required"));
           return;
         }
         if (editing) {

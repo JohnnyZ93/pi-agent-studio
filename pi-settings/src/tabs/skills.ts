@@ -1,4 +1,5 @@
 import { vscode } from "../globals";
+import { t } from "../i18n";
 
 interface SkillItem {
   name: string;
@@ -30,15 +31,15 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
       <div class="item-main">
         <div class="item-title">
           <span class="item-name">${escHtml(sk.name)}</span>
-          <span class="badge ${badgeClass(sk.sourceLabel)}">${escHtml(sk.sourceLabel)}</span>
-          ${sk.disableModelInvocation ? `<span class="badge badge-http" title="disable-model-invocation: hidden from system prompt">hidden</span>` : ""}
+          <span class="badge ${badgeClass(sk.sourceLabel)}">${t(sk.sourceLabel)}</span>
+          ${sk.disableModelInvocation ? `<span class="badge badge-http" title="${t("disable-model-invocation: hidden from system prompt")}">${t("hidden")}</span>` : ""}
         </div>
         <div class="item-desc">${escHtml(sk.description || "")}</div>
       </div>
       <div class="item-actions">
-        ${sk.editable ? `<button class="btn-icon" data-action="edit-skill" data-name="${escHtml(sk.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>` : ""}
-        <button class="btn-icon" data-action="open-skill" data-name="${escHtml(sk.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
-        ${sk.editable ? `<button class="btn-icon btn-danger" data-action="delete-skill" data-name="${escHtml(sk.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
+        ${sk.editable ? `<button class="btn-icon" data-action="edit-skill" data-name="${escHtml(sk.name)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button>` : ""}
+        <button class="btn-icon" data-action="open-skill" data-name="${escHtml(sk.name)}" title="${t("Open file")}"><span class="codicon codicon-go-to-file"></span></button>
+        ${sk.editable ? `<button class="btn-icon btn-danger" data-action="delete-skill" data-name="${escHtml(sk.name)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -47,11 +48,11 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
     parent.innerHTML = /* html */ `
 <div class="tab-section">
   <div class="section-header">
-    <h3>Skills</h3>
-    <button class="btn-primary" data-action="add-skill"><span class="codicon codicon-add"></span> New Skill</button>
+    <h3>${t("Skills")}</h3>
+    <button class="btn-primary" data-action="add-skill"><span class="codicon codicon-add"></span> ${t("New Skill")}</button>
   </div>
-  <div class="hint">Skills are markdown files loaded by pi. User skills live in <code>~/.pi/agent/skills</code> or <code>~/.agents/skills</code>${hasWorkspace ? ", project skills in <code>.pi/skills</code> or <code>.agents/skills</code>" : ""}.</div>
-  <div class="item-list">${rows || '<span class="dim">No skills found.</span>'}</div>
+  <div class="hint">${t("Skills are markdown files loaded by pi. User skills live in <code>~/.pi/agent/skills</code> or <code>~/.agents/skills</code>{0}.", hasWorkspace ? t(", project skills in <code>.pi/skills</code> or <code>.agents/skills</code>") : "")}</div>
+  <div class="item-list">${rows || `<span class="dim">${t("No skills found.")}</span>`}</div>
 </div>`;
   }
 
@@ -60,27 +61,27 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
     const s = skill;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
-  <h3>${s ? `Edit: ${escHtml(s.name)}` : "New Skill"}</h3>
+  <h3>${s ? t("Edit: {0}", escHtml(s.name)) : t("New Skill")}</h3>
   ${
     s
       ? ""
       : `
-  <label class="field-label">Scope</label>
+  <label class="field-label">${t("Scope")}</label>
   <select id="sk-scope">
-    <option value="user" selected>user</option>
-    ${hasWorkspace ? '<option value="project">project</option>' : ""}
+    <option value="user" selected>${t("user")}</option>
+    ${hasWorkspace ? `<option value="project">${t("project")}</option>` : ""}
   </select>`
   }
-  <label class="field-label">Name</label>
+  <label class="field-label">${t("Name")}</label>
   <input id="sk-name" value="${escHtml(s?.name ?? "")}" placeholder="my-skill" ${s ? "disabled" : ""} />
-  <label class="field-label">Description</label>
-  <input id="sk-desc" value="${escHtml(s?.description ?? "")}" placeholder="What this skill does" />
-  <label class="field-label">Body (markdown)</label>
+  <label class="field-label">${t("Description")}</label>
+  <input id="sk-desc" value="${escHtml(s?.description ?? "")}" placeholder="${t("What this skill does")}" />
+  <label class="field-label">${t("Body (markdown)")}</label>
   <textarea id="sk-body" class="ta" style="height:200px">${escHtml(s?.body ?? "")}</textarea>
-  <label class="check-label"><input type="checkbox" id="sk-dmi" ${s?.disableModelInvocation ? "checked" : ""} /> Disable model invocation</label>
+  <label class="check-label"><input type="checkbox" id="sk-dmi" ${s?.disableModelInvocation ? "checked" : ""} /> ${t("Disable model invocation")}</label>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-skill"><span class="codicon codicon-save"></span> Save</button>
-    <button class="btn-secondary" data-action="cancel-skill" title="Cancel"><span class="codicon codicon-close"></span></button>
+    <button class="btn-primary" data-action="save-skill"><span class="codicon codicon-save"></span> ${t("Save")}</button>
+    <button class="btn-secondary" data-action="cancel-skill" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (scope && s === undefined) {
@@ -118,7 +119,7 @@ export function renderSkillsTab(parent: HTMLElement, data: SkillData) {
             (document.getElementById("sk-dmi") as HTMLInputElement)?.checked ?? false,
         };
         if (!form.name) {
-          showError(parent, "Skill name is required");
+          showError(parent, t("Skill name is required"));
           return;
         }
         if (editing) {

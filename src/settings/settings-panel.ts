@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { DefaultResourceLoader, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { getSettingsWebviewHtml } from "./settings-webview.ts";
+import { getLocale, t } from "../i18n.ts";
 import {
   getAppendSystemPromptPath,
   getSystemPromptPath,
@@ -77,7 +78,7 @@ import {
 } from "../mcp/mcp-config.ts";
 
 const SETTINGS_VIEW_TYPE = "pi-agent-studio.settingsPanel";
-const SETTINGS_PANEL_TITLE = "Pi Settings";
+const SETTINGS_PANEL_TITLE = t("Pi Settings");
 
 const COMMIT_LANGUAGES = [
   "English",
@@ -119,13 +120,24 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
   };
   panel.webview.html = getSettingsWebviewHtml(
     vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+    getLocale(),
   );
 
   activePanel = panel;
 
   let activeOAuthFlow: OAuthFlowController | undefined;
 
+  const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration("pi-agent-studio.language")) {
+      const fontSize = vscode.workspace
+        .getConfiguration("pi-agent-studio")
+        .get<number>("chatFontSize");
+      panel.webview.html = getSettingsWebviewHtml(fontSize, getLocale());
+    }
+  });
+
   panel.onDidDispose(() => {
+    langSub.dispose();
     activeOAuthFlow?.cancel();
     activeOAuthFlow = undefined;
     activePanel = undefined;
@@ -153,6 +165,7 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
         case "ready":
           panel.webview.postMessage({
             type: "init",
+            lang: getLocale(),
             hasWorkspace: hasWorkspace(),
             tabs: [
               "models",
@@ -251,11 +264,12 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
         case "createAgent": {
           const builtinDir = getBuiltinAgentsDir(extensionUri);
           const scope = resolveScope(msg.scope);
-          if (scope === "project" && !cwd) throw new Error("No workspace folder for project scope");
+          if (scope === "project" && !cwd)
+            throw new Error(t("No workspace folder for project scope"));
           if (!isValidAgentName(msg.data.name))
-            throw new Error(`Invalid agent name: ${msg.data.name}`);
+            throw new Error(t("Invalid agent name: {0}", msg.data.name));
           if (isBuiltinName(builtinDir, msg.data.name))
-            throw new Error(`"${msg.data.name}" is a built-in agent. Edit its model instead.`);
+            throw new Error(t('"{0}" is a built-in agent. Edit its model instead.', msg.data.name));
           writeAgent(builtinDir, msg.data.name, msg.data, scope, cwd);
           await postTabData("agents");
           break;
@@ -263,9 +277,10 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
         case "updateAgent": {
           const builtinDir = getBuiltinAgentsDir(extensionUri);
           const scope = resolveScope(msg.scope);
-          if (scope === "project" && !cwd) throw new Error("No workspace folder for project scope");
+          if (scope === "project" && !cwd)
+            throw new Error(t("No workspace folder for project scope"));
           if (!isValidAgentName(msg.data.name))
-            throw new Error(`Invalid agent name: ${msg.data.name}`);
+            throw new Error(t("Invalid agent name: {0}", msg.data.name));
           writeAgent(builtinDir, msg.data.name, msg.data, scope, cwd);
           await postTabData("agents");
           break;
@@ -287,20 +302,22 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
         // ---- Prompts ----
         case "createPrompt": {
           const scope = resolveScope(msg.scope);
-          if (scope === "project" && !cwd) throw new Error("No workspace folder for project scope");
+          if (scope === "project" && !cwd)
+            throw new Error(t("No workspace folder for project scope"));
           if (!isValidPromptName(msg.data.name))
-            throw new Error(`Invalid prompt name: ${msg.data.name}`);
+            throw new Error(t("Invalid prompt name: {0}", msg.data.name));
           if (nameExistsInScope(msg.data.name, scope, cwd))
-            throw new Error(`Prompt already exists: ${msg.data.name}`);
+            throw new Error(t("Prompt already exists: {0}", msg.data.name));
           writePrompt(msg.data.name, msg.data, scope, cwd, true);
           await postTabData("prompts");
           break;
         }
         case "updatePrompt": {
           const scope = resolveScope(msg.scope);
-          if (scope === "project" && !cwd) throw new Error("No workspace folder for project scope");
+          if (scope === "project" && !cwd)
+            throw new Error(t("No workspace folder for project scope"));
           if (!isValidPromptName(msg.data.name))
-            throw new Error(`Invalid prompt name: ${msg.data.name}`);
+            throw new Error(t("Invalid prompt name: {0}", msg.data.name));
           writePrompt(msg.data.name, msg.data, scope, cwd);
           await postTabData("prompts");
           break;
@@ -318,16 +335,17 @@ export async function openSettingsPanel(extensionUri: vscode.Uri): Promise<void>
         // ---- Skills ----
         case "createSkill": {
           const scope = resolveScope(msg.scope);
-          if (scope === "project" && !cwd) throw new Error("No workspace folder for project scope");
+          if (scope === "project" && !cwd)
+            throw new Error(t("No workspace folder for project scope"));
           if (!isValidSkillName(msg.data.name))
-            throw new Error(`Invalid skill name: ${msg.data.name}`);
+            throw new Error(t("Invalid skill name: {0}", msg.data.name));
           createSkill(msg.data, scope, cwd);
           await postTabData("skills");
           break;
         }
         case "updateSkill":
           if (!isValidSkillName(msg.data.name))
-            throw new Error(`Invalid skill name: ${msg.data.name}`);
+            throw new Error(t("Invalid skill name: {0}", msg.data.name));
           updateSkill(msg.filePath, msg.data, cwd);
           await postTabData("skills");
           break;
@@ -613,7 +631,7 @@ function resolveScope(raw: unknown): "user" | "project" {
 
 function resolveMcpScopePath(scope: string, cwd?: string): string {
   if (scope === "project") {
-    if (!cwd) throw new Error("No workspace folder for project scope");
+    if (!cwd) throw new Error(t("No workspace folder for project scope"));
     return getMcpProjectPath(cwd);
   }
   return getMcpUserPath();

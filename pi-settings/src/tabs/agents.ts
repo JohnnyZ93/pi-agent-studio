@@ -1,4 +1,5 @@
 import { vscode } from "../globals";
+import { t } from "../i18n";
 
 interface AgentItem {
   name: string;
@@ -39,16 +40,16 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
       <div class="item-main">
         <div class="item-title">
           <span class="item-name">${escHtml(a.name)}</span>
-          <span class="badge ${badgeClass(a.source, a.hasOverride)}">${a.source === "builtin" && a.hasOverride ? "builtin+override" : escHtml(a.source)}</span>
+          <span class="badge ${badgeClass(a.source, a.hasOverride)}">${a.source === "builtin" && a.hasOverride ? t("builtin+override") : t(a.source)}</span>
           ${a.model ? `<span class="badge badge-package">${escHtml(a.model)}</span>` : ""}
         </div>
         <div class="item-desc">${escHtml(a.description || "")}</div>
       </div>
       <div class="item-actions">
-        <button class="btn-icon" data-action="edit-agent" data-name="${escHtml(a.name)}" title="Edit"><span class="codicon codicon-edit"></span></button>
-        <button class="btn-icon" data-action="open-agent" data-name="${escHtml(a.name)}" title="Open file"><span class="codicon codicon-go-to-file"></span></button>
-        ${a.isBuiltin && a.hasOverride ? `<button class="btn-icon" data-action="reset-agent" data-name="${escHtml(a.name)}" title="Reset to builtin"><span class="codicon codicon-discard"></span></button>` : ""}
-        ${!a.isBuiltin ? `<button class="btn-icon btn-danger" data-action="delete-agent" data-name="${escHtml(a.name)}" title="Delete"><span class="codicon codicon-trash"></span></button>` : ""}
+        <button class="btn-icon" data-action="edit-agent" data-name="${escHtml(a.name)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button>
+        <button class="btn-icon" data-action="open-agent" data-name="${escHtml(a.name)}" title="${t("Open file")}"><span class="codicon codicon-go-to-file"></span></button>
+        ${a.isBuiltin && a.hasOverride ? `<button class="btn-icon" data-action="reset-agent" data-name="${escHtml(a.name)}" title="${t("Reset to builtin")}"><span class="codicon codicon-discard"></span></button>` : ""}
+        ${!a.isBuiltin ? `<button class="btn-icon btn-danger" data-action="delete-agent" data-name="${escHtml(a.name)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button>` : ""}
       </div>
     </div>`,
       )
@@ -57,11 +58,11 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
     parent.innerHTML = /* html */ `
 <div class="tab-section">
   <div class="section-header">
-    <h3>Agents</h3>
-    <button class="btn-primary" data-action="add-agent"><span class="codicon codicon-add"></span> New Agent</button>
+    <h3>${t("Agents")}</h3>
+    <button class="btn-primary" data-action="add-agent"><span class="codicon codicon-add"></span> ${t("New Agent")}</button>
   </div>
-  <div class="hint">Agents are markdown files loaded by pi. User agents live in <code>~/.pi/agent/agents</code>${hasWorkspace ? ", project agents in <code>.pi/agents</code>" : ""}.</div>
-  <div class="item-list">${rows || '<span class="dim">No agents found.</span>'}</div>
+  <div class="hint">${t("Agents are markdown files loaded by pi. User agents live in <code>~/.pi/agent/agents</code>{0}.", hasWorkspace ? t(", project agents in <code>.pi/agents</code>") : "")}</div>
+  <div class="item-list">${rows || `<span class="dim">${t("No agents found.")}</span>`}</div>
 </div>`;
   }
 
@@ -76,7 +77,7 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
     if (selected && !found) {
       extra = `<option value="${escHtml(selected)}" selected>${escHtml(selected)}</option>`;
     }
-    return `<option value="">(default)</option>${opts.join("")}${extra}`;
+    return `<option value="">${t("(default)")}</option>${opts.join("")}${extra}`;
   }
 
   function showEditor(agent?: AgentItem, scope: string = "user") {
@@ -84,31 +85,31 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
     const a = agent;
     parent.innerHTML = /* html */ `
 <div class="editor-card">
-  <h3>${a ? `Edit: ${escHtml(a.name)}` : "New Agent"}</h3>
+  <h3>${a ? t("Edit: {0}", escHtml(a.name)) : t("New Agent")}</h3>
   ${
     a
       ? ""
       : `
-  <label class="field-label">Scope</label>
+  <label class="field-label">${t("Scope")}</label>
   <select id="ag-scope">
     <option value="user" selected>user</option>
     ${hasWorkspace ? '<option value="project">project</option>' : ""}
   </select>`
   }
-  <label class="field-label">Name</label>
+  <label class="field-label">${t("Name")}</label>
   <input id="ag-name" value="${escHtml(a?.name ?? "")}" placeholder="my-agent" ${a ? "disabled" : ""} />
-  <label class="field-label">Description</label>
-  <input id="ag-desc" value="${escHtml(a?.description ?? "")}" placeholder="What this agent does" />
-  <label class="field-label">Model</label>
+  <label class="field-label">${t("Description")}</label>
+  <input id="ag-desc" value="${escHtml(a?.description ?? "")}" placeholder="${t("What this agent does")}" />
+  <label class="field-label">${t("Model")}</label>
   <select id="ag-model">${modelOptions(a?.model)}</select>
-  <label class="field-label">System prompt</label>
-  <textarea id="ag-prompt" class="ta" style="height:180px" placeholder="You are a helpful assistant…">${escHtml(a?.systemPrompt ?? "")}</textarea>
-  <label class="field-label">Tools (one per line)</label>
+  <label class="field-label">${t("System prompt")}</label>
+  <textarea id="ag-prompt" class="ta" style="height:180px" placeholder="${t("You are a helpful assistant…")}">${escHtml(a?.systemPrompt ?? "")}</textarea>
+  <label class="field-label">${t("Tools (one per line)")}</label>
   <textarea id="ag-tools" class="ta" style="height:60px" placeholder="bash&#10;read">${escHtml((a?.tools ?? []).join("\n"))}</textarea>
-  <label class="check-label"><input type="checkbox" id="ag-dmi" ${a?.disableModelInvocation ? "checked" : ""} /> Disable model invocation</label>
+  <label class="check-label"><input type="checkbox" id="ag-dmi" ${a?.disableModelInvocation ? "checked" : ""} /> ${t("Disable model invocation")}</label>
   <div class="btn-row">
-    <button class="btn-primary" data-action="save-agent"><span class="codicon codicon-save"></span> Save</button>
-    <button class="btn-secondary" data-action="cancel-agent" title="Cancel"><span class="codicon codicon-close"></span></button>
+    <button class="btn-primary" data-action="save-agent"><span class="codicon codicon-save"></span> ${t("Save")}</button>
+    <button class="btn-secondary" data-action="cancel-agent" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button>
   </div>
 </div>`;
     if (a === undefined) {
@@ -156,7 +157,7 @@ export function renderAgentsTab(parent: HTMLElement, data: AgentData) {
             (document.getElementById("ag-dmi") as HTMLInputElement)?.checked ?? false,
         };
         if (!form.name) {
-          showError(parent, "Agent name is required");
+          showError(parent, t("Agent name is required"));
           return;
         }
         if (editing) {

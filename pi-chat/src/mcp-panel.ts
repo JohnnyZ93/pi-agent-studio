@@ -1,4 +1,5 @@
 import { el, vscode } from "./globals";
+import { t } from "./i18n";
 
 interface McpServerStatus {
   name: string;
@@ -50,7 +51,7 @@ function renderRows(): void {
 
   if (lastServers.length === 0) {
     const empty = el("div", "mcp-empty");
-    empty.textContent = "No MCP servers configured. Add servers in the MCP sidebar.";
+    empty.textContent = t("No MCP servers configured. Add servers in the MCP sidebar.");
     body.appendChild(empty);
     return;
   }
@@ -60,7 +61,7 @@ function renderRows(): void {
     const row = el("div", "mcp-row");
 
     const dot = el("span", stateDotClass(s));
-    dot.title = stateLabel(s);
+    dot.title = t(stateLabel(s));
     row.appendChild(dot);
 
     const main = el("div", "mcp-row-main");
@@ -74,15 +75,15 @@ function renderRows(): void {
     nameLine.appendChild(src);
 
     const st = el("span", "mcp-state mcp-state-" + stateLabel(s));
-    st.textContent = stateLabel(s);
+    st.textContent = t(stateLabel(s));
     nameLine.appendChild(st);
     main.appendChild(nameLine);
 
     const meta = el("span", "mcp-meta");
     const parts: string[] = [];
-    if (s.tools) parts.push(`${s.tools} tools`);
-    if (s.resources) parts.push(`${s.resources} resources`);
-    if (s.prompts) parts.push(`${s.prompts} prompts`);
+    if (s.tools) parts.push(t("{0} tools", s.tools));
+    if (s.resources) parts.push(t("{0} resources", s.resources));
+    if (s.prompts) parts.push(t("{0} prompts", s.prompts));
     meta.textContent = parts.join(" · ");
     main.appendChild(meta);
 
@@ -95,7 +96,7 @@ function renderRows(): void {
     row.appendChild(main);
 
     const reconnect = el("button", "mcp-icon-btn") as HTMLButtonElement;
-    reconnect.title = "Reconnect";
+    reconnect.title = t("Reconnect");
     reconnect.innerHTML = '<span class="codicon codicon-refresh"></span>';
     reconnect.addEventListener("click", function () {
       vscode.postMessage({ type: "mcpAction", action: "reconnect", server: s.name });
@@ -103,7 +104,7 @@ function renderRows(): void {
     row.appendChild(reconnect);
 
     const sw = el("button", "mcp-switch") as HTMLButtonElement;
-    sw.title = isOn(s) ? "Stop" : "Start";
+    sw.title = isOn(s) ? t("Stop") : t("Start");
     if (isOn(s)) sw.classList.add("mcp-switch-on");
     const knob = el("span", "mcp-switch-knob");
     sw.appendChild(knob);
@@ -127,10 +128,10 @@ function buildPopover(): void {
 
   const head = el("div", "mcp-drawer-head");
   const title = el("span", "mcp-drawer-title");
-  title.textContent = "MCP Servers";
+  title.textContent = t("MCP Servers");
   head.appendChild(title);
   const close = el("button", "mcp-icon-btn") as HTMLButtonElement;
-  close.title = "Close";
+  close.title = t("Close");
   close.innerHTML = '<span class="codicon codicon-discard"></span>';
   close.addEventListener("click", closeMcpDrawer);
   head.appendChild(close);

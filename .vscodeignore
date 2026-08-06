@@ -3,11 +3,13 @@
 !dist/chunks/**/*.cjs
 !dist/webview.js
 !dist/webview.css
+!l10n/**
 !assets/fonts/**
 !assets/icon.png
 !assets/logo.svg
 !assets/logo-light.svg
 !bridge/**
+!package.nls*.json
 !README.md
 !README.zh-CN.md
 !CHANGELOG.md

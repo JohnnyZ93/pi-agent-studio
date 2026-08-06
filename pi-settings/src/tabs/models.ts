@@ -1,4 +1,5 @@
 import { vscode } from "../globals";
+import { t } from "../i18n";
 
 interface ModelEntry {
   id?: string;
@@ -74,11 +75,11 @@ export function setModelsTabActive(v: boolean) {
 }
 
 const APIS = [
-  ["", "(default)"],
-  ["openai-completions", "OpenAI Completions"],
-  ["openai-responses", "OpenAI Responses"],
-  ["anthropic-messages", "Anthropic Messages"],
-  ["google-generative-ai", "Google Generative AI"],
+  ["", t("(default)")],
+  ["openai-completions", t("OpenAI Completions")],
+  ["openai-responses", t("OpenAI Responses")],
+  ["anthropic-messages", t("Anthropic Messages")],
+  ["google-generative-ai", t("Google Generative AI")],
 ] as const;
 
 interface CompatFieldDef {
@@ -149,7 +150,7 @@ function renderHeadersField(id: string, headers?: Record<string, string>): strin
         .map(([k, v]) => `${k}: ${v}`)
         .join("\n")
     : "";
-  return `<label class="field-label">Headers (KEY: VALUE, one per line; values support $ENV / !cmd)</label><textarea id="${id}" class="ta" style="height:70px" placeholder="X-Custom-Header: value&#10;Authorization: Bearer $TOKEN">${escHtml(text)}</textarea>`;
+  return `<label class="field-label">${t("Headers (KEY: VALUE, one per line; values support $ENV / !cmd)")}</label><textarea id="${id}" class="ta" style="height:70px" placeholder="X-Custom-Header: value&#10;Authorization: Bearer $TOKEN">${escHtml(text)}</textarea>`;
 }
 
 function readHeadersField(id: string): Record<string, string> | null {
@@ -169,15 +170,16 @@ function readHeadersField(id: string): Record<string, string> | null {
 }
 
 function renderCompatSection(prefix: string, compat?: Record<string, unknown>): string {
-  const hint =
-    '<p class="compat-hint">Choose per-field override: <em>default</em> clears the field so pi uses API defaults.</p>';
+  const hint = `<p class="compat-hint">${t(
+    "Choose per-field override: default clears the field so pi uses API defaults.",
+  )}</p>`;
   return `<div class="compat-wrap">${hint}${renderCompatGroup(
     prefix,
     "openai",
-    "OpenAI Compatibility",
+    t("OpenAI Compatibility"),
     false,
     compat,
-  )}${renderCompatGroup(prefix, "anthropic", "Anthropic Compatibility", false, compat)}</div>`;
+  )}${renderCompatGroup(prefix, "anthropic", t("Anthropic Compatibility"), false, compat)}</div>`;
 }
 
 function renderCompatGroup(
@@ -200,7 +202,7 @@ function renderCompatGroup(
       const opts = ["Default", "True", "False"]
         .map((o) => {
           const sel = o === val ? " selected" : "";
-          return `<option value="${o}"${sel}>${o}</option>`;
+          return `<option value="${escAttr(o)}"${sel}>${escHtml(t(o))}</option>`;
         })
         .join("");
       h += `<div class="compat-bool"><span class="compat-bool-label" title="${escAttr(f.name)}">${escHtml(f.name)}</span><select id="${prefix}-${f.name}">${opts}</select></div>`;
@@ -212,7 +214,7 @@ function renderCompatGroup(
     h += `<label class="field-label">${f.name}</label><select id="${prefix}-${f.name}">`;
     for (const opt of f.options!) {
       const sel = cur === opt ? " selected" : "";
-      h += `<option value="${escAttr(opt)}"${sel}>${escHtml(opt === "" ? "(default)" : opt)}</option>`;
+      h += `<option value="${escAttr(opt)}"${sel}>${escHtml(opt === "" ? t("(default)") : opt)}</option>`;
     }
     h += "</select>";
   }
@@ -293,7 +295,7 @@ function readCompatSection(prefix: string, existing?: Record<string, unknown>): 
         try {
           result[f.name] = JSON.parse(txt);
         } catch {
-          errors.push(`Invalid JSON in ${f.name}`);
+          errors.push(t("Invalid JSON in {0}", f.name));
         }
       } else delete result[f.name];
     }
@@ -357,12 +359,12 @@ export function renderModelsTab(parent: HTMLElement, data: ModelsData) {
 }
 
 function renderShell(parent: HTMLElement) {
-  const t = modelsEl?.tab ?? "providers";
+  const tab = modelsEl?.tab ?? "providers";
   parent.innerHTML = /* html */ `
 <div class="models-tabs">
-  <div class="models-tab${t === "providers" ? " active" : ""}" data-mtab="providers">Providers</div>
-  <div class="models-tab${t === "oauth" ? " active" : ""}" data-mtab="oauth">OAuth</div>
-  <div class="models-tab${t === "apikeys" ? " active" : ""}" data-mtab="apikeys">API Keys</div>
+  <div class="models-tab${tab === "providers" ? " active" : ""}" data-mtab="providers">${t("Providers")}</div>
+  <div class="models-tab${tab === "oauth" ? " active" : ""}" data-mtab="oauth">${t("OAuth")}</div>
+  <div class="models-tab${tab === "apikeys" ? " active" : ""}" data-mtab="apikeys">${t("API Keys")}</div>
 </div>
 <div id="models-body"></div>`;
 }
@@ -391,19 +393,18 @@ function renderProv(parent: HTMLElement, data: ModelsData) {
   const provs = data.providers || [];
   const state = provState;
 
-  let h =
-    '<div class="section-header"><h3>Custom Providers</h3><div class="header-actions"><button class="btn-primary" data-action="start-add-prov"><span class="codicon codicon-add"></span> Add</button><button class="btn-secondary" data-action="open-file" title="Open models.json"><span class="codicon codicon-go-to-file"></span> models.json</button></div></div>';
+  let h = `<div class="section-header"><h3>${t("Custom Providers")}</h3><div class="header-actions"><button class="btn-primary" data-action="start-add-prov"><span class="codicon codicon-add"></span> ${t("Add")}</button><button class="btn-secondary" data-action="open-file" title="${t("Open models.json")}"><span class="codicon codicon-go-to-file"></span> models.json</button></div></div>`;
   h += '<div class="item-list">';
-  if (!provs.length) h += '<span class="dim">No custom providers</span>';
+  if (!provs.length) h += `<span class="dim">${t("No custom providers")}</span>`;
   for (const p of provs) {
     if (state.deleteTarget === p.id) {
-      h += `<div class="confirm-bar">Delete "${escHtml(p.name)}"? <span><button class="btn-sm btn-danger" data-action="prov-delete-confirm" data-id="${escAttr(p.id)}">Delete</button> <button class="btn-icon" data-action="prov-delete-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></span></div>`;
+      h += `<div class="confirm-bar">${escHtml(t('Delete "{0}"?', p.name))} <span><button class="btn-sm btn-danger" data-action="prov-delete-confirm" data-id="${escAttr(p.id)}">${t("Delete")}</button> <button class="btn-icon" data-action="prov-delete-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></span></div>`;
       continue;
     }
     const isExpanded = state.expanded === p.id;
     h += `<div class="item-row${isExpanded ? " selected" : ""}" data-action="prov-expand" data-id="${escAttr(p.id)}" style="cursor:pointer">`;
-    h += `<div class="item-main"><div class="item-title"><span class="item-name">${escHtml(p.name)}</span><span class="badge badge-package">custom</span></div><div class="item-desc">${p.modelCount} models</div></div>`;
-    h += `<div class="item-actions"><button class="btn-icon" data-action="prov-edit" data-id="${escAttr(p.id)}" title="Edit"><span class="codicon codicon-edit"></span></button><button class="btn-icon btn-danger" data-action="prov-delete" data-id="${escAttr(p.id)}" title="Delete"><span class="codicon codicon-trash"></span></button></div>`;
+    h += `<div class="item-main"><div class="item-title"><span class="item-name">${escHtml(p.name)}</span><span class="badge badge-package">${t("custom")}</span></div><div class="item-desc">${t("{0} models", p.modelCount)}</div></div>`;
+    h += `<div class="item-actions"><button class="btn-icon" data-action="prov-edit" data-id="${escAttr(p.id)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button><button class="btn-icon btn-danger" data-action="prov-delete" data-id="${escAttr(p.id)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button></div>`;
     h += "</div>";
     if (isExpanded) h += renderProvDetail(p.id, data);
   }
@@ -417,25 +418,25 @@ function renderProvDetail(provId: string, data: ModelsData) {
   const prov = data.modelsJson.providers?.[provId];
   if (!prov) return "";
   const state = provState;
-  let h = `<div class="editor-card"><h3>Provider</h3>`;
-  h += `<label class="field-label">Name</label><input id="pd-name" value="${escAttr(provId)}" placeholder="provider-name" />`;
-  h += `<label class="field-label">Base URL</label><input id="pd-baseUrl" value="${escAttr(prov.baseUrl ?? "")}" placeholder="https://api.example.com/v1" />`;
-  h += `<label class="field-label">API Key</label><input id="pd-apiKey" type="password" value="${escAttr(prov.apiKey ?? "")}" placeholder="sk-... or $ENV_VAR or !cmd" />`;
-  h += `<label class="field-label">API Protocol</label><select id="pd-api">`;
+  let h = `<div class="editor-card"><h3>${t("Provider")}</h3>`;
+  h += `<label class="field-label">${t("Name")}</label><input id="pd-name" value="${escAttr(provId)}" placeholder="provider-name" />`;
+  h += `<label class="field-label">${t("Base URL")}</label><input id="pd-baseUrl" value="${escAttr(prov.baseUrl ?? "")}" placeholder="https://api.example.com/v1" />`;
+  h += `<label class="field-label">${t("API Key")}</label><input id="pd-apiKey" type="password" value="${escAttr(prov.apiKey ?? "")}" placeholder="sk-... or $ENV_VAR or !cmd" />`;
+  h += `<label class="field-label">${t("API Protocol")}</label><select id="pd-api">`;
   for (const [val, label] of APIS) {
     h += `<option value="${escAttr(val)}"${prov.api === val ? " selected" : ""}>${escHtml(label)}</option>`;
   }
   h += "</select>";
-  h += `<label class="check-label"><input type="checkbox" id="pd-authHeader" ${prov.authHeader ? "checked" : ""} /> authHeader (add Authorization: Bearer header)</label>`;
+  h += `<label class="check-label"><input type="checkbox" id="pd-authHeader" ${prov.authHeader ? "checked" : ""} /> ${t("authHeader (add Authorization: Bearer header)")}</label>`;
   h += renderHeadersField("pd-headers", prov.headers);
-  h += `<label class="field-label">Compatibility</label>`;
+  h += `<label class="field-label">${t("Compatibility")}</label>`;
   h += renderCompatSection("pd-cx", prov.compat);
-  h += `<div class="btn-row"><button class="btn-primary" data-action="prov-save-detail" data-id="${escAttr(provId)}"><span class="codicon codicon-save"></span> Save</button><button class="btn-icon btn-danger" data-action="prov-delete" data-id="${escAttr(provId)}" title="Delete"><span class="codicon codicon-trash"></span></button></div></div>`;
+  h += `<div class="btn-row"><button class="btn-primary" data-action="prov-save-detail" data-id="${escAttr(provId)}"><span class="codicon codicon-save"></span> ${t("Save")}</button><button class="btn-icon btn-danger" data-action="prov-delete" data-id="${escAttr(provId)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button></div></div>`;
 
   const models = prov.models || [];
-  h += `<div class="editor-card"><div class="section-header"><h3>Models</h3><button class="btn-primary" data-action="model-add" data-pid="${escAttr(provId)}"><span class="codicon codicon-add"></span> Add</button></div>`;
+  h += `<div class="editor-card"><div class="section-header"><h3>${t("Models")}</h3><button class="btn-primary" data-action="model-add" data-pid="${escAttr(provId)}"><span class="codicon codicon-add"></span> ${t("Add")}</button></div>`;
   h += '<div class="item-list">';
-  if (!models.length) h += '<span class="dim">No models</span>';
+  if (!models.length) h += `<span class="dim">${t("No models")}</span>`;
   for (const m of models) {
     const mid = m.id ?? "";
     if (
@@ -443,7 +444,7 @@ function renderProvDetail(provId: string, data: ModelsData) {
       state.deleteModel.provider === provId &&
       state.deleteModel.modelId === mid
     ) {
-      h += `<div class="confirm-bar">Delete model "${escHtml(m.name || mid)}"? <span><button class="btn-sm btn-danger" data-action="model-delete-confirm" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}">Delete</button> <button class="btn-icon" data-action="model-delete-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></span></div>`;
+      h += `<div class="confirm-bar">${escHtml(t('Delete model "{0}"?', m.name || mid))} <span><button class="btn-sm btn-danger" data-action="model-delete-confirm" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}">${t("Delete")}</button> <button class="btn-icon" data-action="model-delete-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></span></div>`;
       continue;
     }
     if (state.editModel && state.editModel.provider === provId && state.editModel.modelId === mid) {
@@ -453,7 +454,7 @@ function renderProvDetail(provId: string, data: ModelsData) {
     h += `<div class="item-row"><div class="item-main"><div class="item-title">`;
     h += `<span class="item-name">${escHtml(m.name || mid)}</span><span class="badge badge-stdio">${escHtml(mid)}</span></div>`;
     h += `<div class="item-desc">${modelMeta(m)}</div></div>`;
-    h += `<div class="item-actions"><button class="btn-icon" data-action="model-edit" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}" title="Edit"><span class="codicon codicon-edit"></span></button><button class="btn-icon btn-danger" data-action="model-delete" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}" title="Delete"><span class="codicon codicon-trash"></span></button></div>`;
+    h += `<div class="item-actions"><button class="btn-icon" data-action="model-edit" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button><button class="btn-icon btn-danger" data-action="model-delete" data-pid="${escAttr(provId)}" data-mid="${escAttr(mid)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button></div>`;
     h += "</div>";
   }
   if (state.editModel && state.editModel.provider === provId && state.editModel.modelId === "new") {
@@ -465,9 +466,9 @@ function renderProvDetail(provId: string, data: ModelsData) {
 
 function modelMeta(m: ModelEntry): string {
   const parts: string[] = [];
-  if (m.reasoning) parts.push("reasoning");
-  if (m.input?.includes("image")) parts.push("image");
-  parts.push(`ctx:${m.contextWindow ?? "?"}`);
+  if (m.reasoning) parts.push(t("reasoning"));
+  if (m.input?.includes("image")) parts.push(t("image"));
+  parts.push(t("ctx:{0}", m.contextWindow ?? "?"));
   const ci = m.cost?.input ?? 0;
   const co = m.cost?.output ?? 0;
   parts.push(`$${ci}/$${co}`);
@@ -475,16 +476,16 @@ function modelMeta(m: ModelEntry): string {
 }
 
 function renderProvAddForm() {
-  return `<div class="editor-card"><h3>Add Provider</h3>
-    <label class="field-label">Name</label><input id="pf-name" placeholder="my-provider" />
-    <label class="field-label">Base URL</label><input id="pf-baseUrl" placeholder="https://api.example.com/v1" />
-    <label class="field-label">API Key</label><input id="pf-apiKey" type="password" placeholder="sk-... or $ENV_VAR or !cmd" />
-    <label class="field-label">API Protocol</label><select id="pf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}">${escHtml(l)}</option>`).join("")}</select>
-    <label class="check-label"><input type="checkbox" id="pf-authHeader" /> authHeader (add Authorization: Bearer header)</label>
+  return `<div class="editor-card"><h3>${t("Add Provider")}</h3>
+    <label class="field-label">${t("Name")}</label><input id="pf-name" placeholder="my-provider" />
+    <label class="field-label">${t("Base URL")}</label><input id="pf-baseUrl" placeholder="https://api.example.com/v1" />
+    <label class="field-label">${t("API Key")}</label><input id="pf-apiKey" type="password" placeholder="sk-... or $ENV_VAR or !cmd" />
+    <label class="field-label">${t("API Protocol")}</label><select id="pf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}">${escHtml(l)}</option>`).join("")}</select>
+    <label class="check-label"><input type="checkbox" id="pf-authHeader" /> ${t("authHeader (add Authorization: Bearer header)")}</label>
     ${renderHeadersField("pf-headers")}
-    <label class="field-label">Compatibility</label>
+    <label class="field-label">${t("Compatibility")}</label>
     ${renderCompatSection("pf-cx")}
-    <div class="btn-row"><button class="btn-primary" data-action="prov-save-new"><span class="codicon codicon-save"></span> Save</button><button class="btn-secondary" data-action="prov-cancel-edit" title="Cancel"><span class="codicon codicon-close"></span></button></div></div>`;
+    <div class="btn-row"><button class="btn-primary" data-action="prov-save-new"><span class="codicon codicon-save"></span> ${t("Save")}</button><button class="btn-secondary" data-action="prov-cancel-edit" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div></div>`;
 }
 
 function renderModelFields(provId: string, existing: ModelEntry | null, isNew: boolean) {
@@ -496,28 +497,28 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
   const costTiers = e?.cost?.tiers != null ? safeJsonStringify(e.cost.tiers) : "";
   const hasImage = !!e?.input?.includes("image");
   const tlm = e?.thinkingLevelMap != null ? safeJsonStringify(e.thinkingLevelMap) : "";
-  return `<div class="editor-card" style="border:1px solid var(--vscode-focusBorder);border-radius:4px;margin:4px 0"><h3>${isNew ? "Add Model" : "Edit Model"}</h3>
-    <div class="form-row"><div class="form-group"><label class="field-label">Model ID</label><input id="mf-id" value="${escAttr(e?.id ?? "")}" placeholder="model-id" ${isNew ? "" : "readonly"} /></div>
-    <div class="form-group"><label class="field-label">Display Name</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="Optional" /></div></div>
-    <div class="form-row"><div class="form-group"><label class="field-label">Context Window</label><input id="mf-ctx" type="number" value="${e?.contextWindow ?? ""}" placeholder="200000" /></div>
-    <div class="form-group"><label class="field-label">Max Tokens</label><input id="mf-maxTok" type="number" value="${e?.maxTokens ?? ""}" placeholder="16384" /></div></div>
-    <div class="form-row"><div class="form-group"><label class="field-label">API Protocol (override)</label><select id="mf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}"${e?.api === v ? " selected" : ""}>${escHtml(l)}</option>`).join("")}</select></div>
-    <div class="form-group"><label class="field-label">Base URL (override)</label><input id="mf-baseUrl" value="${escAttr(e?.baseUrl ?? "")}" placeholder="Optional" /></div></div>
-    <h4 style="margin:6px 0 2px;font-size:var(--fs-11);opacity:.7">Cost (per million tokens)</h4>
-    <div class="form-row"><div class="form-group"><label class="field-label">Input</label><input id="mf-costIn" type="number" step="any" value="${costIn}" placeholder="0" /></div>
-    <div class="form-group"><label class="field-label">Output</label><input id="mf-costOut" type="number" step="any" value="${costOut}" placeholder="0" /></div></div>
-    <div class="form-row"><div class="form-group"><label class="field-label">Cache Read</label><input id="mf-costCacheRead" type="number" step="any" value="${costCacheRead}" placeholder="0" /></div>
-    <div class="form-group"><label class="field-label">Cache Write</label><input id="mf-costCacheWrite" type="number" step="any" value="${costCacheWrite}" placeholder="0" /></div></div>
-    <label class="field-label">Cost Tiers (JSON array)</label><textarea id="mf-costTiers" class="ta" style="height:80px" placeholder='[{ "inputTokensAbove": 272000, "input": 10, "output": 45, "cacheRead": 1, "cacheWrite": 12.5 }]'>${escHtml(costTiers)}</textarea>
+  return `<div class="editor-card" style="border:1px solid var(--vscode-focusBorder);border-radius:4px;margin:4px 0"><h3>${isNew ? t("Add Model") : t("Edit Model")}</h3>
+    <div class="form-row"><div class="form-group"><label class="field-label">${t("Model ID")}</label><input id="mf-id" value="${escAttr(e?.id ?? "")}" placeholder="model-id" ${isNew ? "" : "readonly"} /></div>
+    <div class="form-group"><label class="field-label">${t("Display Name")}</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="${t("Optional")}" /></div></div>
+    <div class="form-row"><div class="form-group"><label class="field-label">${t("Context Window")}</label><input id="mf-ctx" type="number" value="${e?.contextWindow ?? ""}" placeholder="200000" /></div>
+    <div class="form-group"><label class="field-label">${t("Max Tokens")}</label><input id="mf-maxTok" type="number" value="${e?.maxTokens ?? ""}" placeholder="16384" /></div></div>
+    <div class="form-row"><div class="form-group"><label class="field-label">${t("API Protocol (override)")}</label><select id="mf-api">${APIS.map(([v, l]) => `<option value="${escAttr(v)}"${e?.api === v ? " selected" : ""}>${escHtml(l)}</option>`).join("")}</select></div>
+    <div class="form-group"><label class="field-label">${t("Base URL (override)")}</label><input id="mf-baseUrl" value="${escAttr(e?.baseUrl ?? "")}" placeholder="${t("Optional")}" /></div></div>
+    <h4 style="margin:6px 0 2px;font-size:var(--fs-11);opacity:.7">${t("Cost (per million tokens)")}</h4>
+    <div class="form-row"><div class="form-group"><label class="field-label">${t("Input")}</label><input id="mf-costIn" type="number" step="any" value="${costIn}" placeholder="0" /></div>
+    <div class="form-group"><label class="field-label">${t("Output")}</label><input id="mf-costOut" type="number" step="any" value="${costOut}" placeholder="0" /></div></div>
+    <div class="form-row"><div class="form-group"><label class="field-label">${t("Cache Read")}</label><input id="mf-costCacheRead" type="number" step="any" value="${costCacheRead}" placeholder="0" /></div>
+    <div class="form-group"><label class="field-label">${t("Cache Write")}</label><input id="mf-costCacheWrite" type="number" step="any" value="${costCacheWrite}" placeholder="0" /></div></div>
+    <label class="field-label">${t("Cost Tiers (JSON array)")}</label><textarea id="mf-costTiers" class="ta" style="height:80px" placeholder='[{ "inputTokensAbove": 272000, "input": 10, "output": 45, "cacheRead": 1, "cacheWrite": 12.5 }]'>${escHtml(costTiers)}</textarea>
     <div class="form-row" style="gap:14px;margin:4px 0">
-      <label class="check-label"><input type="checkbox" id="mf-reasoning" ${e?.reasoning ? "checked" : ""} /> Reasoning</label>
-      <label class="check-label"><input type="checkbox" id="mf-image" ${hasImage ? "checked" : ""} /> Image input</label>
+      <label class="check-label"><input type="checkbox" id="mf-reasoning" ${e?.reasoning ? "checked" : ""} /> ${t("Reasoning")}</label>
+      <label class="check-label"><input type="checkbox" id="mf-image" ${hasImage ? "checked" : ""} /> ${t("Image input")}</label>
     </div>
-    <label class="field-label">Thinking Level Map (JSON)</label><textarea id="mf-thinkingLevelMap" class="ta" style="height:90px" placeholder='{ "high": "high", "max": "max", "low": null }'>${escHtml(tlm)}</textarea>
+    <label class="field-label">${t("Thinking Level Map (JSON)")}</label><textarea id="mf-thinkingLevelMap" class="ta" style="height:90px" placeholder='{ "high": "high", "max": "max", "low": null }'>${escHtml(tlm)}</textarea>
     ${renderHeadersField("mf-headers", e?.headers)}
-    <label class="field-label">Compatibility</label>
+    <label class="field-label">${t("Compatibility")}</label>
     ${renderCompatSection("mf-cx", e?.compat)}
-    <div class="btn-row"><button class="btn-primary" data-action="model-save" data-pid="${escAttr(provId)}" data-new="${isNew ? "1" : "0"}"><span class="codicon codicon-save"></span> Save</button><button class="btn-secondary" data-action="model-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div></div>`;
+    <div class="btn-row"><button class="btn-primary" data-action="model-save" data-pid="${escAttr(provId)}" data-new="${isNew ? "1" : "0"}"><span class="codicon codicon-save"></span> ${t("Save")}</button><button class="btn-secondary" data-action="model-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div></div>`;
 }
 
 // ====== OAuth tab ======
@@ -530,17 +531,17 @@ function renderOAuth(parent: HTMLElement, data: ModelsData) {
     return;
   }
   if (!items.length) {
-    body.innerHTML = '<span class="dim">No OAuth providers available</span>';
+    body.innerHTML = `<span class="dim">${t("No OAuth providers available")}</span>`;
     return;
   }
   let h = "";
   for (const p of items) {
-    h += `<div class="item-row"><div class="item-main"><div class="item-title"><span class="status-dot ${p.connected ? "on" : "off"}"></span><span class="item-name">${escHtml(p.name)}</span><span class="badge ${p.connected ? "badge-cli" : "badge-other"}">${p.connected ? "connected" : "not connected"}</span></div><div class="item-desc">${escHtml(p.id)}</div></div>`;
+    h += `<div class="item-row"><div class="item-main"><div class="item-title"><span class="status-dot ${p.connected ? "on" : "off"}"></span><span class="item-name">${escHtml(p.name)}</span><span class="badge ${p.connected ? "badge-cli" : "badge-other"}">${p.connected ? t("connected") : t("not connected")}</span></div><div class="item-desc">${escHtml(p.id)}</div></div>`;
     h += `<div class="item-actions">`;
     if (p.connected)
-      h += `<button class="btn-icon" data-action="oauth-logout" data-id="${escAttr(p.id)}" title="Logout"><span class="codicon codicon-sign-out"></span></button>`;
+      h += `<button class="btn-icon" data-action="oauth-logout" data-id="${escAttr(p.id)}" title="${t("Logout")}"><span class="codicon codicon-sign-out"></span></button>`;
     else
-      h += `<button class="btn-icon" data-action="oauth-login" data-id="${escAttr(p.id)}" title="Login"><span class="codicon codicon-sign-in"></span></button>`;
+      h += `<button class="btn-icon" data-action="oauth-login" data-id="${escAttr(p.id)}" title="${t("Login")}"><span class="codicon codicon-sign-in"></span></button>`;
     h += "</div></div>";
   }
   body.innerHTML = h;
@@ -549,38 +550,38 @@ function renderOAuth(parent: HTMLElement, data: ModelsData) {
 function renderOAuthProgress(s: OAuthProgressEvent): string {
   let h = '<div class="editor-card oauth-progress">';
   if (s.type === "auth_url") {
-    h += `<strong>Authorize</strong>`;
+    h += `<strong>${t("Authorize")}</strong>`;
     h += `<div class="url"><a href="${escAttr(s.url ?? "")}" target="_blank">${escHtml(s.url ?? "")}</a></div>`;
     if (s.instructions) h += `<p class="dim">${escHtml(s.instructions)}</p>`;
-    h += `<label class="field-label">Or paste authorization code:</label><input id="oauth-code" placeholder="Authorization code" />`;
-    h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-code"><span class="codicon codicon-check"></span> Submit</button><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<label class="field-label">${t("Or paste authorization code:")}</label><input id="oauth-code" placeholder="${t("Authorization code")}" />`;
+    h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-code"><span class="codicon codicon-check"></span> ${t("Submit")}</button><button class="btn-secondary" data-action="oauth-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "device_code") {
-    h += "<strong>Device Code</strong>";
+    h += `<strong>${t("Device Code")}</strong>`;
     h += `<p style="font-size:var(--fs-16);font-weight:bold;letter-spacing:2px">${escHtml(s.userCode ?? "")}</p>`;
     if (s.verificationUri)
       h += `<p><a href="${escAttr(s.verificationUri)}" target="_blank">${escHtml(s.verificationUri)}</a></p>`;
-    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "prompt") {
-    h += `<strong>${escHtml(s.message || "Input required")}</strong>`;
+    h += `<strong>${escHtml(s.message || t("Input required"))}</strong>`;
     h += `<div><input id="oauth-input" placeholder="${escAttr(s.placeholder ?? "")}" /></div>`;
-    h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-input" data-token="${escAttr(s.token ?? "")}"><span class="codicon codicon-check"></span> Submit</button><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-input" data-token="${escAttr(s.token ?? "")}"><span class="codicon codicon-check"></span> ${t("Submit")}</button><button class="btn-secondary" data-action="oauth-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "select") {
-    h += `<strong>${escHtml(s.message || "Select")}</strong>`;
+    h += `<strong>${escHtml(s.message || t("Select"))}</strong>`;
     for (const o of s.options ?? []) {
       h += `<div class="btn-row"><button class="btn-primary" data-action="oauth-submit-select" data-token="${escAttr(s.token ?? "")}" data-id="${escAttr(o.id)}">${escHtml(o.label)}</button></div>`;
     }
-    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "progress") {
-    h += `<p>${escHtml(s.message || "Working...")}</p>`;
+    h += `<p>${escHtml(s.message || t("Working..."))}</p>`;
   } else if (s.type === "success") {
-    h += '<p style="color:#4caf50">✓ Connected successfully!</p>';
-    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<p style="color:#4caf50">✓ ${t("Connected successfully!")}</p>`;
+    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="${t("Dismiss")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "error") {
-    h += `<p style="color:#d32f2f">Error: ${escHtml(s.message ?? "")}</p>`;
-    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<p style="color:#d32f2f">${escHtml(t("Error: {0}", s.message ?? ""))}</p>`;
+    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="${t("Dismiss")}"><span class="codicon codicon-close"></span></button></div>`;
   } else if (s.type === "cancelled") {
-    h += "<p>Login cancelled.</p>";
-    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="Dismiss"><span class="codicon codicon-close"></span></button></div>`;
+    h += `<p>${t("Login cancelled.")}</p>`;
+    h += `<div class="btn-row"><button class="btn-secondary" data-action="oauth-dismiss" title="${t("Dismiss")}"><span class="codicon codicon-close"></span></button></div>`;
   }
   h += "</div>";
   return h;
@@ -592,26 +593,26 @@ function renderApiKeys(parent: HTMLElement, data: ModelsData) {
   if (!body) return;
   const items = data.apikeyStatuses || [];
   if (!items.length) {
-    body.innerHTML = '<span class="dim">No API key providers found</span>';
+    body.innerHTML = `<span class="dim">${t("No API key providers found")}</span>`;
     return;
   }
   const state = provState;
   let h = "";
   for (const p of items) {
     if (state.apiKeyDeleteTarget === p.id) {
-      h += `<div class="confirm-bar">Remove API key for "${escHtml(p.name)}"? <span><button class="btn-sm btn-danger" data-action="apikey-remove-confirm" data-id="${escAttr(p.id)}">Remove</button> <button class="btn-icon" data-action="apikey-remove-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></span></div>`;
+      h += `<div class="confirm-bar">${escHtml(t('Remove API key for "{0}"?', p.name))} <span><button class="btn-sm btn-danger" data-action="apikey-remove-confirm" data-id="${escAttr(p.id)}">${t("Remove")}</button> <button class="btn-icon" data-action="apikey-remove-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></span></div>`;
       continue;
     }
-    h += `<div class="item-row"><div class="item-main"><div class="item-title"><span class="status-dot ${p.configured ? "on" : "off"}"></span><span class="item-name">${escHtml(p.name)}</span><span class="badge ${p.configured ? "badge-cli" : "badge-other"}">${p.configured ? "configured" : "not set"}</span></div><div class="item-desc">${p.modelCount} models</div></div>`;
+    h += `<div class="item-row"><div class="item-main"><div class="item-title"><span class="status-dot ${p.configured ? "on" : "off"}"></span><span class="item-name">${escHtml(p.name)}</span><span class="badge ${p.configured ? "badge-cli" : "badge-other"}">${p.configured ? t("configured") : t("not set")}</span></div><div class="item-desc">${t("{0} models", p.modelCount)}</div></div>`;
     h += `<div class="item-actions">`;
     if (p.configured)
-      h += `<button class="btn-icon btn-danger" data-action="apikey-remove" data-id="${escAttr(p.id)}" title="Remove API key"><span class="codicon codicon-trash"></span></button>`;
+      h += `<button class="btn-icon btn-danger" data-action="apikey-remove" data-id="${escAttr(p.id)}" title="${t("Remove API key")}"><span class="codicon codicon-trash"></span></button>`;
     else
-      h += `<button class="btn-icon" data-action="apikey-set" data-id="${escAttr(p.id)}" title="Set API key"><span class="codicon codicon-key"></span></button>`;
+      h += `<button class="btn-icon" data-action="apikey-set" data-id="${escAttr(p.id)}" title="${t("Set API key")}"><span class="codicon codicon-key"></span></button>`;
     h += "</div></div>";
     if (state.apiKeyEditing === p.id) {
-      h += `<div class="editor-card"><label class="field-label">API Key for ${escHtml(p.name)}</label><input id="apikey-input" type="password" placeholder="sk-..." />`;
-      h += `<div class="btn-row"><button class="btn-primary" data-action="apikey-save" data-id="${escAttr(p.id)}"><span class="codicon codicon-save"></span> Save</button><button class="btn-secondary" data-action="apikey-cancel" title="Cancel"><span class="codicon codicon-close"></span></button></div></div>`;
+      h += `<div class="editor-card"><label class="field-label">${escHtml(t("API Key for {0}", p.name))}</label><input id="apikey-input" type="password" placeholder="sk-..." />`;
+      h += `<div class="btn-row"><button class="btn-primary" data-action="apikey-save" data-id="${escAttr(p.id)}"><span class="codicon codicon-save"></span> ${t("Save")}</button><button class="btn-secondary" data-action="apikey-cancel" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button></div></div>`;
     }
   }
   body.innerHTML = h;
@@ -771,7 +772,7 @@ function handleAction(btn: HTMLElement, parent: HTMLElement, data: ModelsData) {
 function saveProvForm(parent: HTMLElement, _data: ModelsData, _isNew: boolean) {
   const name = (document.getElementById("pf-name") as HTMLInputElement)?.value.trim() ?? "";
   if (!name) {
-    showErr(parent, "Provider name is required");
+    showErr(parent, t("Provider name is required"));
     return;
   }
   const entry: Record<string, unknown> = {};
@@ -799,7 +800,7 @@ function saveProvForm(parent: HTMLElement, _data: ModelsData, _isNew: boolean) {
 function saveProvDetail(parent: HTMLElement, _data: ModelsData, provId: string) {
   const newName = (document.getElementById("pd-name") as HTMLInputElement)?.value.trim() ?? "";
   if (!newName) {
-    showErr(parent, "Provider name is required");
+    showErr(parent, t("Provider name is required"));
     return;
   }
   const u: Record<string, unknown> = {};
@@ -827,7 +828,7 @@ function saveProvDetail(parent: HTMLElement, _data: ModelsData, provId: string) 
 function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, isNew: boolean) {
   const id = (document.getElementById("mf-id") as HTMLInputElement)?.value.trim() ?? "";
   if (!id) {
-    showErr(parent, "Model ID is required");
+    showErr(parent, t("Model ID is required"));
     return;
   }
   const errors: string[] = [];
@@ -862,7 +863,7 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
     try {
       tiers = JSON.parse(tiersTxt);
     } catch {
-      errors.push("Invalid JSON in Cost Tiers");
+      errors.push(t("Invalid JSON in Cost Tiers"));
     }
   }
   const anyCost =
@@ -893,7 +894,7 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
     try {
       m.thinkingLevelMap = JSON.parse(tlmTxt);
     } catch {
-      errors.push("Invalid JSON in Thinking Level Map");
+      errors.push(t("Invalid JSON in Thinking Level Map"));
     }
   } else {
     m.thinkingLevelMap = null;
@@ -931,7 +932,7 @@ function submitOAuthInput(token: string) {
 function saveApiKey(parent: HTMLElement, _data: ModelsData, id: string) {
   const key = (document.getElementById("apikey-input") as HTMLInputElement)?.value.trim() ?? "";
   if (!key) {
-    showErr(parent, "API key is required");
+    showErr(parent, t("API key is required"));
     return;
   }
   vscode.postMessage({ type: "saveApiKey", providerId: id, apiKey: key });

@@ -1,4 +1,7 @@
+import { getWebviewI18n, t } from "../i18n.ts";
+
 export function getSettingsHtml(): string {
+  const i18n = getWebviewI18n();
   return /* html */ `<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0">
 <head><style>
@@ -40,34 +43,45 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 </style></head>
 <body>
 <div class="header">
-  <strong>⚙️ Settings</strong>
+  <strong>⚙️ ${t("Settings")}</strong>
   <div class="header-actions">
-    <button data-action="refresh" title="Refresh">↻</button>
-    <button data-action="openSettings" title="Open Full Settings">{ }</button>
+    <button data-action="refresh" title="${t("Refresh")}">↻</button>
+    <button data-action="openSettings" title="${t("Open Full Settings")}">{ }</button>
   </div>
 </div>
 <div class="scroll" id="scroll">
   <div id="error-host"></div>
 
   <div class="section">
-    <h3>Environment</h3>
+    <h3>${t("Environment")}</h3>
     <div class="kv" id="env-kv">
-      <div class="k">Pi version</div><div class="v with-action"><span class="v-text placeholder" id="env-pi-version">Loading…</span></div><div><button class="inline-btn primary" data-action="upgrade" title="Reinstall the pi CLI globally to the latest version">Upgrade</button></div>
-      <div class="k">Pi path</div><div class="v" id="env-pi-path">…</div><div><button class="copy-btn" data-action="copy-pi-path" title="Copy">Copy</button></div>
+      <div class="k">${t("Pi version")}</div><div class="v with-action"><span class="v-text placeholder" id="env-pi-version">${t("Loading…")}</span></div><div><button class="inline-btn primary" data-action="upgrade" title="${t("Reinstall the pi CLI globally to the latest version")}">${t("Upgrade")}</button></div>
+      <div class="k">${t("Pi path")}</div><div class="v" id="env-pi-path">…</div><div><button class="copy-btn" data-action="copy-pi-path" title="${t("Copy")}">${t("Copy")}</button></div>
       <div class="k">pi-agent-studio</div><div class="v" id="env-ext-version">…</div><div></div>
       <div class="k">Node</div><div class="v" id="env-node-version">…</div><div></div>
     </div>
   </div>
 
   <div class="section">
-    <h3>Links</h3>
-    <div class="row"><span class="icon">🌐</span><a id="link-home" href="https://pi.dev" target="_blank" rel="noopener" title="https://pi.dev">Pi Website</a></div>
-    <div class="row"><span class="icon">📦</span><a id="link-packages" href="https://pi.dev/packages" target="_blank" rel="noopener" title="https://pi.dev/packages">Pi Packages</a></div>
-    <div class="row"><span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></span><a id="link-github" href="https://github.com/JohnnyZ93/pi-agent-studio" target="_blank" rel="noopener" title="https://github.com/JohnnyZ93/pi-agent-studio">pi-agent-studio on GitHub</a></div>
+    <h3>${t("Links")}</h3>
+    <div class="row"><span class="icon">🌐</span><a id="link-home" href="https://pi.dev" target="_blank" rel="noopener" title="https://pi.dev">${t("Pi Website")}</a></div>
+    <div class="row"><span class="icon">📦</span><a id="link-packages" href="https://pi.dev/packages" target="_blank" rel="noopener" title="https://pi.dev/packages">${t("Pi Packages")}</a></div>
+    <div class="row"><span class="icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></span><a id="link-github" href="https://github.com/JohnnyZ93/pi-agent-studio" target="_blank" rel="noopener" title="https://github.com/JohnnyZ93/pi-agent-studio">${t("pi-agent-studio on GitHub")}</a></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
+window.__I18N__ = ${JSON.stringify(i18n)};
+function t(key, args) {
+  var b = window.__I18N__.bundle || {};
+  var s = b[key] || key;
+  if (args) {
+    for (var i = 0; i < args.length; i++) {
+      s = s.split('{' + i + '}').join(String(args[i]));
+    }
+  }
+  return s;
+}
 const vsc = acquireVsCodeApi();
 let piPath = "";
 
@@ -97,8 +111,8 @@ function copyToClipboard(text) {
   if (!text) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(
-      function() { showToast('Copied'); },
-      function() { showToast('Copy failed'); }
+      function() { showToast(t('Copied')); },
+      function() { showToast(t('Copy failed')); }
     );
     return;
   }
@@ -111,8 +125,8 @@ function copyToClipboard(text) {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
-    showToast('Copied');
-  } catch (e) { showToast('Copy failed'); }
+    showToast(t('Copied'));
+  } catch (e) { showToast(t('Copy failed')); }
 }
 
 document.addEventListener('click', function(ev) {
@@ -140,12 +154,12 @@ document.addEventListener('click', function(ev) {
 function applyData(msg) {
   var env = msg.env || {};
   piPath = env.piPath || '';
-  setText('env-pi-path', piPath || '(unknown)', !piPath);
-  setText('env-ext-version', env.extensionVersion || '(unknown)', false);
-  setText('env-node-version', env.nodeVersion || '(loading…)', env.nodeVersion === '(loading…)');
+  setText('env-pi-path', piPath || t('(unknown)'), !piPath);
+  setText('env-ext-version', env.extensionVersion || t('(unknown)'), false);
+  setText('env-node-version', env.nodeVersion || t('(loading…)'), env.nodeVersion === t('(loading…)'));
   if (env.piVersion !== undefined) {
-    var loading = env.piVersion === '(loading…)';
-    setText('env-pi-version', env.piVersion || '(unknown)', loading);
+    var loading = env.piVersion === t('(loading…)');
+    setText('env-pi-version', env.piVersion || t('(unknown)'), loading);
   }
   var links = msg.links || {};
   var home = document.getElementById('link-home');
@@ -161,11 +175,11 @@ window.addEventListener('message', function(e) {
   if (msg.type === 'data') {
     applyData(msg);
   } else if (msg.type === 'piVersion') {
-    setText('env-pi-version', msg.piVersion || '(unknown)', false);
+    setText('env-pi-version', msg.piVersion || t('(unknown)'), false);
   } else if (msg.type === 'nodeVersion') {
-    setText('env-node-version', msg.nodeVersion || '(unknown)', false);
+    setText('env-node-version', msg.nodeVersion || t('(unknown)'), false);
   } else if (msg.type === 'error') {
-    showError(msg.message || 'Unknown error');
+    showError(msg.message || t('Unknown error'));
   }
 });
 

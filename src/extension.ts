@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
+import { t } from "./i18n.ts";
 import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
 import { createSessionTracker } from "./sessions.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
@@ -104,8 +105,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.text = "$(pi-logo)";
-  statusBarItem.tooltip = "Open Pi Settings";
   statusBarItem.command = "pi-agent-studio.openSettings";
+  const updateStatusBarTooltip = () => {
+    statusBarItem.tooltip = t("Open Pi Settings");
+  };
+  updateStatusBarTooltip();
   statusBarItem.show();
 
   context.subscriptions.push(
@@ -113,6 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidCloseTerminal((terminal) => sessions.onClose(terminal)),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("pi-agent-studio.path")) invalidatePiBinaryCache();
+      if (event.affectsConfiguration("pi-agent-studio.language")) updateStatusBarTooltip();
     }),
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
       if (useWebviewUi()) {
@@ -144,7 +149,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const cwd = resolveExplorerCwd(uri);
       if (!cwd) {
         void vscode.window.showErrorMessage(
-          "Pi: Unable to resolve a folder from the selected item.",
+          t("Pi: Unable to resolve a folder from the selected item."),
         );
         return;
       }

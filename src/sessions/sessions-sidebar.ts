@@ -11,6 +11,7 @@ import type { ChatTracker } from "../chat/chat-tracker.ts";
 import { filterAndSortSessions } from "./session-search.ts";
 import { getSessionsHtml } from "./sessions-sidebar-html.ts";
 import { sessionStatusRegistry } from "../session-status-registry.ts";
+import { t } from "../i18n.ts";
 
 export interface SessionDir {
   /** Absolute path of the cwd. Used as cache key and as the cwd for new sessions. */
@@ -63,6 +64,13 @@ export function createSessionsViewProvider(
       webviewView.webview.options = { enableScripts: true };
 
       webviewView.webview.html = getSessionsHtml();
+
+      const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("pi-agent-studio.language")) {
+          webviewView.webview.html = getSessionsHtml();
+          void refreshAll();
+        }
+      });
 
       const postDirs = () => {
         webviewView.webview.postMessage({
@@ -183,6 +191,7 @@ export function createSessionsViewProvider(
         createSub.dispose();
         deleteSub.dispose();
         changeSub.dispose();
+        langSub.dispose();
         if (refreshTimer) clearTimeout(refreshTimer);
         watcher.dispose();
       });
@@ -346,7 +355,7 @@ async function openNewSessionInDir(
 ): Promise<void> {
   const effectiveCwd = cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!effectiveCwd) {
-    void vscode.window.showErrorMessage("No workspace folder available");
+    void vscode.window.showErrorMessage(t("No workspace folder available"));
     return;
   }
   if (useWebviewUi()) {

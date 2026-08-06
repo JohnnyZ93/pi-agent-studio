@@ -1,6 +1,7 @@
 import codiconTtf from "@vscode/codicons/dist/codicon.ttf?inline";
 import "./style.css";
 import { vscode } from "./globals";
+import { t } from "./i18n";
 import { renderModelsTab, handleOAuthProgress, setModelsTabActive } from "./tabs/models";
 import { renderAgentsTab } from "./tabs/agents";
 import { renderPromptsTab } from "./tabs/prompts";
@@ -21,6 +22,32 @@ if (typeof (window as any).__PI_FONTSIZE__ === "number" && (window as any).__PI_
   document.documentElement.style.setProperty("--fs", (window as any).__PI_FONTSIZE__ + "px");
 }
 
+function initStaticI18n() {
+  const title = document.querySelector(".toolbar-title");
+  if (title) title.textContent = t("Settings");
+  const reload = document.querySelector('.toolbar-btn[data-action="reload"]') as HTMLElement | null;
+  if (reload) reload.title = t("Reload");
+  const labels: Record<string, string> = {
+    models: t("Models"),
+    agents: t("Agents"),
+    prompts: t("Prompt Templates"),
+    skills: t("Skills"),
+    mcp: t("MCP Servers"),
+    commit: t("Commit Message"),
+    sysprompt: t("System Prompt"),
+    settings: t("Settings"),
+  };
+  const tabBtns = document.querySelectorAll(".nav-tab");
+  for (const b of tabBtns) {
+    const label = b.querySelector(".nav-label");
+    const tab = (b as HTMLElement).dataset.tab;
+    if (label && tab && labels[tab]) label.textContent = labels[tab];
+  }
+  const ph = document.querySelector(".tab-placeholder");
+  if (ph) ph.textContent = t("Select a tab to get started");
+}
+initStaticI18n();
+
 const nav = document.querySelector(".nav")!;
 const navToggle = document.getElementById("nav-toggle");
 let content = document.getElementById("content")!;
@@ -35,7 +62,7 @@ function applyNavCollapse() {
     icon.className = "codicon " + (navCollapsed ? "codicon-chevron-right" : "codicon-chevron-left");
   }
   if (navToggle) {
-    navToggle.title = navCollapsed ? "Expand sidebar" : "Collapse sidebar";
+    navToggle.title = navCollapsed ? t("Expand sidebar") : t("Collapse sidebar");
   }
 }
 
@@ -78,7 +105,7 @@ function switchTab(tab: string) {
   if (next) next.classList.add("active");
   activeTab = tab;
   setModelsTabActive(tab === "models");
-  content.innerHTML = '<div class="tab-placeholder">Loading…</div>';
+  content.innerHTML = '<div class="tab-placeholder">' + t("Loading…") + "</div>";
   vscode.postMessage({ type: "tabLoad", tab });
 }
 
@@ -105,7 +132,7 @@ window.addEventListener("message", (ev) => {
       vscode.postMessage({ type: "tabLoad", tab: activeTab });
       break;
     case "error":
-      showToast(msg.message || "Unknown error", "error");
+      showToast(msg.message || t("Unknown error"), "error");
       break;
     case "tabData":
       tabData[msg.tab] = msg.data;
@@ -115,12 +142,12 @@ window.addEventListener("message", (ev) => {
       handleOAuthProgress(msg.event);
       break;
     case "saved":
-      if (msg.what === "system") showToast("System prompt saved", "success");
-      else if (msg.what === "append") showToast("Append prompt saved", "success");
-      else if (msg.what === "commit") showToast("Commit message settings saved", "success");
-      else if (msg.what === "mcp") showToast("MCP settings saved", "success");
+      if (msg.what === "system") showToast(t("System prompt saved"), "success");
+      else if (msg.what === "append") showToast(t("Append prompt saved"), "success");
+      else if (msg.what === "commit") showToast(t("Commit message settings saved"), "success");
+      else if (msg.what === "mcp") showToast(t("MCP settings saved"), "success");
       else if (msg.what === "settings")
-        showToast("Settings saved — restart pi to apply", "success");
+        showToast(t("Settings saved — restart pi to apply"), "success");
       break;
     default:
       break;
@@ -135,7 +162,8 @@ function renderTab(tab: string, data: any) {
   if (loader) {
     loader(content, data);
   } else {
-    content.innerHTML = '<div class="tab-placeholder">Tab "' + tab + '" not yet implemented</div>';
+    content.innerHTML =
+      '<div class="tab-placeholder">' + t('Tab "{0}" not yet implemented', tab) + "</div>";
   }
 }
 

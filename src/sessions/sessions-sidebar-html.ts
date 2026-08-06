@@ -1,4 +1,7 @@
+import { getWebviewI18n, t } from "../i18n.ts";
+
 export function getSessionsHtml(): string {
+  const i18n = getWebviewI18n();
   return /* html */ `<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0">
 <head><style>
@@ -45,19 +48,30 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 </style></head>
 <body>
 <div class="header" id="header">
-  <strong>Sessions</strong>
+  <strong>${t("Sessions")}</strong>
   <span class="header-actions">
-    <button data-action="toggle-search" title="Search Sessions">🔍</button>
-    <button data-action="new" title="New Session">+</button>
-    <button data-action="refresh" title="Refresh">↻</button>
+    <button data-action="toggle-search" title="${t("Search Sessions")}">🔍</button>
+    <button data-action="new" title="${t("New Session")}">+</button>
+    <button data-action="refresh" title="${t("Refresh")}">↻</button>
   </span>
 </div>
 <div id="search-bar" class="search-bar" style="display:none">
-  <input id="search-input" class="search-input" type="text" placeholder='Search... (use "phrase" or re:pattern)' />
+  <input id="search-input" class="search-input" type="text" placeholder="${t('Search... (use "phrase" or re:pattern)')}" />
   <div id="search-error" class="search-error" style="display:none"></div>
 </div>
-<div id="list" class="list"><div class="empty">Loading...</div></div>
+<div id="list" class="list"><div class="empty">${t("Loading...")}</div></div>
 <script>
+window.__I18N__ = ${JSON.stringify(i18n)};
+function t(key, args) {
+  var b = window.__I18N__.bundle || {};
+  var s = b[key] || key;
+  if (args) {
+    for (var i = 0; i < args.length; i++) {
+      s = s.split('{' + i + '}').join(String(args[i]));
+    }
+  }
+  return s;
+}
 const vscode = acquireVsCodeApi();
 let deleteTarget = null;
 let sessionsData = [];
@@ -138,12 +152,12 @@ function onDirChange() {
 function updateHeader() {
   const header = document.getElementById('header');
   var actions = '<span class="header-actions">' +
-    '<button data-action="toggle-search" title="Search Sessions"' + (searchVisible ? ' class="search-active"' : '') + '>🔍</button> ' +
-    '<button data-action="new" title="New Session">+</button> ' +
-    '<button data-action="refresh" title="Refresh">↻</button>' +
+    '<button data-action="toggle-search" title="' + t('Search Sessions') + '"' + (searchVisible ? ' class="search-active"' : '') + '>🔍</button> ' +
+    '<button data-action="new" title="' + t('New Session') + '">+</button> ' +
+    '<button data-action="refresh" title="' + t('Refresh') + '">↻</button>' +
     '</span>';
   if (!dirs || dirs.length === 0) {
-    header.innerHTML = '<span class="muted">No workspace</span> ' + actions;
+    header.innerHTML = '<span class="muted">' + t('No workspace') + '</span> ' + actions;
     return;
   }
   if (dirs.length === 1) {
@@ -155,7 +169,7 @@ function updateHeader() {
     var sel = d.path === selectedDirPath ? ' selected' : '';
     return '<option value="' + escAttr(d.path) + '"' + sel + '>' + escHtml(d.label) + countSuffix + '</option>';
   }).join('');
-  header.innerHTML = '<select id="dir-select" title="Select directory">' + opts + '</select> ' + actions;
+  header.innerHTML = '<select id="dir-select" title="' + t('Select directory') + '">' + opts + '</select> ' + actions;
   var sel = document.getElementById('dir-select');
   if (sel) sel.addEventListener('change', onDirChange);
 }
@@ -245,11 +259,11 @@ function applyStatusUpdate(entries) {
     if (!delBtn) continue;
     if (isOpen) {
       delBtn.disabled = true;
-      delBtn.title = 'Session is open, close it first';
+      delBtn.title = t('Session is open, close it first');
       delBtn.removeAttribute('data-action');
     } else {
       delBtn.disabled = false;
-      delBtn.title = 'Delete';
+      delBtn.title = t('Delete');
       delBtn.setAttribute('data-action', 'delete');
     }
   }
@@ -260,10 +274,10 @@ function formatTime(iso) {
     var d = new Date(iso);
     var now = new Date();
     var diff = now - d;
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-    if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+    if (diff < 60000) return t('just now');
+    if (diff < 3600000) return Math.floor(diff / 60000) + t('m ago');
+    if (diff < 86400000) return Math.floor(diff / 3600000) + t('h ago');
+    if (diff < 604800000) return Math.floor(diff / 86400000) + t('d ago');
     return d.toLocaleDateString();
   } catch (e) { return ''; }
 }
@@ -273,9 +287,9 @@ function renderAll() {
   if (!sessionsData.length) {
     var emptyMsg;
     if (searchQuery && searchQuery.trim().length > 0) {
-      emptyMsg = 'No sessions match "' + escHtml(searchQuery) + '"';
+      emptyMsg = t('No sessions match "{0}"', [escHtml(searchQuery)]);
     } else {
-      emptyMsg = 'No sessions found';
+      emptyMsg = t('No sessions found');
     }
     list.innerHTML = '<div class="empty">' + emptyMsg + '</div>';
     return;
@@ -286,21 +300,21 @@ function renderAll() {
     var id = safeId(s.path);
     var pathAttr = escAttr(s.path);
     if (deleteTarget === s.path) {
-      var confirmLabel = s.name ? s.name : truncate(s.firstMessage || 'Untitled', 40);
-      html += '<div class="delete-confirm"><span class="delete-text" title="' + escAttr(s.name || s.firstMessage || 'Untitled') + '">Delete "' + escHtml(confirmLabel) + '"?</span><span class="delete-actions"><button class="btn-confirm" data-action="delete-confirm">Delete</button> <button class="btn-cancel" data-action="delete-cancel">Cancel</button></span></div>';
+      var confirmLabel = s.name ? s.name : truncate(s.firstMessage || t('Untitled'), 40);
+      html += '<div class="delete-confirm"><span class="delete-text" title="' + escAttr(s.name || s.firstMessage || t('Untitled')) + '">' + t('Delete "{0}"?', [escHtml(confirmLabel)]) + '</span><span class="delete-actions"><button class="btn-confirm" data-action="delete-confirm">' + t('Delete') + '</button> <button class="btn-cancel" data-action="delete-cancel">' + t('Cancel') + '</button></span></div>';
       continue;
     }
     html += '<div class="session-item" id="item-' + id + '" data-action="open" data-path="' + pathAttr + '">';
     var statusIcon = (s.isOpen && s.status) ? statusIconHtml(s.status) : '';
-    html += '<div class="session-name"><span class="session-status" data-status-path="' + pathAttr + '">' + statusIcon + '</span>' + escHtml(s.name || s.firstMessage || 'Untitled') + '</div>';
-    html += '<div class="session-meta"><span>' + formatTime(s.modified) + '</span><span>' + s.messageCount + ' msgs</span></div>';
+    html += '<div class="session-name"><span class="session-status" data-status-path="' + pathAttr + '">' + statusIcon + '</span>' + escHtml(s.name || s.firstMessage || t('Untitled')) + '</div>';
+    html += '<div class="session-meta"><span>' + formatTime(s.modified) + '</span><span>' + t('{0} msgs', [s.messageCount]) + '</span></div>';
     html += '<div class="session-preview">' + escHtml(s.firstMessage || '') + '</div>';
     html += '<div class="session-actions">';
-    html += '<button title="Rename" data-action="rename" data-path="' + pathAttr + '">✏️</button>';
+    html += '<button title="' + t('Rename') + '" data-action="rename" data-path="' + pathAttr + '">✏️</button>';
     if (s.isOpen) {
-      html += '<button class="danger" title="Session is open, close it first" disabled>🗑️</button>';
+      html += '<button class="danger" title="' + t('Session is open, close it first') + '" disabled>🗑️</button>';
     } else {
-      html += '<button class="danger" title="Delete" data-action="delete" data-path="' + pathAttr + '">🗑️</button>';
+      html += '<button class="danger" title="' + t('Delete') + '" data-action="delete" data-path="' + pathAttr + '">🗑️</button>';
     }
     html += '</div></div>';
   }
