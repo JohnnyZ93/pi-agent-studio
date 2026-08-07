@@ -41,6 +41,7 @@ import {
   setCurrentAssistant,
 } from "./globals";
 import { showRewindConfirm, tipBtn } from "./rewind";
+import { enhance } from "./enhance";
 import { t } from "./i18n";
 
 // ---- message DOM ----
@@ -455,7 +456,9 @@ export function renderMarkdown(target: HTMLElement, text: string): void {
     target.innerHTML = md.render(text);
   } catch {
     target.textContent = text;
+    return;
   }
+  void enhance(target);
 }
 
 export function applyTextCollapsible(b: any): void {
@@ -1242,7 +1245,9 @@ function renderSubMd(target: HTMLElement, text: string) {
     target.innerHTML = md.render(text);
   } catch {
     target.textContent = text;
+    return;
   }
+  void enhance(target);
 }
 
 function renderAgentBody(parent: HTMLElement, r: any): string {

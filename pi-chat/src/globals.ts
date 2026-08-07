@@ -1,5 +1,7 @@
 import markdownit from "markdown-it";
 import { t } from "./i18n";
+import { mathPlugin } from "./md-math";
+import { mermaidFenceRule } from "./enhance";
 
 const acquireVscodeApi: any =
   typeof acquireVsCodeApi === "function"
@@ -8,6 +10,9 @@ const acquireVscodeApi: any =
 
 export const vscode = acquireVscodeApi();
 export const md = markdownit({ html: false, breaks: true, linkify: true });
+const defaultFence = md.renderer.rules.fence;
+md.use(mathPlugin);
+md.renderer.rules.fence = mermaidFenceRule(defaultFence ?? (() => ""));
 
 export const state: Record<string, any> = {
   model: null,

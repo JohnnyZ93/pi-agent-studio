@@ -796,6 +796,41 @@ body {
   line-height: 1.5;
   white-space: pre;
 }
+.text-block .pi-mermaid {
+  margin: 0 0 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.08));
+  padding: 8px 10px;
+}
+.text-block .pi-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+.text-block .pi-mermaid pre {
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.text-block .pi-mermaid pre code {
+  white-space: pre;
+}
+.text-block .pi-mermaid.pi-mermaid-error {
+  outline: 1px solid var(--vscode-errorForeground, #f14c4c);
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+.text-block .pi-math-block {
+  margin: 8px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+.text-block .pi-math-inline {
+  white-space: nowrap;
+}
+.text-block .pi-math.pi-math-error {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
 .text-block table {
   border-collapse: collapse;
   margin: 0 0 8px;
