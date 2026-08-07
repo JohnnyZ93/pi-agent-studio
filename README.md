@@ -20,6 +20,7 @@ English | [简体中文](README.zh-CN.md)
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
 - **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
 - **Model brand icons** — The chat panel shows circular vendor brand avatars (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …) next to the model dropdown in the composer and beside model names in message timestamps, matched by model id prefix (30+ vendors)
+- **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
 - **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope: discover and call their tools/resources via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` slash commands, and manage connections live from the chat toolbar drawer or the `/mcp` command (start / stop / reconnect, idle disconnect)
 - **Skills management** - Visual panel to create, edit, and delete pi skills (SKILL.md with YAML frontmatter) in user and project scopes
@@ -91,7 +92,7 @@ The **Pi** activity bar icon opens a sidebar with two webviews:
 The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) opens a single-instance editor panel with seven tabs, each loading its data lazily:
 
 - **Models** — three subtabs:
-  - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`; per-provider `authHeader` toggle and custom headers (env/command placeholders), per-model API protocol / base URL overrides, OpenAI / Anthropic compatibility fields, cost tiers and thinking-level maps
+  - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`; per-provider `authHeader` toggle and custom headers (env/command placeholders), per-model API protocol / base URL overrides, OpenAI / Anthropic compatibility fields, **sampling parameters**, cost tiers and thinking-level maps
   - **OAuth** — Sign in to providers that support OAuth, managed through the bundled `AuthStorage`
   - **API Keys** — Manage stored API keys in `~/.pi/agent/auth.json`
 - **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
@@ -102,6 +103,7 @@ The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) open
 - **Settings** — Two sections:
   - **System Prompt** — **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt), **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
   - **settings.json** — Inline editor for `pi-agent-studio.*` configuration, saved directly to VS Code settings
+  - **pi settings** — including TUI mode (`regular` / experimental `fullscreen`), fullscreen scrollbar, and Mermaid rendering mode (`off` / `final` / `streaming`)
 
 ## Bridge: tools, slash commands, and footer status
 
@@ -175,6 +177,7 @@ Example:
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                      |
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                              |
+| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)         |
 | `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)         |
 | `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables    |
 

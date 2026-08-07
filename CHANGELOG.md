@@ -2,8 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
-## [Unreleased]
+## [1.3.0] - 2026-08-07
 
+- **Chat UI — Mermaid & KaTeX rendering**: the webview chat panel now renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`, `\[...\]`) with KaTeX (CSS injected on demand). Rendering is lazy-loaded so the chat stays snappy, and failed diagrams show an inline error state.
+- **Chat UI — Mermaid theme setting**: new `pi-agent-studio.chatMermaidTheme` setting (`default` / `neutral` / `dark` / `forest` / `base`) picks the diagram theme instead of inferring it from the VS Code theme; the panel re-renders on change.
+- **Settings panel — new pi settings**: TUI mode (`regular` / experimental `fullscreen`) and fullscreen scrollbar (`auto` / `always` / `hidden`) under the TUI group, plus a Mermaid rendering mode (`off` / `final` / `streaming`) under Markdown.
+- **Model editor**: new **Sampling Parameters** JSON field, plus new compat options `supportsFinishReason` and `chatTemplateArgs`, and the `baseten` provider in the compatibility preset list.
 - **Dependencies**: `pi-*` packages updated to v0.84.0 (root + `pi-mcp`). The chat RPC client, commit-message generator, and MCP bridge already consumed the delta-style `message_update` events and passed `getApiKeyAndHeaders()` headers through unchanged, so no code changes were required for the 0.84.0 breaking changes.
 
 ## [1.2.2] - 2026-08-06

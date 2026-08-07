@@ -20,6 +20,7 @@
 - **原生终端 TUI** -- Pi 运行在 VS Code 集成终端（PTY）中。无 shell 层、无引号黑魔法--pi 二进制直接启动（默认模式）
 - **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
 - **模型品牌图标** —— 聊天面板在 composer 模型下拉框旁和消息时间戳的模型名前显示圆形品牌头像（OpenAI、Claude、Gemini、DeepSeek、Qwen、Grok …），按模型 id 前缀匹配（覆盖 30+ 厂商）
+- **Mermaid 与数学公式渲染** —— webview 聊天面板将 `mermaid` 代码块渲染为交互式图表，并用 KaTeX 渲染数学公式（`$...$`、`$$...$$`）；图表主题可通过 `pi-agent-studio.chatMermaidTheme` 配置（`default` / `neutral` / `dark` / `forest` / `base`）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
 - **MCP 支持** —— 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：通过 `mcp_tool_search` / `mcp_tool_call` 发现并调用其工具 / 资源，提示词以 `/mcp__<服务器>__<提示词>` 形式暴露为 Slash 命令，并可从聊天工具栏抽屉或 `/mcp` 命令实时管理连接（start / stop / reconnect、空闲自动断开）
 - **技能管理** —— 可视化面板，在用户 / 项目作用域内创建、编辑、删除 pi 技能（带 YAML frontmatter 的 SKILL.md）
@@ -92,7 +93,7 @@ ovsx get johnny-zhao/pi-agent-studio
 **Settings** 侧边栏的跳转按钮（或 `Pi: Open Settings` 命令）会打开一个单实例编辑器面板，共七个标签页，数据按标签页惰性加载：
 
 - **Models** —— 三个子标签页：
-  - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider；支持按 Provider 配置 `authHeader` 开关与自定义请求头（env / command 占位符）、按模型覆盖 API 协议与 base URL、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
+  - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider；支持按 Provider 配置 `authHeader` 开关与自定义请求头（env / command 占位符）、按模型覆盖 API 协议与 base URL、OpenAI / Anthropic 兼容字段、**采样参数**、成本分层与思考级别映射
   - **OAuth** —— 通过内置 `AuthStorage` 登录支持 OAuth 的 Provider
   - **API Keys** —— 管理 `~/.pi/agent/auth.json` 中保存的 API Key
 - **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
@@ -103,6 +104,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - **Settings** —— 两个分区：
   - **System Prompt** -- **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）、**Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
   - **settings.json** -- `pi-agent-studio.*` 配置的内联编辑器，直接保存到 VS Code 设置
+  - **pi 设置** —— 包括 TUI 模式（`regular` / 实验性 `fullscreen`）、全屏滚动条，以及 Mermaid 渲染模式（`off` / `final` / `streaming`）
 
 ## 桥接：LLM 工具、Slash 命令与状态栏
 
@@ -160,24 +162,25 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 配置项
 
-| 设置项                                         | 类型      | 默认值              | 说明                                                                                 |
-| ---------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------ |
-| `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                |
-| `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                           |
-| `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                             |
-| `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                             |
-| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`         | 生成 Git commit message 的语言（支持 14 种语言）                                     |
-| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`                | commit message 生成的自定义系统提示                                                  |
-| `pi-agent-studio.commitModel`                  | `string`  | `""`                | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）               |
-| `pi-agent-studio.statusBar`                    | `boolean` | `true`              | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                          |
-| `pi-agent-studio.ui`                           | `string`  | `"terminal"`        | `Pi: Open` 的界面：`terminal`（TUI）或 `webview`（聊天面板）                         |
-| `pi-agent-studio.disabledTools`                | `array`   | `[]`                | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent` |
-| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`             | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                |
-| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                    |
-| `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）           |
-| `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                |
-| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）      |
-| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开        |
+| 设置项                                         | 类型      | 默认值              | 说明                                                                                      |
+| ---------------------------------------------- | --------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                     |
+| `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                                |
+| `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                                  |
+| `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                                  |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`         | 生成 Git commit message 的语言（支持 14 种语言）                                          |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`                | commit message 生成的自定义系统提示                                                       |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`                | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）                    |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`              | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                               |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`        | `Pi: Open` 的界面：`terminal`（TUI）或 `webview`（聊天面板）                              |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`                | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent`      |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`             | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                     |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                         |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）                |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                     |
+| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`） |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）           |
+| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开             |
 
 ## 从源码构建
 
