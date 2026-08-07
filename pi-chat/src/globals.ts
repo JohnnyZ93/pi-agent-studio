@@ -225,7 +225,9 @@ export function updateScrollBtn(): void {
 messagesEl.addEventListener("scroll", function () {
   if (programmaticScroll) {
     programmaticScroll = false;
-    return;
+    if (messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 4) {
+      return;
+    }
   }
   autoScroll = isAtBottom();
   updateScrollBtn();
@@ -234,7 +236,6 @@ messagesEl.addEventListener("scroll", function () {
 messagesEl.addEventListener(
   "wheel",
   function (e: WheelEvent) {
-    programmaticScroll = false;
     if (e.deltaY < 0) {
       autoScroll = false;
       if (scrollRAF) {
@@ -247,21 +248,10 @@ messagesEl.addEventListener(
   true,
 );
 
-["keydown", "mousedown", "touchstart"].forEach(function (ev) {
-  messagesEl.addEventListener(
-    ev,
-    function () {
-      programmaticScroll = false;
-    },
-    true,
-  );
-});
-
 scrollBottomBtn.addEventListener("click", scrollToBottom);
 
 export function scrollToBottom(): void {
   autoScroll = true;
-  programmaticScroll = false;
   if (scrollRAF) {
     cancelAnimationFrame(scrollRAF);
     scrollRAF = null;
