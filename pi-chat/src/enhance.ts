@@ -1,4 +1,5 @@
 import type { RenderRule } from "markdown-it/lib/renderer.mjs";
+import { PI_MERMAID_THEME } from "./globals";
 
 let mermaidReady: Promise<typeof import("mermaid")> | null = null;
 let katexReady: Promise<typeof import("katex")> | null = null;
@@ -16,9 +17,21 @@ function loadKatex(): Promise<typeof import("katex")> {
   return katexReady;
 }
 
-function isDarkTheme(): boolean {
-  const kind = document.body.getAttribute("data-vscode-theme-kind") || "";
-  return kind.indexOf("dark") >= 0 || kind.indexOf("high-contrast") >= 0;
+const MERMAID_THEMES = ["default", "dark", "forest", "neutral", "base"] as const;
+
+type MermaidTheme = (typeof MERMAID_THEMES)[number];
+
+function resolveTheme(configured: string): MermaidTheme {
+  const v = (configured || "default").toLowerCase();
+  if ((MERMAID_THEMES as readonly string[]).indexOf(v) >= 0) return v as MermaidTheme;
+  return "default";
+}
+
+let mermaidTheme: MermaidTheme | null = null;
+
+function currentMermaidTheme(): MermaidTheme {
+  if (!mermaidTheme) mermaidTheme = resolveTheme(PI_MERMAID_THEME);
+  return mermaidTheme;
 }
 
 function escapeCode(s: string): string {
@@ -63,7 +76,7 @@ export async function enhance(target: HTMLElement): Promise<void> {
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: "strict",
-          theme: isDarkTheme() ? "dark" : "default",
+          theme: currentMermaidTheme(),
         });
         mermaidInitialized = true;
       }

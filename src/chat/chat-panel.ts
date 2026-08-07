@@ -140,11 +140,13 @@ export async function openChatPanel(
     light: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo-light.svg"),
     dark: vscode.Uri.joinPath(opts.extensionUri, "assets", "logo.svg"),
   };
+  const chatCfg = vscode.workspace.getConfiguration("pi-agent-studio");
   panel.webview.html = getChatWebviewHtml(
     homedir(),
     sep,
-    vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+    chatCfg.get<number>("chatFontSize"),
     getLocale(),
+    chatCfg.get<string>("chatMermaidTheme"),
   );
   lockChatEditorGroup();
 
@@ -163,12 +165,17 @@ export async function openChatPanel(
   let streaming = false;
 
   const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
-    if (e.affectsConfiguration("pi-agent-studio.language")) {
+    if (
+      e.affectsConfiguration("pi-agent-studio.language") ||
+      e.affectsConfiguration("pi-agent-studio.chatMermaidTheme")
+    ) {
+      const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
       panel.webview.html = getChatWebviewHtml(
         homedir(),
         sep,
-        vscode.workspace.getConfiguration("pi-agent-studio").get<number>("chatFontSize"),
+        cfg.get<number>("chatFontSize"),
         getLocale(),
+        cfg.get<string>("chatMermaidTheme"),
       );
     }
   });

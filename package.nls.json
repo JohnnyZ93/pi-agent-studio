@@ -37,5 +37,11 @@
   "pi.config.permission.mode.desc": "Permission mode for dangerous bash commands. AskForApproval prompts before matched commands run; FullAccess disables gating.",
   "pi.config.permission.dangerousPatterns.desc": "Case-insensitive regexes marking a bash command as dangerous (requires approval in AskForApproval mode). User config fully replaces the defaults; an empty array gates nothing.",
   "pi.config.rpcTrace.desc": "Log all RPC traffic (requests, responses, events) and pi stderr to the \"Pi Chat RPC\" Output channel for debugging. Each webview panel is tagged by its panel id prefix.",
-  "pi.config.chatFontSize.desc": "Font size for the webview chat panel. Reopen the panel to apply changes."
+  "pi.config.chatFontSize.desc": "Font size for the webview chat panel. Reopen the panel to apply changes.",
+  "pi.config.chatMermaidTheme.desc": "Mermaid diagram theme for the webview chat panel. Reopen the panel to apply changes.",
+  "pi.config.chatMermaidTheme.default": "This is the default theme for all diagrams.",
+  "pi.config.chatMermaidTheme.neutral": "This theme is great for black and white documents that will be printed.",
+  "pi.config.chatMermaidTheme.dark": "This theme goes well with dark-colored elements or dark-mode. To use the dark theme (which changes the theme of the schema itself) with dark-mode (which sets the background), set darkMode to true in your config.",
+  "pi.config.chatMermaidTheme.forest": "This theme contains shades of green.",
+  "pi.config.chatMermaidTheme.base": "This is the only theme that can be modified. Use this theme as the base for customizations."
 }

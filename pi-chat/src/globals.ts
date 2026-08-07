@@ -68,6 +68,7 @@ export let sendBtnTip = "";
 
 export const PI_HOME: string = (window as any).__PI_HOME__ || "";
 export const PI_SEP: string = (window as any).__PI_SEP__ || "/";
+export const PI_MERMAID_THEME: string = (window as any).__PI_MERMAID_THEME__ || "default";
 
 // ---- DOM refs ----
 export const messagesEl = document.getElementById("messages")!;

@@ -376,6 +376,25 @@
           "minimum": 8,
           "maximum": 32,
           "description": "%pi.config.chatFontSize.desc%"
+        },
+        "pi-agent-studio.chatMermaidTheme": {
+          "type": "string",
+          "default": "default",
+          "enum": [
+            "default",
+            "neutral",
+            "dark",
+            "forest",
+            "base"
+          ],
+          "enumDescriptions": [
+            "%pi.config.chatMermaidTheme.default%",
+            "%pi.config.chatMermaidTheme.neutral%",
+            "%pi.config.chatMermaidTheme.dark%",
+            "%pi.config.chatMermaidTheme.forest%",
+            "%pi.config.chatMermaidTheme.base%"
+          ],
+          "description": "%pi.config.chatMermaidTheme.desc%"
         }
       }
     },

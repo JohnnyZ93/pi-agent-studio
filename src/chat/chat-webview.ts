@@ -9,6 +9,7 @@ export function getChatWebviewHtml(
   sep?: string,
   fontSize?: number,
   lang?: string,
+  mermaidTheme?: string,
 ): string {
   const replaceAll = (haystack: string, needle: string, value: string) =>
     haystack.split(needle).join(value);
@@ -21,5 +22,6 @@ export function getChatWebviewHtml(
     String(fontSize && fontSize > 0 ? Math.round(fontSize) : 13),
   );
   html = replaceAll(html, "PI_LANG_PLACEHOLDER", escJsString(lang ?? "en"));
+  html = replaceAll(html, "PI_MERMAID_THEME_PLACEHOLDER", escJsString(mermaidTheme ?? "default"));
   return html;
 }

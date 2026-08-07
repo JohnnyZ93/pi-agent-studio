@@ -800,7 +800,7 @@ body {
   margin: 0 0 8px;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.08));
+  background: #ffffff;
   padding: 8px 10px;
 }
 .text-block .pi-mermaid svg {
