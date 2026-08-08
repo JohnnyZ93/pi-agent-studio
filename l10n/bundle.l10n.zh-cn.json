@@ -90,5 +90,14 @@
   "just now": "刚刚",
   "m ago": " 分钟前",
   "h ago": " 小时前",
-  "d ago": " 天前"
+  "d ago": " 天前",
+  "Pi bridge: {0} — using {1}.": "Pi 桥接：{0} — 正在使用 {1}。",
+  "Pi bridge restarted on {0} — existing Pi terminals are disconnected.": "Pi 桥接已在 {0} 上重启 — 现有 Pi 终端已断开连接。",
+  "Restart Pi Terminals": "重启 Pi 终端",
+  "the configured value is invalid": "配置的值无效",
+  "port {0} is in use": "端口 {0} 已被占用",
+  "socket {0} is in use": "socket {0} 已被占用",
+  "binding {0} failed ({1})": "绑定 {0} 失败（{1}）",
+  "Invalid pi-agent-studio.bridgeSocket value \"{0}\" — expected a number 1-65535 or an absolute socket path. Bridge not restarted.": "pi-agent-studio.bridgeSocket 的值 \"{0}\" 无效 — 应为 1-65535 的数字或绝对 socket 路径。桥接未重启。",
+  "Invalid pi-agent-studio.bridgeSocket path \"{0}\" — expected an absolute path (or \\\\.\\pipe\\ on Windows). Bridge not restarted.": "pi-agent-studio.bridgeSocket 的路径 \"{0}\" 无效 — 应为绝对路径（Windows 上为 \\\\.\\pipe\\）。桥接未重启。"
 }

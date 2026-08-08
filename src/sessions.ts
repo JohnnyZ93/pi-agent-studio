@@ -1,5 +1,6 @@
 import { access } from "node:fs/promises";
 import * as vscode from "vscode";
+import type { BridgeConfig } from "./bridge/types.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
 import { sessionStatusRegistry } from "./session-status-registry.ts";
@@ -14,7 +15,8 @@ export interface SessionTracker {
   onClose(terminal: vscode.Terminal): void;
   findTerminalBySessionFile(sessionFile: string): vscode.Terminal | undefined;
   findSessionFileByTerminalId(terminalId: string): string | undefined;
-  restore(extensionUri: vscode.Uri, bridgeConfig: { url: string; token: string }): Promise<void>;
+  restore(extensionUri: vscode.Uri, bridgeConfig: BridgeConfig): Promise<void>;
+  restartAll(extensionUri: vscode.Uri, bridgeConfig: BridgeConfig): Promise<void>;
 }
 
 export function createSessionTracker(context: vscode.ExtensionContext): SessionTracker {
@@ -95,6 +97,14 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
         }),
       );
       lockPiEditorGroup();
+    },
+    async restartAll(extensionUri: vscode.Uri, bridgeConfig: BridgeConfig): Promise<void> {
+      // Shutdown exit reason → onClose keeps the session map entries, so
+      // restore() can recreate every terminal with the new endpoint.
+      for (const terminal of terminalsById.values()) {
+        terminal.dispose();
+      }
+      await this.restore(extensionUri, bridgeConfig);
     },
   };
 }

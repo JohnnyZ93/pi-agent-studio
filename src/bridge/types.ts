@@ -58,9 +58,17 @@ export interface CachedCodeAction {
 
 export interface BridgeContext {
   server: Server;
-  url: string;
+  url?: string;
+  socketPath?: string;
+  fallbackFrom?: number;
   token: string;
   dispose(): Promise<void>;
+}
+
+export interface BridgeConfig {
+  url?: string;
+  socketPath?: string;
+  token: string;
 }
 
 export interface RpcRequest {

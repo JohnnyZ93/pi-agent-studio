@@ -164,6 +164,7 @@ Example:
 | Setting                                        | Type      | Default            | Description                                                                                                   |
 | ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
 | `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                                       |
+| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`               | Bridge endpoint: empty = random port; number = fixed port; else socket path (Windows: named pipe), {windowId} |
 | `pi-agent-studio.language`                     | `string`  | `"auto"`           | UI language: `auto` (follows the VS Code display language), `en`, or `zh-cn`                                  |
 | `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)                          |
 | `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args                         |

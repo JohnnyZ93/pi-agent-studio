@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
+import type { BridgeConfig } from "./bridge/types.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createPiEnvironment, createPiShellArgs, ensurePiBinary } from "./pi.ts";
 
 export async function createNewTerminal(options: {
   extensionUri: vscode.Uri;
-  bridgeConfig?: { url: string; token: string };
+  bridgeConfig?: BridgeConfig;
   extraArgs?: string[];
   terminalId?: string;
   sessionFile?: string;

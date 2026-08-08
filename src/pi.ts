@@ -14,6 +14,7 @@ import {
 } from "./constants.ts";
 import { t } from "./i18n.ts";
 import { resolvePiBinary } from "./_resolve.ts";
+import type { BridgeConfig } from "./bridge/types.ts";
 import {
   createPiGlobalInstallCommand,
   createPiUpdateCommand,
@@ -154,7 +155,7 @@ export function createPiShellArgs(options: {
 }
 
 export function createPiEnvironment(
-  bridgeConfig: { url: string; token: string } | undefined,
+  bridgeConfig: BridgeConfig | undefined,
   extensionUri?: vscode.Uri,
 ): Record<string, string> | undefined {
   if (!bridgeConfig && !extensionUri) return undefined;
@@ -171,8 +172,9 @@ export function createPiEnvironment(
     PI_VSCODE_MCP_IDLE_TIMEOUT: String(mcpIdleTimeout),
   };
   if (bridgeConfig) {
-    env.PI_VSCODE_BRIDGE_URL = bridgeConfig.url;
     env.PI_VSCODE_BRIDGE_TOKEN = bridgeConfig.token;
+    if (bridgeConfig.socketPath) env.PI_VSCODE_BRIDGE_SOCKET = bridgeConfig.socketPath;
+    else if (bridgeConfig.url) env.PI_VSCODE_BRIDGE_URL = bridgeConfig.url;
   }
   if (extensionUri) {
     env.PI_VSCODE_BUILTIN_AGENTS_DIR = join(extensionUri.fsPath, BUILTIN_AGENTS_DIR);
@@ -219,7 +221,7 @@ export function createRpcShellArgs(options: {
 
 /** User-provided env overrides (merged over process.env by the spawner). */
 export function createRpcEnvironment(
-  bridgeConfig?: { url: string; token: string },
+  bridgeConfig?: BridgeConfig,
   extensionUri?: vscode.Uri,
 ): Record<string, string> {
   const userEnv =
