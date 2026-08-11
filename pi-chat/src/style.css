@@ -1305,8 +1305,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   color: var(--vscode-foreground);
   opacity: 0.85;
   margin-bottom: 8px;
-  max-height: 160px;
-  overflow-y: auto;
 }
 .sub-toolcall {
   color: var(--vscode-descriptionForeground, var(--vscode-foreground));

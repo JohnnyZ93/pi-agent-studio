@@ -1219,10 +1219,7 @@ export function aggregateUsage(results: any[]): any {
 export function subagentDetailsHasError(details: any): boolean {
   if (!details || !details.results) return false;
   for (let i = 0; i < details.results.length; i++) {
-    const r = details.results[i];
-    if (!r) continue;
-    if (r.errorMessage) return true;
-    if (typeof r.exitCode === "number" && r.exitCode !== -1 && r.exitCode !== 0) return true;
+    if (isFailedSubagent(details.results[i])) return true;
   }
   return false;
 }
