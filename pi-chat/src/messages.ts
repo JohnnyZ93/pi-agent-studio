@@ -1400,9 +1400,7 @@ export function renderSubagentResult(b: any, details: any) {
     return;
   }
   const oldTop = b.resultEl.scrollTop;
-  const stick =
-    autoScroll ||
-    oldTop + b.resultEl.clientHeight >= b.resultEl.scrollHeight - 4;
+  const stick = autoScroll || oldTop + b.resultEl.clientHeight >= b.resultEl.scrollHeight - 4;
   b.resultEl.textContent = "";
   b.resultEl.appendChild(wrap);
   if (stick) b.resultEl.scrollTop = b.resultEl.scrollHeight;

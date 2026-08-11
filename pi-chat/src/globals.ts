@@ -515,8 +515,25 @@ ctxTooltip.className = "ctx-tooltip";
 ctxTooltip.style.display = "none";
 document.body.appendChild(ctxTooltip);
 
-export function showTooltip(target: HTMLElement, text: string): void {
+let tooltipTimer: number | null = null;
+
+export function showTooltip(target: HTMLElement, text: string, delayMs = 500): void {
   if (!text) return;
+  if (tooltipTimer !== null) {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = null;
+  }
+  if (ctxTooltip.style.display === "block") {
+    renderTooltip(target, text);
+    return;
+  }
+  tooltipTimer = setTimeout(() => {
+    tooltipTimer = null;
+    renderTooltip(target, text);
+  }, delayMs);
+}
+
+function renderTooltip(target: HTMLElement, text: string): void {
   ctxTooltip.textContent = text;
   ctxTooltip.style.display = "block";
   const r = target.getBoundingClientRect();
@@ -533,6 +550,10 @@ export function showTooltip(target: HTMLElement, text: string): void {
 }
 
 export function hideTooltip(): void {
+  if (tooltipTimer !== null) {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = null;
+  }
   ctxTooltip.style.display = "none";
 }
 

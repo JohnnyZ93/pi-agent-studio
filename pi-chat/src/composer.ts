@@ -90,7 +90,7 @@ function fitSelectToText(sel: HTMLSelectElement, extra: number) {
 
 function fitModelTrigger() {
   modelMeasurer.textContent = modelTriggerLabel.textContent || "";
-  modelTrigger.style.width = modelMeasurer.offsetWidth + 36 + "px";
+  modelTrigger.style.width = modelMeasurer.offsetWidth + 18 + "px";
 }
 function fitThinkingSelect() {
   fitSelectToText(thinkingSelect, 22);
