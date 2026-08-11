@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.1] - 2026-08-11
+
+- **Chat UI — subagent result rendering**: subagent final output is now rendered with markdown and collapsible sections; interrupted subagents (exit code -1) skip the final output. Standalone text parts are removed from display items to avoid duplication.
+- **Chat UI — scroll handling**: subagent result scroll position is preserved unless auto-scrolling or already near the bottom, and subagent result elements are included in the stick-to-bottom logic. Programmatic scroll events are ignored only when near the bottom, so user scrolls always update the auto-scroll state.
+- **Chat UI — delayed tooltips**: composer tooltips now appear after a 500ms delay (pending timer is cancelled on hide) and the chevron caret was removed from the model trigger for a cleaner look.
+
 ## [1.3.0] - 2026-08-07
 
 - **Chat UI — Mermaid & KaTeX rendering**: the webview chat panel now renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`, `\[...\]`) with KaTeX (CSS injected on demand). Rendering is lazy-loaded so the chat stays snappy, and failed diagrams show an inline error state.
