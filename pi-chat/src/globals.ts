@@ -273,6 +273,8 @@ export function forceStickBottom(): void {
       const tk = blks[k];
       if (tk && tk.type === "thinking" && tk._tnode && tk.textEl)
         tk.textEl.scrollTop = tk.textEl.scrollHeight;
+      else if (tk && tk.type === "toolcall" && tk.name === "subagent" && tk.resultEl)
+        tk.resultEl.scrollTop = tk.resultEl.scrollHeight;
     }
   }
 }

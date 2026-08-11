@@ -39,6 +39,7 @@ import {
   renderQueue,
   currentAssistant,
   setCurrentAssistant,
+  autoScroll,
 } from "./globals";
 import { showRewindConfirm, tipBtn } from "./rewind";
 import { enhance } from "./enhance";
@@ -1049,8 +1050,7 @@ export function getDisplayItems(messages: any[]): any[] {
       if (Array.isArray(content)) {
         for (let j = 0; j < content.length; j++) {
           const part = content[j];
-          if (part.type === "text") items.push({ type: "text", text: part.text });
-          else if (part.type === "toolCall")
+          if (part.type === "toolCall")
             items.push({ type: "toolCall", name: part.name, args: part.arguments });
         }
       }
@@ -1304,14 +1304,15 @@ function renderAgentBody(parent: HTMLElement, r: any): string {
     errDiv.textContent = t("Error: {0}", r.errorMessage);
     parent.appendChild(errDiv);
   }
-  const final = getFinalOutput(r.messages || []);
+  const final = r && r.exitCode === -1 ? "" : getFinalOutput(r.messages || []);
   if (final) {
     const fLabel = el("div", "sub-section-label");
     fLabel.textContent = t("Result");
     parent.appendChild(fLabel);
     const mdDiv = el("div", "sub-final sub-md text-block");
-    renderSubMd(mdDiv, final.trim());
+    renderMarkdown(mdDiv, final.trim());
     parent.appendChild(mdDiv);
+    applyTextCollapsible({ textEl: mdDiv, el: null });
   } else if (!failed && !hasCalls && !(r && r.task)) {
     const empty = el("div", "sub-empty");
     empty.textContent = r && r.exitCode === -1 ? t("(running…)") : t("(no output)");
@@ -1401,8 +1402,14 @@ export function renderSubagentResult(b: any, details: any) {
   } else {
     return;
   }
+  const oldTop = b.resultEl.scrollTop;
+  const stick =
+    autoScroll ||
+    oldTop + b.resultEl.clientHeight >= b.resultEl.scrollHeight - 4;
   b.resultEl.textContent = "";
   b.resultEl.appendChild(wrap);
+  if (stick) b.resultEl.scrollTop = b.resultEl.scrollHeight;
+  else b.resultEl.scrollTop = oldTop;
 }
 
 // ---- hydration ----
