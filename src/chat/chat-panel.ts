@@ -3,6 +3,7 @@ import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
+import type { BridgeConfig } from "../bridge/types.ts";
 import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.ts";
 import { getGitBranch } from "../gitCommit/gitUtils.ts";
 import { readEnabledModelKeys, toggleFavoriteModel } from "../settings/settings-config.ts";
@@ -29,7 +30,7 @@ export interface ChatPanelHandle {
 
 export interface OpenChatPanelOptions {
   extensionUri: vscode.Uri;
-  bridgeConfig?: { url: string; token: string };
+  bridgeConfig?: BridgeConfig;
   tracker: ChatTracker;
   sessionFile?: string;
   panelId?: string;

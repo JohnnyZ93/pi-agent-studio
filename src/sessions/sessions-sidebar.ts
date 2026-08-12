@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
+import type { BridgeConfig } from "../bridge/types.ts";
 import type { SessionTracker } from "../sessions.ts";
 import { openChatPanel, syncOpenChatSession } from "../chat/chat-panel.ts";
 import type { ChatTracker } from "../chat/chat-tracker.ts";
@@ -30,7 +31,7 @@ export interface SessionDir {
 
 export function createSessionsViewProvider(
   extensionUri: vscode.Uri,
-  bridgeConfig: { url: string; token: string } | undefined,
+  bridgeConfig: BridgeConfig | undefined,
   sessionTracker: SessionTracker,
   chatTracker: ChatTracker,
 ): vscode.WebviewViewProvider {
@@ -349,7 +350,7 @@ function fallbackDirsFromWorkspace(): SessionDir[] {
 async function openNewSessionInDir(
   cwd: string | undefined,
   extensionUri: vscode.Uri,
-  bridgeConfig: { url: string; token: string } | undefined,
+  bridgeConfig: BridgeConfig | undefined,
   sessionTracker: SessionTracker,
   chatTracker: ChatTracker,
 ): Promise<void> {
@@ -379,7 +380,7 @@ async function openNewSessionInDir(
 async function openSession(
   sessionFile: string,
   extensionUri: vscode.Uri,
-  bridgeConfig: { url: string; token: string } | undefined,
+  bridgeConfig: BridgeConfig | undefined,
   sessionTracker: SessionTracker,
   chatTracker: ChatTracker,
 ): Promise<void> {

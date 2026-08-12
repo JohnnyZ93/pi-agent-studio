@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import * as vscode from "vscode";
+import { bindServer, unlinkStaleSocket } from "./bind.ts";
+import type { BridgeEndpoint } from "./endpoint.ts";
 import { handleRpc } from "./handlers.ts";
 import { captureSelection, getEditorInfo } from "./serialize.ts";
 import { createBridgeState } from "./state.ts";
@@ -13,6 +15,7 @@ export async function createBridge(
   context: vscode.ExtensionContext,
   onTerminalSession?: (terminalId: string, sessionFile: string) => void,
   findTerminalSession?: (terminalId: string) => string | undefined,
+  endpoint: BridgeEndpoint = { kind: "tcp", port: 0 },
 ): Promise<BridgeContext> {
   const state = createBridgeState(
     captureSelection(vscode.window.activeTextEditor),
@@ -22,6 +25,45 @@ export async function createBridge(
   const dirtyState = new Map<string, boolean>();
   const token = randomUUID();
 
+  const server = createServer(async (request, response) => {
+    try {
+      if (request.method !== "POST" || request.url !== "/rpc") {
+        sendJson(response, 404, { error: "Not found" });
+        return;
+      }
+      if (request.headers["x-pi-vscode-authorization"] !== token) {
+        sendJson(response, 401, { error: "Unauthorized" });
+        return;
+      }
+
+      let body: unknown;
+      try {
+        body = await readJson(request);
+      } catch (error) {
+        const status = error instanceof PayloadTooLargeError ? 413 : 400;
+        sendJson(response, status, { error: toErrorMessage(error) });
+        return;
+      }
+      const rpc = isRpcRequest(body) ? body : undefined;
+      if (!rpc?.method) {
+        sendJson(response, 400, { error: "Invalid RPC request" });
+        return;
+      }
+
+      const result = await handleRpc(rpc.method, rpc.params ?? {}, state);
+      sendJson(response, 200, { result });
+    } catch (error) {
+      sendJson(response, 500, { error: toErrorMessage(error) });
+    }
+  });
+
+  const bound = await bindServer(server, endpoint);
+  if (bound.port === undefined && bound.socketPath === undefined) {
+    throw new Error("Failed to bind pi-vscode bridge server");
+  }
+
+  // Register event listeners only after a successful bind, so a failed bind
+  // never registers listeners closing over dead state.
   context.subscriptions.push(
     vscode.window.onDidChangeTextEditorSelection((event) => {
       state.latestSelection = captureSelection(event.textEditor);
@@ -79,55 +121,12 @@ export async function createBridge(
     }),
   );
 
-  const server = createServer(async (request, response) => {
-    try {
-      if (request.method !== "POST" || request.url !== "/rpc") {
-        sendJson(response, 404, { error: "Not found" });
-        return;
-      }
-      if (request.headers["x-pi-vscode-authorization"] !== token) {
-        sendJson(response, 401, { error: "Unauthorized" });
-        return;
-      }
-
-      let body: unknown;
-      try {
-        body = await readJson(request);
-      } catch (error) {
-        const status = error instanceof PayloadTooLargeError ? 413 : 400;
-        sendJson(response, status, { error: toErrorMessage(error) });
-        return;
-      }
-      const rpc = isRpcRequest(body) ? body : undefined;
-      if (!rpc?.method) {
-        sendJson(response, 400, { error: "Invalid RPC request" });
-        return;
-      }
-
-      const result = await handleRpc(rpc.method, rpc.params ?? {}, state);
-      sendJson(response, 200, { result });
-    } catch (error) {
-      sendJson(response, 500, { error: toErrorMessage(error) });
-    }
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      server.off("error", reject);
-      resolve();
-    });
-  });
-
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    throw new Error("Failed to bind pi-vscode bridge server");
-  }
-
   return {
     server,
     token,
-    url: `http://127.0.0.1:${address.port}`,
+    url: bound.port !== undefined ? `http://127.0.0.1:${bound.port}` : undefined,
+    socketPath: bound.socketPath,
+    fallbackFrom: bound.fallbackFrom,
     dispose: async () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
@@ -135,6 +134,7 @@ export async function createBridge(
           else resolve();
         });
       });
+      if (bound.socketPath) await unlinkStaleSocket(bound.socketPath);
     },
   };
 }

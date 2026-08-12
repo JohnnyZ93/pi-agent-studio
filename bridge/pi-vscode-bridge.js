@@ -1,10 +1,12 @@
+import http from "node:http";
 import path from "node:path";
 
 export default function (pi) {
   const bridgeUrl = process.env.PI_VSCODE_BRIDGE_URL;
+  const bridgeSocket = process.env.PI_VSCODE_BRIDGE_SOCKET;
   const bridgeToken = process.env.PI_VSCODE_BRIDGE_TOKEN;
 
-  if (!bridgeUrl || !bridgeToken) return;
+  if ((!bridgeUrl && !bridgeSocket) || !bridgeToken) return;
 
   const statusBarEnabled = process.env.PI_VSCODE_STATUS_BAR !== "0";
   const disabledTools = (() => {
@@ -27,18 +29,34 @@ export default function (pi) {
   let lastStatusKey;
 
   const callBridge = async (method, params = {}) => {
-    const response = await fetch(`${bridgeUrl}/rpc`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-pi-vscode-authorization": bridgeToken,
-      },
-      body: JSON.stringify({ method, params }),
+    const body = JSON.stringify({ method, params });
+    const headers = {
+      "content-type": "application/json",
+      "x-pi-vscode-authorization": bridgeToken,
+    };
+    const requestOptions = { method: "POST", headers };
+    const response = await new Promise((resolve, reject) => {
+      // http.request with an options object as the FIRST argument takes the
+      // callback as the SECOND argument — a separate options object there would
+      // be misinterpreted as the callback and throw ERR_INVALID_ARG_TYPE.
+      const req = bridgeSocket
+        ? http.request({ socketPath: bridgeSocket, path: "/rpc", ...requestOptions }, resolve)
+        : http.request(`${bridgeUrl}/rpc`, requestOptions, resolve);
+      req.on("error", reject);
+      req.end(body);
     });
 
-    const payload = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const message = payload?.error || `Bridge request failed with status ${response.status}`;
+    const chunks = [];
+    for await (const chunk of response) chunks.push(chunk);
+    const text = Buffer.concat(chunks).toString("utf8");
+    let payload;
+    try {
+      payload = JSON.parse(text || "{}");
+    } catch {
+      payload = {};
+    }
+    if (response.statusCode !== 200) {
+      const message = payload?.error || `Bridge request failed with status ${response.statusCode}`;
       throw new Error(message);
     }
     return payload?.result;

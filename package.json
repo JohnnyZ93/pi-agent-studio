@@ -215,6 +215,11 @@
           "default": "",
           "description": "%pi.config.path.desc%"
         },
+        "pi-agent-studio.bridgeSocket": {
+          "type": "string",
+          "default": "",
+          "description": "%pi.config.bridgeSocket.desc%"
+        },
         "pi-agent-studio.env": {
           "type": "object",
           "default": {},

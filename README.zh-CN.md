@@ -165,6 +165,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | 设置项                                         | 类型      | 默认值              | 说明                                                                                      |
 | ---------------------------------------------- | --------- | ------------------- | ----------------------------------------------------------------------------------------- |
 | `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                     |
+| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`                | 桥接端点：留空 = 随机端口；数字 = 固定端口；其他 = socket 路径（Windows：命名管道），支持 `{windowId}` |
 | `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                                |
 | `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                                  |
 | `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                                  |
