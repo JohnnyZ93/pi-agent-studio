@@ -2,6 +2,14 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.2] - 2026-08-12
+
+- **Configurable bridge endpoint**: new `pi-agent-studio.bridgeSocket` setting controls how the VS Code bridge is exposed — empty = random port (default), a number = fixed TCP port (falls back to a random port with a warning when busy), anything else = a Unix socket path / Windows named pipe with `{windowId}` substitution. Socket binding retries after unlinking stale sockets and uses `0600` permissions; socket-mode bridges pass `PI_VSCODE_BRIDGE_SOCKET` to pi.
+  > **Thanks**: Contributed by [koalajoe23](https://github.com/koalajoe23) via [PR #2](https://github.com/JohnnyZ93/pi-agent-studio/pull/2).
+- **Windows fix**: pi command shims (`.cmd` / `.bat` / `.ps1`) are now handled correctly when spawning pi processes — shim normalization is centralized in `normalizePiSpawnTarget` and reused by the RPC chat client and settings env probe, and the spawned window is hidden on Windows.
+
+
+
 ## [1.3.1] - 2026-08-11
 
 - **Chat UI — subagent result rendering**: subagent final output is now rendered with markdown and collapsible sections; interrupted subagents (exit code -1) skip the final output. Standalone text parts are removed from display items to avoid duplication.
