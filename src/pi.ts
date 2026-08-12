@@ -42,6 +42,29 @@ export function findPiBinary(): string {
   return piPathCache;
 }
 
+export function normalizePiSpawnTarget(
+  piPath: string,
+  args: readonly string[],
+): { command: string; args: string[] } {
+  if (process.platform !== "win32") {
+    return { command: piPath, args: [...args] };
+  }
+  const lower = piPath.toLowerCase();
+  if (lower.endsWith(".cmd") || lower.endsWith(".bat")) {
+    return { command: "cmd.exe", args: ["/d", "/s", "/c", piPath, ...args] };
+  }
+  if (lower.endsWith(".ps1")) {
+    const quoteSingle = (s: string) => `'${s.replace(/'/g, "''")}'`;
+    const ps =
+      `& ${quoteSingle(piPath)}` + (args.length ? " " + args.map(quoteSingle).join(" ") : "");
+    return {
+      command: "powershell.exe",
+      args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", ps],
+    };
+  }
+  return { command: piPath, args: [...args] };
+}
+
 export async function ensurePiBinary(): Promise<string | undefined> {
   const piPath = findPiBinary();
 

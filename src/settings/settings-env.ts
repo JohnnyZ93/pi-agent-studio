@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import * as vscode from "vscode";
-import { findPiBinary } from "../pi.ts";
+import { findPiBinary, normalizePiSpawnTarget } from "../pi.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -89,30 +89,9 @@ function execPiShim(
   args: readonly string[],
   timeoutMs: number,
 ): Promise<{ stdout: string; stderr: string }> {
-  const isWin = process.platform === "win32";
-  const lower = piPath.toLowerCase();
-  const isShim =
-    isWin && (lower.endsWith(".cmd") || lower.endsWith(".bat") || lower.endsWith(".ps1"));
-
   const opts = { timeout: timeoutMs, windowsHide: true, encoding: "utf8" as const };
-
-  if (!isShim) {
-    return execFileAsync(piPath, args, opts) as Promise<{ stdout: string; stderr: string }>;
-  }
-
-  if (lower.endsWith(".ps1")) {
-    const quoteSingle = (s: string) => `'${s.replace(/'/g, "''")}'`;
-    const ps =
-      `& ${quoteSingle(piPath)}` + (args.length ? " " + args.map(quoteSingle).join(" ") : "");
-    return execFileAsync(
-      "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", ps],
-      opts,
-    ) as Promise<{ stdout: string; stderr: string }>;
-  }
-
-  // .cmd / .bat — go through cmd.exe explicitly with proper quoting.
-  return execFileAsync("cmd.exe", ["/d", "/s", "/c", piPath, ...args], opts) as Promise<{
+  const target = normalizePiSpawnTarget(piPath, args);
+  return execFileAsync(target.command, target.args, opts) as Promise<{
     stdout: string;
     stderr: string;
   }>;

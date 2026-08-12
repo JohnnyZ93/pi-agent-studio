@@ -1,6 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
+import { normalizePiSpawnTarget } from "../pi.ts";
 import { rpcTrace, rpcTraceErr } from "./rpc-trace.ts";
 import type {
   ExtensionUiRequest,
@@ -39,10 +40,12 @@ type Pending = {
 
 export async function createRpcClient(options: CreateRpcClientOptions): Promise<RpcClient> {
   const traceTag = options.traceTag ?? "rpc";
-  const proc: ChildProcess = spawn(options.piPath, options.args, {
+  const target = normalizePiSpawnTarget(options.piPath, options.args);
+  const proc: ChildProcess = spawn(target.command, target.args, {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, ...options.env },
     cwd: options.cwd,
+    windowsHide: true,
   });
 
   const pending = new Map<string, Pending>();
