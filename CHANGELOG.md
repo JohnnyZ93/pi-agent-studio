@@ -8,8 +8,6 @@ All notable changes to **Pi Agent Studio** are documented in this file.
   > **Thanks**: Contributed by [koalajoe23](https://github.com/koalajoe23) via [PR #2](https://github.com/JohnnyZ93/pi-agent-studio/pull/2).
 - **Windows fix**: pi command shims (`.cmd` / `.bat` / `.ps1`) are now handled correctly when spawning pi processes — shim normalization is centralized in `normalizePiSpawnTarget` and reused by the RPC chat client and settings env probe, and the spawned window is hidden on Windows.
 
-
-
 ## [1.3.1] - 2026-08-11
 
 - **Chat UI — subagent result rendering**: subagent final output is now rendered with markdown and collapsible sections; interrupted subagents (exit code -1) skip the final output. Standalone text parts are removed from display items to avoid duplication.

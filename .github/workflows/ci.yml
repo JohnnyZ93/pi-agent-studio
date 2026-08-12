@@ -50,3 +50,29 @@ jobs:
       # - run: npx ovsx publish *.vsix -p ${{ secrets.OVSX_TOKEN }}
       #   env:
       #     OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: pi-agent-studio
+
+      - name: Extract changelog for tag
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="## [$VERSION]" 'index($0, v)==1 { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || echo "::warning::No changelog entry for ${VERSION}"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.vsix"
+          body_path: release-notes.md
+          draft: true
