@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "1.100.0",
     "@typescript/native-preview": "^7.0.0-dev.20260320.1",
     "@vscode/vsce": "^3.7.1",
     "jsdom": "^30.0.1",
@@ -426,7 +426,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.100.0"
   },
   "packageManager": "pnpm@10.32.1"
 }

@@ -19,8 +19,8 @@ importers:
         specifier: ^25.5.0
         version: 25.5.0
       '@types/vscode':
-        specifier: ^1.110.0
-        version: 1.110.0
+        specifier: 1.100.0
+        version: 1.100.0
       '@typescript/native-preview':
         specifier: ^7.0.0-dev.20260320.1
         version: 7.0.0-dev.20260320.1
@@ -2604,8 +2604,8 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
-  '@types/vscode@1.110.0':
-    resolution: {integrity: sha512-AGuxUEpU4F4mfuQjxPPaQVyuOMhs+VT/xRok1jiHVBubHK7lBRvCuOMZG0LKUwxncrPorJ5qq/uil3IdZBd5lA==}
+  '@types/vscode@1.100.0':
+    resolution: {integrity: sha512-4uNyvzHoraXEeCamR3+fzcBlh7Afs4Ifjs4epINyUX/jvdk0uzLnwiDY35UKDKnkCHP5Nu3dljl2H8lR6s+rQw==}
 
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260320.1':
     resolution: {integrity: sha512-9zadqk/wJ+4bCheapoP/wZZxIGbHotKj+QDvwlCeB93LFrcuIYDt8q91xW1tzrc12YrUTgWXqJuYHTNZ9fzyHw==}
@@ -8344,7 +8344,7 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@types/vscode@1.110.0': {}
+  '@types/vscode@1.100.0': {}
 
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260320.1':
     optional: true
