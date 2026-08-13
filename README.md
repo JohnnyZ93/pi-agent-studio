@@ -38,6 +38,7 @@ English | [简体中文](README.zh-CN.md)
 
 ## Requirements
 
+- **VS Code ≥ 1.100.0** (the extension engine requirement is `^1.100.0`)
 - `pi` CLI installed:
 
   ```bash

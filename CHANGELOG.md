@@ -2,6 +2,10 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.3] - 2026-08-13
+
+- **Broader VS Code compatibility**: the `vscode` engine requirement is lowered from `^1.110.0` to `^1.100.0` and `@types/vscode` is pinned to `1.100.0`, so the extension can be installed and type-checked against the widely deployed VS Code 1.100 LTS line.
+
 ## [1.3.2] - 2026-08-12
 
 - **Configurable bridge endpoint**: new `pi-agent-studio.bridgeSocket` setting controls how the VS Code bridge is exposed — empty = random port (default), a number = fixed TCP port (falls back to a random port with a warning when busy), anything else = a Unix socket path / Windows named pipe with `{windowId}` substitution. Socket binding retries after unlinking stale sockets and uses `0600` permissions; socket-mode bridges pass `PI_VSCODE_BRIDGE_SOCKET` to pi.
