@@ -207,9 +207,9 @@ export let autoScroll = true;
 export function setAutoScroll(b: boolean) {
   autoScroll = b;
 }
-export let programmaticScroll = false;
 let scrollRAF: number | null = null;
 const STICK_THRESHOLD = 48;
+let wheelGuard = false;
 
 export function isAtBottom(): boolean {
   return (
@@ -218,17 +218,11 @@ export function isAtBottom(): boolean {
 }
 
 export function updateScrollBtn(): void {
-  if (autoScroll) scrollBottomBtn.classList.remove("show");
-  else scrollBottomBtn.classList.add("show");
+  scrollBottomBtn.classList.toggle("show", !autoScroll);
 }
 
 messagesEl.addEventListener("scroll", function () {
-  if (programmaticScroll) {
-    programmaticScroll = false;
-    if (messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - 4) {
-      return;
-    }
-  }
+  if (wheelGuard) return;
   autoScroll = isAtBottom();
   updateScrollBtn();
 });
@@ -238,6 +232,10 @@ messagesEl.addEventListener(
   function (e: WheelEvent) {
     if (e.deltaY < 0) {
       autoScroll = false;
+      wheelGuard = true;
+      requestAnimationFrame(function () {
+        wheelGuard = false;
+      });
       if (scrollRAF) {
         cancelAnimationFrame(scrollRAF);
         scrollRAF = null;
@@ -261,7 +259,6 @@ export function scrollToBottom(): void {
 }
 
 export function forceStickBottom(): void {
-  programmaticScroll = true;
   messagesEl.scrollTop = messagesEl.scrollHeight;
   for (let i = 0; i < pendingTexts.length; i++) {
     const tb = pendingTexts[i];
