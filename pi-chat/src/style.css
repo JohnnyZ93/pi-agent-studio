@@ -1105,7 +1105,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   overflow: hidden;
 }
 .tool-summary-path {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
