@@ -762,6 +762,10 @@ export function formatToolSummary(name: string, args: any): string {
     } else {
       s = t("subagent");
     }
+  } else if (name === "questionnaire") {
+    const qs = args && Array.isArray(args.questions) ? args.questions.length : 0;
+    if (qs > 0) s = String(qs) + (qs > 1 ? " " + t("questions") : " " + t("question"));
+    else s = t("questionnaire");
   } else if (name.startsWith("mcp__")) {
     s = mcpArgsPreview(args);
   } else if (name === "mcp_tool_call") {
@@ -861,6 +865,16 @@ export function finalizeToolCall(ci: number, toolCall: any) {
   }
 }
 
+function setToolSummaryText(el: HTMLElement | null, txt: string) {
+  if (!el) return;
+  el.textContent = "";
+  const pathSpan = document.createElement("span");
+  pathSpan.className = "tool-summary-path";
+  pathSpan.textContent = txt;
+  if (txt) pathSpan.title = txt;
+  el.appendChild(pathSpan);
+}
+
 function applyToolSummary(b: any, name: string, args: any) {
   if (!b || !b.summaryEl) return;
   let parsed = args;
@@ -871,7 +885,7 @@ function applyToolSummary(b: any, name: string, args: any) {
       parsed = null;
     }
   }
-  b.summaryEl.textContent = formatToolSummary(name || b.name || "", parsed);
+  setToolSummaryText(b.summaryEl, formatToolSummary(name || b.name || "", parsed));
 }
 
 export function findToolBlock(toolCallId: string): any {
@@ -993,18 +1007,20 @@ export function endToolExecution(ev: any) {
     b.el.setAttribute("data-added", String(added));
     b.el.setAttribute("data-removed", String(removed));
     if (b.summaryEl && (added > 0 || removed > 0)) {
-      let sumHtml = b.summaryEl.textContent;
-      if (added > 0)
-        sumHtml +=
-          ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' +
-          added +
-          "</span>";
-      if (removed > 0)
-        sumHtml +=
-          ' <span style="color:var(--vscode-gitDecoration-deletedResourceForeground, #f48771)">-' +
-          removed +
-          "</span>";
-      b.summaryEl.innerHTML = sumHtml;
+      if (added > 0) {
+        const m = document.createElement("span");
+        m.className = "tool-metrics";
+        m.style.color = "var(--vscode-gitDecoration-addedResourceForeground, #73c991)";
+        m.textContent = "+" + added;
+        b.summaryEl.appendChild(m);
+      }
+      if (removed > 0) {
+        const m = document.createElement("span");
+        m.className = "tool-metrics";
+        m.style.color = "var(--vscode-gitDecoration-deletedResourceForeground, #f48771)";
+        m.textContent = "-" + removed;
+        b.summaryEl.appendChild(m);
+      }
     }
     scheduleScroll();
     return;
@@ -1019,11 +1035,11 @@ export function endToolExecution(ev: any) {
     }
     b.el.setAttribute("data-added", String(b._writeLineCount || 0));
     if (b._writeLineCount > 0 && b.summaryEl) {
-      b.summaryEl.innerHTML =
-        b.summaryEl.textContent +
-        ' <span style="color:var(--vscode-gitDecoration-addedResourceForeground, #73c991)">+' +
-        b._writeLineCount +
-        "</span>";
+      const m = document.createElement("span");
+      m.className = "tool-metrics";
+      m.style.color = "var(--vscode-gitDecoration-addedResourceForeground, #73c991)";
+      m.textContent = "+" + b._writeLineCount;
+      b.summaryEl.appendChild(m);
     }
     if (!b.el._userToggled) b.el.removeAttribute("open");
     scheduleScroll();
@@ -1330,7 +1346,10 @@ export function renderSubagentResult(b: any, details: any) {
     renderAgentBody(body, r);
     wrap.appendChild(body);
     if (b.summaryEl) {
-      b.summaryEl.textContent = r.agent + (subagentTitle(r) ? " \u00b7 " + subagentTitle(r) : "");
+      setToolSummaryText(
+        b.summaryEl,
+        r.agent + (subagentTitle(r) ? " \u00b7 " + subagentTitle(r) : ""),
+      );
     }
   } else if (details.mode === "parallel") {
     let running = 0,
@@ -1382,19 +1401,21 @@ export function renderSubagentResult(b: any, details: any) {
       wrap.appendChild(tud);
     }
     if (b.summaryEl) {
-      b.summaryEl.textContent =
+      setToolSummaryText(
+        b.summaryEl,
         pic +
-        " " +
-        t("parallel") +
-        " \u00b7 " +
-        done +
-        "/" +
-        results.length +
-        (running > 0
-          ? " " + t("running")
-          : fail > 0
-            ? " (" + t("{0} failed", fail) + ")"
-            : " " + t("done"));
+          " " +
+          t("parallel") +
+          " \u00b7 " +
+          done +
+          "/" +
+          results.length +
+          (running > 0
+            ? " " + t("running")
+            : fail > 0
+              ? " (" + t("{0} failed", fail) + ")"
+              : " " + t("done")),
+      );
     }
   } else {
     return;
