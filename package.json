@@ -400,6 +400,18 @@
             "%pi.config.chatMermaidTheme.base%"
           ],
           "description": "%pi.config.chatMermaidTheme.desc%"
+        },
+        "pi-agent-studio.chatBackgroundImage": {
+          "type": "string",
+          "default": "",
+          "description": "%pi.config.chatBackgroundImage.desc%"
+        },
+        "pi-agent-studio.chatBackgroundOpacity": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "%pi.config.chatBackgroundOpacity.desc%"
         }
       }
     },

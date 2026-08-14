@@ -10,6 +10,8 @@ export function getChatWebviewHtml(
   fontSize?: number,
   lang?: string,
   mermaidTheme?: string,
+  bgImage?: string,
+  bgOpacity?: number,
 ): string {
   const replaceAll = (haystack: string, needle: string, value: string) =>
     haystack.split(needle).join(value);
@@ -23,5 +25,11 @@ export function getChatWebviewHtml(
   );
   html = replaceAll(html, "PI_LANG_PLACEHOLDER", escJsString(lang ?? "en"));
   html = replaceAll(html, "PI_MERMAID_THEME_PLACEHOLDER", escJsString(mermaidTheme ?? "default"));
+  html = replaceAll(html, "PI_BG_IMAGE_PLACEHOLDER", escJsString(bgImage ?? ""));
+  html = replaceAll(
+    html,
+    "PI_BG_OPACITY_PLACEHOLDER",
+    bgOpacity != null ? String(Math.min(1, Math.max(0, bgOpacity))) : "1",
+  );
   return html;
 }

@@ -22,6 +22,21 @@ if (typeof (window as any).__PI_FONTSIZE__ === "number" && (window as any).__PI_
   document.documentElement.style.setProperty("--chat-fs", (window as any).__PI_FONTSIZE__ + "px");
 }
 
+const piBgImage = (window as any).__PI_BG_IMAGE__;
+if (piBgImage) {
+  document.documentElement.style.setProperty(
+    "--pi-bg-image",
+    `url("${String(piBgImage).replace(/"/g, '\\"')}")`,
+  );
+}
+const piBgOpacity = (window as any).__PI_BG_OPACITY__;
+if (typeof piBgOpacity === "number") {
+  document.documentElement.style.setProperty(
+    "--pi-bg-opacity",
+    String(Math.min(1, Math.max(0, piBgOpacity))),
+  );
+}
+
 const inputEl = document.getElementById("input") as HTMLTextAreaElement | null;
 if (inputEl) {
   inputEl.placeholder = t("Ask anything…  (use / for commands, @ for files)");

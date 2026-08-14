@@ -44,5 +44,7 @@
   "pi.config.chatMermaidTheme.dark": "This theme goes well with dark-colored elements or dark-mode. To use the dark theme (which changes the theme of the schema itself) with dark-mode (which sets the background), set darkMode to true in your config.",
   "pi.config.chatMermaidTheme.forest": "This theme contains shades of green.",
   "pi.config.chatMermaidTheme.base": "This is the only theme that can be modified. Use this theme as the base for customizations.",
+  "pi.config.chatBackgroundImage.desc": "Absolute path to a local image used as the chat panel background. Empty disables the background image. JPG format recommended for smaller size.",
+  "pi.config.chatBackgroundOpacity.desc": "Opacity of the chat background image, from 0 (fully transparent) to 1 (opaque). Applies to the chat panel webview only.",
   "pi.config.bridgeSocket.desc": "Bridge endpoint for the local pi bridge server. Empty: random localhost port (default). A number: fixed port. Any other value: Unix socket path (named pipe on Windows), supports {windowId}. Examples: \"8123\", \"/run/user/1000/pi-agent-studio/bridge-{windowId}.sock\", \"\\\\\\.\\\\pipe\\\\pi-agent-studio-{windowId}\"."
 }

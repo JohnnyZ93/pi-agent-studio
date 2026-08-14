@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import * as vscode from "vscode";
 import type { BridgeConfig } from "../bridge/types.ts";
 import { createRpcEnvironment, createRpcShellArgs, ensurePiBinary } from "../pi.ts";
@@ -15,6 +15,36 @@ import { createRpcClient } from "./rpc-client.ts";
 import { mergeBuiltinCommands, parseBuiltin } from "./builtin-commands.ts";
 import { readPiChangelog } from "./pi-changelog.ts";
 import { sessionStatusRegistry } from "../session-status-registry.ts";
+
+const BG_MIME: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".bmp": "image/bmp",
+  ".avif": "image/avif",
+};
+const MAX_BG_SIZE = 10 * 1024 * 1024;
+
+function resolveChatBackground(_webview: vscode.Webview, path?: string): string {
+  if (!path || !isAbsolute(path)) return "";
+  let st;
+  try {
+    st = statSync(path);
+  } catch {
+    return "";
+  }
+  if (!st.isFile() || st.size === 0 || st.size > MAX_BG_SIZE) return "";
+  const mime = BG_MIME[extname(path).toLowerCase()];
+  if (!mime) return "";
+  try {
+    const buf = readFileSync(path);
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
 
 export interface ChatSessionUpdate {
   rename?: string;
@@ -148,6 +178,8 @@ export async function openChatPanel(
     chatCfg.get<number>("chatFontSize"),
     getLocale(),
     chatCfg.get<string>("chatMermaidTheme"),
+    resolveChatBackground(panel.webview, chatCfg.get<string>("chatBackgroundImage")),
+    chatCfg.get<number>("chatBackgroundOpacity"),
   );
   lockChatEditorGroup();
 
@@ -177,6 +209,8 @@ export async function openChatPanel(
         cfg.get<number>("chatFontSize"),
         getLocale(),
         cfg.get<string>("chatMermaidTheme"),
+        resolveChatBackground(panel.webview, cfg.get<string>("chatBackgroundImage")),
+        cfg.get<number>("chatBackgroundOpacity"),
       );
     }
   });

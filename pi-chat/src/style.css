@@ -97,6 +97,18 @@ body {
   align-items: center;
   overflow: hidden;
 }
+.app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--pi-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--pi-bg-opacity, 1);
+  pointer-events: none;
+}
 .app {
   display: flex;
   flex-direction: column;
@@ -113,12 +125,13 @@ body {
   padding: 6px 8px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
-  background: var(--vscode-editor-background);
+  background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+  backdrop-filter: blur(8px);
 }
 .composer-box {
   border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
   border-radius: 8px;
-  background: var(--vscode-input-background);
+  background: color-mix(in srgb, var(--vscode-input-background) 65%, transparent);
   display: flex;
   flex-direction: column;
   transition: border-color 0.12s;
@@ -906,7 +919,7 @@ body {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-left: 3px solid var(--vscode-charts-purple, #b392f0);
   border-radius: 6px;
-  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
+  background: transparent;
   padding: 4px 8px;
   font-size: var(--chat-fs-12);
 }
@@ -1424,7 +1437,7 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   flex-direction: column;
   gap: 4px;
   position: relative;
-  background: var(--vscode-editor-background);
+  background: color-mix(in srgb, var(--vscode-editor-background) 50%, transparent);
 }
 .autocomplete {
   position: absolute;
@@ -1861,6 +1874,8 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-radius: 6px;
   padding: 8px 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 60%, transparent);
+  backdrop-filter: blur(8px);
 }
 .widget-head {
   display: flex;

@@ -44,5 +44,7 @@
   "pi.config.chatMermaidTheme.dark": "适合深色元素或深色模式。要用深色主题（改变图表本身的颜色）搭配深色模式（设定背景），请在配置中将 darkMode 设为 true。",
   "pi.config.chatMermaidTheme.forest": "包含绿色系的主题。",
   "pi.config.chatMermaidTheme.base": "唯一可修改的主题。适合作为自定义的基础主题。",
+  "pi.config.chatBackgroundImage.desc": "用作聊天面板背景的本地图片绝对路径。留空时禁用背景图片。建议使用 JPG 格式以减小体积。",
+  "pi.config.chatBackgroundOpacity.desc": "聊天背景图片的不透明度，0（完全透明）到 1（完全不透明）。仅作用于聊天面板 webview。",
   "pi.config.bridgeSocket.desc": "本地 pi 桥接服务的端点。留空：随机 localhost 端口（默认）。数字：固定端口。其他值：Unix socket 路径（Windows 上为命名管道），支持 {windowId}。示例：\"8123\"、\"/run/user/1000/pi-agent-studio/bridge-{windowId}.sock\"、\"\\\\\\.\\\\pipe\\\\pi-agent-studio-{windowId}\"。"
 }
