@@ -871,7 +871,6 @@ function setToolSummaryText(el: HTMLElement | null, txt: string) {
   const pathSpan = document.createElement("span");
   pathSpan.className = "tool-summary-path";
   pathSpan.textContent = txt;
-  if (txt) pathSpan.title = txt;
   el.appendChild(pathSpan);
 }
 

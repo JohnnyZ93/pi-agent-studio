@@ -675,8 +675,9 @@ body {
   line-height: 1.5;
 }
 .user-bubble {
-  background: var(--vscode-button-background);
+  background: color-mix(in srgb, var(--vscode-button-background) 60%, transparent);
   color: var(--vscode-button-foreground);
+  backdrop-filter: blur(8px);
 }
 .user-bubble.is-collapsible {
   max-height: 220px;
@@ -965,7 +966,7 @@ body {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-left: 3px solid var(--vscode-charts-yellow, #cca700);
   border-radius: 6px;
-  background: var(--vscode-textBlockQuote-background, rgba(127, 127, 127, 0.08));
+  background: transparent;
   padding: 4px 8px;
   font-size: var(--chat-fs-12);
 }
