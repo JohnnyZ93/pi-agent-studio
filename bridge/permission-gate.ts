@@ -65,10 +65,7 @@ export default function (pi: ExtensionAPI) {
 
       const tui = ctx.mode === "tui";
       const title = `${tui ? ctx.ui.theme.fg("warning", "Dangerous Command:") : "Dangerous Command:"}\n\n  ${command}`;
-      const choice = await ctx.ui.select(title, [
-        tui ? ctx.ui.theme.fg("error", "Allow") : "Allow",
-        tui ? ctx.ui.theme.fg("success", "Block") : "Block",
-      ]);
+      const choice = await ctx.ui.select(title, ["Allow", "Block"]);
 
       if (choice !== "Allow") {
         return { block: true, reason: "Blocked by user" };
