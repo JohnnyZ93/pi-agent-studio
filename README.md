@@ -180,6 +180,8 @@ Example:
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                              |
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)         |
+| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`               | Absolute path to a local image file (validated for type and ≤ 10 MB) used as the chat panel background        |
+| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                | Background image opacity (0–1); frosted-glass styling is applied to composer, widgets, and autocomplete       |
 | `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)         |
 | `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables    |
 

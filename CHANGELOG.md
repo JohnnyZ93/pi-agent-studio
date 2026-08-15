@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.4] - 2026-08-15
+
+- **Chat background customization**: new `pi-agent-studio.chatBackgroundImage` (absolute path to a local image, validated for file type and ≤ 10 MB) and `pi-agent-studio.chatBackgroundOpacity` (0–1) settings let you set a custom background for the webview chat panel. The image is converted to a data URI and applied with frosted-glass styling to the composer, widgets, and autocomplete for readability.
+- **Questionnaire tool support**: the bundled `questionnaire` extension now renders properly in the chat panel with safe DOM updates and localized pluralization (question/questions).
+- **Permission gate fixed**: the "Allow" / "Block" buttons in the dangerous-command approval dialog no longer use misleading error/success theme colors.
+
 ## [1.3.3] - 2026-08-13
 
 - **Broader VS Code compatibility**: the `vscode` engine requirement is lowered from `^1.110.0` to `^1.100.0` and `@types/vscode` is pinned to `1.100.0`, so the extension can be installed and type-checked against the widely deployed VS Code 1.100 LTS line.

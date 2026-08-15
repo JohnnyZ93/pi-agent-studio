@@ -181,6 +181,8 @@ ovsx get johnny-zhao/pi-agent-studio
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）                             |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                                  |
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`）              |
+| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`                | 本地图片的绝对路径（校验类型与 ≤ 10 MB），用作聊天面板背景                                             |
+| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                 | 背景图片透明度（0–1）；输入框、widget 与自动完成应用毛玻璃样式以保持可读性                             |
 | `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）                        |
 | `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开                          |
 
