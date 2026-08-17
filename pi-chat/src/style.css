@@ -133,13 +133,21 @@ body {
   padding: 6px 8px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, transparent));
-  background: color-mix(in srgb, var(--vscode-editor-background) calc(100% - 40% * var(--pi-bg-on, 0)), transparent);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editor-background) calc(100% - 40% * var(--pi-bg-on, 0)),
+    transparent
+  );
   backdrop-filter: var(--pi-bg-blur, none);
 }
 .composer-box {
   border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
   border-radius: 8px;
-  background: color-mix(in srgb, var(--vscode-input-background) calc(100% - 35% * var(--pi-bg-on, 0)), transparent);
+  background: color-mix(
+    in srgb,
+    var(--vscode-input-background) calc(100% - 35% * var(--pi-bg-on, 0)),
+    transparent
+  );
   display: flex;
   flex-direction: column;
   transition: border-color 0.12s;
@@ -1882,7 +1890,11 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   border: 1px solid var(--vscode-widget-border, transparent);
   border-radius: 6px;
   padding: 8px 10px;
-  background: color-mix(in srgb, var(--vscode-editor-background) calc(100% - 40% * var(--pi-bg-on, 0)), transparent);
+  background: color-mix(
+    in srgb,
+    var(--vscode-editor-background) calc(100% - 40% * var(--pi-bg-on, 0)),
+    transparent
+  );
   backdrop-filter: var(--pi-bg-blur, none);
 }
 .widget-head {

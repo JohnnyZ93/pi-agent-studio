@@ -2,6 +2,11 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.5] - 2026-08-17
+
+- **Chat background blur & scrollbar hiding**: when a background image is set via `pi-agent-studio.chatBackgroundImage`, the composer, widgets, and autocomplete panels now get a frosted-glass blur effect (`backdrop-filter`). Scrollbars are hidden globally in the chat panel for a cleaner look.
+- **Snapshot retention improved**: max snapshot age reduced from 7 days to 1 day; empty snapshot directories and expired ones are now cleaned up automatically on session start, and the snapshot directory is created on demand when persisting.
+
 ## [1.3.4] - 2026-08-15
 
 - **Chat background customization**: new `pi-agent-studio.chatBackgroundImage` (absolute path to a local image, validated for file type and ≤ 10 MB) and `pi-agent-studio.chatBackgroundOpacity` (0–1) settings let you set a custom background for the webview chat panel. The image is converted to a data URI and applied with frosted-glass styling to the composer, widgets, and autocomplete for readability.
