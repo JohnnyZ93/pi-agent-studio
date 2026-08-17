@@ -71,7 +71,7 @@ interface WidgetData {
 
 const SNAP_ROOT = path.join(os.homedir(), ".pi", "snapshots");
 const MAX_SNAPSHOT_BYTES = 50 * 1024 * 1024;
-const SNAP_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const SNAP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const MAX_DIFF_LINES = 4000;
 const WIDGET_KEY = "rewind-files";
 
@@ -102,6 +102,7 @@ function hashStream(abs: string): string {
 
 function persist(hash: string, abs: string) {
   if (!currentSnapDir) return;
+  fs.mkdirSync(currentSnapDir, { recursive: true });
   const p = path.join(currentSnapDir, hash);
   if (!fs.existsSync(p)) fs.copyFileSync(abs, p);
 }
@@ -141,8 +142,10 @@ function sweepStaleSnapshots(currentSessionId: string) {
     const dir = path.join(SNAP_ROOT, name);
     try {
       const st = fs.statSync(dir);
-      if (!st.isDirectory() || now - st.mtimeMs < SNAP_MAX_AGE_MS) continue;
-      fs.rmSync(dir, { recursive: true, force: true });
+      if (!st.isDirectory()) continue;
+      if (now - st.mtimeMs >= SNAP_MAX_AGE_MS || fs.readdirSync(dir).length === 0) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
     } catch {
       // best-effort; ignore
     }
@@ -451,7 +454,6 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     const sessionId = ctx.sessionManager.getSessionId();
     currentSnapDir = path.join(SNAP_ROOT, sessionId);
-    fs.mkdirSync(currentSnapDir, { recursive: true });
     resetState();
     sweepStaleSnapshots(sessionId);
     refreshWidget(ctx);
