@@ -28,6 +28,8 @@ if (piBgImage) {
     "--pi-bg-image",
     `url("${String(piBgImage).replace(/"/g, '\\"')}")`,
   );
+  document.documentElement.style.setProperty("--pi-bg-blur", "blur(8px)");
+  document.documentElement.style.setProperty("--pi-bg-on", "1");
 }
 const piBgOpacity = (window as any).__PI_BG_OPACITY__;
 if (typeof piBgOpacity === "number") {
