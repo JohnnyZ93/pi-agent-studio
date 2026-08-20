@@ -1,7 +1,7 @@
 // pi-chat webview entry point
 import codiconTtf from "@vscode/codicons/dist/codicon.ttf?inline";
 import "./style.css";
-import { setModelIconFns } from "./globals";
+import { setModelIconFns, vscode } from "./globals";
 import { getModelIcon, modelIconHtml, escHtml } from "./model-icons";
 import { t } from "./i18n";
 import "./messages";
@@ -58,3 +58,7 @@ const ctxRevert = document.getElementById("ctx-revert");
 if (ctxRevert) ctxRevert.textContent = t("Revert here");
 
 initTimeline();
+
+window.addEventListener("load", () => {
+  vscode.postMessage({ type: "webviewReady" });
+});

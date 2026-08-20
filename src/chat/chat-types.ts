@@ -165,6 +165,7 @@ export type ExtToWebview =
 
 // ---- postMessage: webview -> extension ----
 export type WebviewToExt =
+  | { type: "webviewReady" }
   | { type: "prompt"; message: string; streamingBehavior?: "steer" | "followUp" }
   | { type: "abort" }
   | { type: "pickResource" }

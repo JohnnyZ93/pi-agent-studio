@@ -119,6 +119,14 @@
         }
       },
       {
+        "command": "pi-agent-studio.openInSidebar",
+        "title": "%pi.cmd.openInSidebar%",
+        "icon": {
+          "light": "assets/logo-light.svg",
+          "dark": "assets/logo.svg"
+        }
+      },
+      {
         "command": "pi-agent-studio.generateGitCommitMessage",
         "title": "%pi.cmd.generateGitCommitMessage%",
         "icon": {
@@ -175,6 +183,11 @@
           "id": "pi",
           "title": "%pi.activitybar.title%",
           "icon": "assets/logo.svg"
+        },
+        {
+          "id": "pi-chat",
+          "title": "%pi.chatContainer.title%",
+          "icon": "$(comment-discussion)"
         }
       ]
     },
@@ -189,6 +202,13 @@
           "type": "webview",
           "id": "pi-agent-studio.settings",
           "name": "%pi.view.settings%"
+        }
+      ],
+      "pi-chat": [
+        {
+          "type": "webview",
+          "id": "pi-agent-studio.chatSidebar",
+          "name": "%pi.view.chat%"
         }
       ]
     },

@@ -280,6 +280,10 @@ export async function activate(context: vscode.ExtensionContext) {
       terminal?.show();
       lockPiEditorGroup();
     }),
+    vscode.commands.registerCommand("pi-agent-studio.openInSidebar", async () => {
+      const { openSidebarChat } = await import("./chat/chat-sidebar.ts");
+      await openSidebarChat({ extensionUri, bridgeConfig });
+    }),
     vscode.commands.registerCommand("pi-agent-studio.upgrade", upgradePiBinary),
     vscode.commands.registerCommand("pi-agent-studio.openSettings", async (tab?: string) => {
       const { openSettingsPanel } = await import("./settings/settings-panel.ts");
@@ -319,6 +323,13 @@ export async function activate(context: vscode.ExtensionContext) {
         return createSettingsViewProvider();
       }),
     ),
+    vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.chatSidebar",
+      lazyViewProvider(async () => {
+        const { createChatSidebarViewProvider } = await import("./chat/chat-sidebar.ts");
+        return createChatSidebarViewProvider({ extensionUri, bridgeConfig });
+      }),
+    ),
   );
 
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
@@ -346,6 +357,12 @@ export async function deactivate() {
     disposeAllChatPanels();
   } catch {
     // chat module never loaded — nothing to dispose
+  }
+  try {
+    const { disposeSidebarChat } = await import("./chat/chat-sidebar.ts");
+    disposeSidebarChat();
+  } catch {
+    // sidebar chat module never loaded — nothing to dispose
   }
   disposeRpcTrace();
   for (const terminal of vscode.window.terminals) {

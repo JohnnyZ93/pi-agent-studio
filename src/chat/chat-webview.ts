@@ -1,4 +1,37 @@
 import chatHtml from "./chat-dist.html?raw";
+import { readFileSync, statSync } from "node:fs";
+import { extname, isAbsolute } from "node:path";
+import * as vscode from "vscode";
+
+const BG_MIME: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".bmp": "image/bmp",
+  ".avif": "image/avif",
+};
+const MAX_BG_SIZE = 10 * 1024 * 1024;
+
+export function resolveChatBackground(_webview: vscode.Webview, path?: string): string {
+  if (!path || !isAbsolute(path)) return "";
+  let st;
+  try {
+    st = statSync(path);
+  } catch {
+    return "";
+  }
+  if (!st.isFile() || st.size === 0 || st.size > MAX_BG_SIZE) return "";
+  const mime = BG_MIME[extname(path).toLowerCase()];
+  if (!mime) return "";
+  try {
+    const buf = readFileSync(path);
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
 
 function escJsString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
