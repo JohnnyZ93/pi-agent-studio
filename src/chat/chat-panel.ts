@@ -298,7 +298,7 @@ async function startChatSession(
         disposed = true;
         view.webview.postMessage({
           type: "error",
-          message: "Pi process exited" + (code != null ? ` (code ${code})` : ""),
+          message: t("Pi process exited") + (code != null ? ` (code ${code})` : ""),
         });
       },
       onError: (err) => {
@@ -322,8 +322,8 @@ async function startChatSession(
     if (disposed) return;
     if (handle.sessionFile === sessionFile) return;
     if (streaming) {
-      toast("Stop the agent before switching sessions.", "error");
-      throw new Error("Stop the agent before switching sessions.");
+      toast(t("Stop the agent before switching sessions."), "error");
+      throw new Error(t("Stop the agent before switching sessions."));
     }
     await rpc.switchSession(sessionFile);
     await rehydrate();
@@ -481,7 +481,7 @@ async function startChatSession(
       await rpc.setSessionName(name);
     } catch (e) {
       if (String(e instanceof Error ? e.message : e).includes("set_session_name")) {
-        toast("Setting the session name requires a newer pi. Please upgrade.", "error");
+        toast(t("Setting the session name requires a newer pi. Please upgrade."), "error");
         return;
       }
       throw e;
@@ -489,7 +489,7 @@ async function startChatSession(
     const st = await rpc.getState();
     applySessionFile(st.sessionFile, name);
     view.webview.postMessage({ type: "state", state: st });
-    toast(`Session name set: ${name}`, "success");
+    toast(t("Session name set: {0}", name), "success");
   }
 
   async function handleBuiltin(message: string): Promise<boolean> {
@@ -526,7 +526,7 @@ async function startChatSession(
         }
         case "name": {
           if (!args) {
-            toast("Usage: /name <name>");
+            toast(t("Usage: /name <name>"));
             break;
           }
           await applySessionName(args);
@@ -535,7 +535,7 @@ async function startChatSession(
         case "changelog": {
           const md = await readPiChangelog(piPath);
           if (md == null) {
-            toast("Changelog not found (couldn't locate pi installation).", "error");
+            toast(t("Changelog not found (couldn't locate pi installation)."), "error");
             break;
           }
           showInfoPanel("Pi changelog", md);
@@ -550,7 +550,7 @@ async function startChatSession(
           const messages = await rpc.getMessages();
           view.webview.postMessage({ type: "messages", messages });
           void sendContextUsage();
-          toast("Started new session.", "success");
+          toast(t("Started new session."), "success");
           break;
         }
       }
@@ -819,7 +819,7 @@ async function startChatSession(
       case "fork":
         try {
           if (streaming) {
-            toast("Stop the agent before forking.", "error");
+            toast(t("Stop the agent before forking."), "error");
             break;
           }
           const entriesData = await rpc.getEntries();
@@ -828,12 +828,12 @@ async function startChatSession(
               e.type === "message" && e.message?.role === "user" && e.message?.timestamp === msg.ts,
           );
           if (!entry) {
-            toast("Could not locate that message to fork from.", "error");
+            toast(t("Could not locate that message to fork from."), "error");
             break;
           }
           const forkResult = await rpc.fork(entry.id);
           if (forkResult.cancelled) {
-            toast("Fork cancelled.");
+            toast(t("Fork cancelled."));
             break;
           }
           const rSt = await rpc.getState();
@@ -842,7 +842,7 @@ async function startChatSession(
           const rMsgs = await rpc.getMessages();
           view.webview.postMessage({ type: "messages", messages: rMsgs });
           void sendContextUsage();
-          toast("Forked from selected message.", "success");
+          toast(t("Forked from selected message."), "success");
         } catch (e) {
           view.webview.postMessage({
             type: "error",
@@ -853,7 +853,7 @@ async function startChatSession(
       case "revert":
         try {
           if (streaming) {
-            toast("Stop the agent before reverting.", "error");
+            toast(t("Stop the agent before reverting."), "error");
             break;
           }
           const revEntriesData = await rpc.getEntries();
@@ -862,7 +862,7 @@ async function startChatSession(
               e.type === "message" && e.message?.role === "user" && e.message?.timestamp === msg.ts,
           );
           if (!revEntry) {
-            toast("Could not locate that message to revert to.", "error");
+            toast(t("Could not locate that message to revert to."), "error");
             break;
           }
           const revText = messageText(revEntry.message?.content);
@@ -877,7 +877,7 @@ async function startChatSession(
           view.webview.postMessage({ type: "messages", messages: revMsgs });
           if (revText) view.webview.postMessage({ type: "prefillInput", text: revText });
           void sendContextUsage();
-          toast("Reverted to selected message.", "success");
+          toast(t("Reverted to selected message."), "success");
         } catch (e) {
           view.webview.postMessage({
             type: "error",
@@ -916,7 +916,7 @@ async function startChatSession(
           .getConfiguration("pi-agent-studio.mcp")
           .get("enabled", true);
         if (!mcpEnabled) {
-          toast('MCP is disabled. Enable it via setting "pi-agent-studio.mcp.enabled".', "warning");
+          toast(t('MCP is disabled. Enable it via setting "pi-agent-studio.mcp.enabled".'), "warning");
           break;
         }
         void rpc.prompt("/mcp status", streaming ? "steer" : undefined).catch(() => {});
@@ -939,14 +939,14 @@ async function startChatSession(
         break;
       case "rewindAccept":
         if (streaming) {
-          toast("Stop the agent before changing files.", "error");
+          toast(t("Stop the agent before changing files."), "error");
           break;
         }
         void rpc.prompt("/rewind-accept", streaming ? "steer" : undefined).catch(() => {});
         break;
       case "rewindAcceptFile":
         if (streaming) {
-          toast("Stop the agent before changing files.", "error");
+          toast(t("Stop the agent before changing files."), "error");
           break;
         }
         void rpc
@@ -955,14 +955,14 @@ async function startChatSession(
         break;
       case "rewindRevert":
         if (streaming) {
-          toast("Stop the agent before reverting.", "error");
+          toast(t("Stop the agent before reverting."), "error");
           break;
         }
         void rpc.prompt("/rewind-revert", streaming ? "steer" : undefined).catch(() => {});
         break;
       case "rewindRevertFile":
         if (streaming) {
-          toast("Stop the agent before reverting.", "error");
+          toast(t("Stop the agent before reverting."), "error");
           break;
         }
         void rpc
