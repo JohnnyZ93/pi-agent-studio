@@ -4,7 +4,7 @@
 
 # Pi Agent Studio
 
-**A feature-rich VS Code extension for the [pi coding agent](https://pi.dev/) - native terminal TUI or webview chat panel, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sessions sidebar and a full settings panel for models, agents, and more** 🔥
+**A feature-rich VS Code extension for the [pi coding agent](https://pi.dev/) - native terminal TUI or sidebar chat view, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sessions sidebar and a full settings panel for models, agents, and more** 🔥
 
 English | [简体中文](README.zh-CN.md)
 
@@ -18,7 +18,7 @@ English | [简体中文](README.zh-CN.md)
 ## Features
 
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
-- **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
+- **Sidebar chat view** - Optional `webview` UI mode opens a streaming chat in the activity-bar sidebar (draggable to the secondary sidebar; the view only appears when `webview` mode is selected), backed by a `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
 - **Model brand icons** — The chat panel shows circular vendor brand avatars (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …) next to the model dropdown in the composer and beside model names in message timestamps, matched by model id prefix (30+ vendors)
 - **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
@@ -173,7 +173,7 @@ Example:
 | `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                                            |
 | `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)                     |
 | `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer                               |
-| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                                                 |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (sidebar chat view)                                          |
 | `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent`                   |
 | `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                                             |
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                      |

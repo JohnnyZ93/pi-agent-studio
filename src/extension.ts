@@ -249,13 +249,10 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
       if (useWebviewUi()) {
+        // The webview chat is a sidebar view (not an editor tab), so there is
+        // nothing to move to a new window; just focus it like `Pi: Open`.
         const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
-        try {
-          await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
-        } catch {
-          // ignore
-        }
         return;
       }
       const terminal = await openTerminal();
@@ -306,6 +303,17 @@ export async function activate(context: vscode.ExtensionContext) {
       abortCommitGeneration();
     }),
     vscode.window.registerWebviewViewProvider(
+      "pi-agent-studio.chat",
+      lazyViewProvider(async () => {
+        const { createChatViewProvider } = await import("./chat/chat-panel.ts");
+        return createChatViewProvider(extensionUri, bridgeConfig!, chatTracker);
+      }),
+      // Keep the chat DOM (streaming text, scroll position) alive while the
+      // view is hidden behind another sidebar view, mirroring the old
+      // WebviewPanel's retainContextWhenHidden.
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    vscode.window.registerWebviewViewProvider(
       "pi-agent-studio.sessions",
       lazyViewProvider(async () => {
         const { createSessionsViewProvider } = await import("./sessions/sessions-sidebar.ts");
@@ -322,18 +330,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
-  if (useWebviewUi()) {
-    void chatTracker.restore(async (sessionFile, panelId) => {
-      const { openChatPanel } = await import("./chat/chat-panel.ts");
-      await openChatPanel({
-        extensionUri,
-        bridgeConfig,
-        tracker: chatTracker,
-        sessionFile,
-        panelId,
-      });
-    });
-  }
 }
 
 function useWebviewUi(): boolean {
