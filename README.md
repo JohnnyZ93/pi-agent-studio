@@ -19,22 +19,17 @@ English | [简体中文](README.zh-CN.md)
 
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
 - **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
-- **Model brand icons** — The chat panel shows circular vendor brand avatars (OpenAI, Claude, Gemini, DeepSeek, Qwen, Grok, …) next to the model dropdown in the composer and beside model names in message timestamps, matched by model id prefix (30+ vendors)
+- **Sidebar chat view** — The same chat UI is also available as a **WebviewView** in its own **Pi Chat** activity bar container (`Pi: Open in Sidebar`): a lightweight starter screen shows until you start a session, and one background session per window survives view hide / re-resolve with full state re-hydration
 - **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
 - **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope: discover and call their tools/resources via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` slash commands, and manage connections live from the chat toolbar drawer or the `/mcp` command (start / stop / reconnect, idle disconnect)
 - **Skills management** - Visual panel to create, edit, and delete pi skills (SKILL.md with YAML frontmatter) in user and project scopes
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
-- **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Diagnostics tool** — The agent can read VS Code diagnostics (LSP / lint / type errors) on demand via `vscode_get_diagnostics`
-- **Slash commands** — `/vscode-selection` and `/vscode-diagnostics` inject the current editor selection or diagnostics into the conversation, with the rest of the editor surface intentionally kept off-limits to the model
 - **AI-powered Git commit messages** — Generate semantic commit messages from staged changes using pi, with support for 14 languages and custom prompt templates
-- **Session restoration** — Per-workspace pi sessions are persisted and relaunched with `--session` after IDE reload
 - **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (stdio/http with a transport selector), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O. The Models tab exposes **advanced provider/model compatibility options**: per-model API protocol and base URL overrides, custom headers with env/command placeholders, OpenAI/Anthropic compatibility fields, cost tiers, and thinking levels
-- **Localization** — The extension ships in **English and Simplified Chinese**: `pi-agent-studio.language` (`auto` follows the VS Code display language, or force `en` / `zh-cn`) localizes the manifest, sidebars, chat panel, settings panel, and commit message generator
 - **Sidebar views** — `Sessions` (new/restore/switch) and a compact `Settings` sidebar (env info, upgrade, jump to the full panel)
-- **Status bar / title bar buttons** — Pi button on the editor title bar for quick access
-- **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`; on Windows `%APPDATA%/npm`, `%LOCALAPPDATA%/pnpm`)
+- **Dangerous Command Approval** — Built-in permission gate that blocks dangerous bash commands like `rm -rf` and `sudo`, requiring manual approval before execution; supports `AskForApproval` / `FullAccess` modes and custom danger modes
 
 ## Requirements
 
@@ -71,6 +66,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | ------------------------------------ | ------------- | ---------------------------------------------------------------------------------------------- |
 | `Pi: Open`                           | `Alt+Shift+P` | Open or focus the pi terminal beside the editor                                                |
 | `Pi: Open in New Window`             | —             | Open pi then move it to a new VS Code window                                                   |
+| `Pi: Open in Sidebar`                | —             | Open the chat UI in the **Pi Chat** sidebar view (starter screen until a session is started)   |
 | `Pi: Open Here`                      | —             | Open a pi terminal in the selected folder (via explorer context menu)                          |
 | `Pi: Upgrade Pi`                     | —             | Upgrade pi via `pi update` (falls back to the inferred package manager when offline)           |
 | `Pi: Open settings.json`             | —             | Open `~/.pi/agent/settings.json` in the editor (creates an empty `{}` if missing)              |
@@ -87,6 +83,7 @@ The **Pi** activity bar icon opens a sidebar with two webviews:
 
 - **Sessions** - Per-workspace session list with live running/idle status icons; dropdown when multiple workspace folders exist
 - **Settings** - Environment info, quick links, `Upgrade Pi` button, and a `Full Settings` jump button; when pi is missing it shows a first-run **onboarding card** with Node ≥ 22.19.0 / npm / pi checks, link-only install steps, and a restart hint (PATH changes apply on VS Code restart)
+- **Pi Chat** - Activity bar icon hosts the chat UI as a sidebar webview (same UI as the webview chat panel). It shows a starter screen until you start a session via the button or `Pi: Open in Sidebar`, then keeps one background session per window that re-hydrates when the view is hidden and shown again.
 
 ### Full Settings panel
 

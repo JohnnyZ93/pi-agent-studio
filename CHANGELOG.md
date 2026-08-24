@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.6] - 2026-08-24
+
+- **Sidebar chat view**: new `Pi: Open in Sidebar` command and a dedicated **Pi Chat** activity bar container host the same full chat UI as a WebviewView, sharing the existing session controller extracted from `chat-panel.ts` into `chat-session.ts` behind a `ChatHost` abstraction. A lightweight starter screen shows until you start a session; the single background session per window survives view hide / re-resolve and re-hydrates fully on re-attach.
+- **Prompt timeline rail**: a vertical rail beside the chat shows each user prompt as a dot — click to scroll to it, hover for a prompt preview, with the current prompt highlighted by scroll position and separators marking compaction events.
+- **Full session reload**: the chat toolbar refresh button now restarts the RPC session in place via a new `/reload` bridge command instead of re-fetching messages; stale events are dropped with a generation counter, hydration races are guarded, and the refresh button disables while streaming or when there is no session file.
+
 ## [1.3.5] - 2026-08-17
 
 - **Chat background blur & scrollbar hiding**: when a background image is set via `pi-agent-studio.chatBackgroundImage`, the composer, widgets, and autocomplete panels now get a frosted-glass blur effect (`backdrop-filter`). Scrollbars are hidden globally in the chat panel for a cleaner look.

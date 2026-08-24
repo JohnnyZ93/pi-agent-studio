@@ -19,23 +19,17 @@
 
 - **原生终端 TUI** -- Pi 运行在 VS Code 集成终端（PTY）中。无 shell 层、无引号黑魔法--pi 二进制直接启动（默认模式）
 - **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
-- **模型品牌图标** —— 聊天面板在 composer 模型下拉框旁和消息时间戳的模型名前显示圆形品牌头像（OpenAI、Claude、Gemini、DeepSeek、Qwen、Grok …），按模型 id 前缀匹配（覆盖 30+ 厂商）
+- **侧边栏聊天视图** —— 同样的聊天 UI 还可以作为 WebviewView 放在独立的 **Pi Chat** 活动栏容器中（`Pi: Open in Sidebar`）：启动会话前显示轻量起始页，每个窗口一个后台会话，视图隐藏 / 重新解析时完整重水合
 - **Mermaid 与数学公式渲染** —— webview 聊天面板将 `mermaid` 代码块渲染为交互式图表，并用 KaTeX 渲染数学公式（`$...$`、`$$...$$`）；图表主题可通过 `pi-agent-studio.chatMermaidTheme` 配置（`default` / `neutral` / `dark` / `forest` / `base`）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
 - **MCP 支持** —— 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：通过 `mcp_tool_search` / `mcp_tool_call` 发现并调用其工具 / 资源，提示词以 `/mcp__<服务器>__<提示词>` 形式暴露为 Slash 命令，并可从聊天工具栏抽屉或 `/mcp` 命令实时管理连接（start / stop / reconnect、空闲自动断开）
 - **技能管理** —— 可视化面板，在用户 / 项目作用域内创建、编辑、删除 pi 技能（带 YAML frontmatter 的 SKILL.md）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
-- **实时 VS Code 状态栏** —— pi 终端底部状态条实时显示当前文件、光标 / 选区、语言、未保存标记和诊断数量
 - **诊断工具** —— Agent 可通过 `vscode_get_diagnostics` 按需读取 VS Code 诊断（LSP / lint / 类型错误）
-- **Slash 命令** —— `/vscode-selection` 与 `/vscode-diagnostics` 将当前选区或诊断以用户消息的形式注入对话；其余编辑器能力刻意不对模型开放
 - **AI 驱动的 Git 提交信息** —— 基于 pi 从暂存区变更生成语义化 commit message，支持 14 种语言与自定义提示模板
-- **会话恢复** —— 按工作区持久化 pi 会话，IDE 重启后通过 `--session` 自动续接
 - **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（stdio / http 传输选择器）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`；Models 标签页还提供**高级 Provider / 模型兼容性选项**：按模型覆盖 API 协议与 base URL、支持 env / command 占位符的自定义请求头、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
-- **本地化** —— 扩展内置**英文与简体中文**两套语言：`pi-agent-studio.language`（`auto` 跟随 VS Code 显示语言，也可强制 `en` / `zh-cn`）覆盖清单、侧边栏、聊天面板、设置面板与 commit message 生成器
 - **侧边栏视图** —— `Sessions`（新建 / 恢复 / 切换会话，含实时状态图标）与精简版 `Settings` 侧边栏（环境信息、升级、跳转完整设置面板）
 - **危险命令审批** —— 内置 permission gate，拦截 `rm -rf`、`sudo` 等危险 bash 命令，执行前需人工批准；支持 `AskForApproval` / `FullAccess` 模式与自定义危险模式
-- **编辑器标题栏按钮** —— 编辑器标题栏快捷打开 pi
-- **自动检测 pi 二进制** —— 自动从常见路径定位（`~/.bun/bin`、`~/.local/bin`、`~/.npm-global/bin`；Windows 上额外探测 `%APPDATA%/npm`、`%LOCALAPPDATA%/pnpm`）
 
 ## 环境要求
 
@@ -72,6 +66,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | ------------------------------------ | ------------- | ---------------------------------------------------------------------------- |
 | `Pi: Open`                           | `Alt+Shift+P` | 在编辑器旁打开或聚焦 pi 终端                                                 |
 | `Pi: Open in New Window`             | —             | 打开 pi 终端并将其移动到新窗口                                               |
+| `Pi: Open in Sidebar`                | —             | 在 **Pi Chat** 侧边栏视图中打开聊天 UI（启动会话前先显示起始页）             |
 | `Pi: Open Here`                      | —             | 在选中文件夹中打开 pi 终端（通过资源管理器右键菜单）                         |
 | `Pi: Upgrade Pi`                     | —             | 调用 `pi update` 升级 pi（离线时回退到推断的包管理器）                       |
 | `Pi: Open settings.json`             | —             | 在编辑器中打开 `~/.pi/agent/settings.json`（不存在时创建 `{}`）              |
@@ -88,6 +83,7 @@ ovsx get johnny-zhao/pi-agent-studio
 
 - **Sessions** -- 按工作区显示会话列表，带实时运行 / 空闲状态图标；多根工作区时显示下拉切换
 - **Settings** -- 环境信息、快捷链接、`Upgrade Pi` 按钮，以及 `Full Settings` 跳转按钮；当 pi 缺失时显示首次运行**引导卡片**（Node ≥ 22.19.0 / npm / pi 检查项、仅链接的安装步骤与重启提示——PATH 变更需重启 VS Code 生效）
+- **Pi Chat** -- 活动栏图标，将聊天 UI 作为侧边栏 webview 承载（与 webview 聊天面板同一套 UI）。它先显示起始页，通过按钮或 `Pi: Open in Sidebar` 启动会话后，每个窗口保持一个后台会话，在视图隐藏 / 重新显示时自动重水合。
 
 ### 完整设置面板
 
