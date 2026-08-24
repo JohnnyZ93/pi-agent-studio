@@ -63,6 +63,7 @@ export interface ChatSession {
 }
 
 const MCP_STATUS_MARKER = "__mcp_status__";
+const RELOAD_MARKER = "__pi_reload__";
 const BTW_ABORT_TITLE = "Pi Btw Abort";
 const DIFF_PANEL_TITLE = "Pi Diff";
 
@@ -194,7 +195,8 @@ export async function createChatSession(
     } else if (sessionName) {
       label = sessionName;
     }
-    if (!sessionDisposed) host.postMessage({ type: "sessionInfo", label });
+    if (!sessionDisposed)
+      host.postMessage({ type: "sessionInfo", label, sessionFile: currentSessionFile ?? null });
   }
 
   async function sendContextUsage(): Promise<void> {
@@ -453,6 +455,10 @@ export async function createChatSession(
           }
           return;
         }
+        if (message === RELOAD_MARKER) {
+          void reloadSession();
+          return;
+        }
         const t = req.notifyType as string | undefined;
         const kind: "info" | "success" | "error" =
           t === "error" ? "error" : t === "success" ? "success" : "info";
@@ -460,6 +466,27 @@ export async function createChatSession(
       }
     }
     // Other fire-and-forget methods (setStatus, setTitle, ...) are ignored.
+  }
+
+  async function reloadSession(): Promise<void> {
+    if (streaming || sessionDisposed) return;
+    if (!currentSessionFile) {
+      toast("This session has not been saved yet.", "error");
+      return;
+    }
+    try {
+      await rpc.dispose();
+      rpc = await bootRpc(currentSessionFile);
+      await hydrate();
+      toast("Session reloaded", "success");
+    } catch (e) {
+      if (!sessionDisposed) {
+        host.postMessage({
+          type: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
   }
 
   async function onMessage(msg: { type: string; [k: string]: unknown }): Promise<void> {
@@ -703,19 +730,9 @@ export async function createChatSession(
           cancelled: msg.cancelled as boolean | undefined,
         });
         break;
-      case "reload": {
-        try {
-          const msgs = await rpc.getMessages();
-          if (!sessionDisposed) host.postMessage({ type: "messages", messages: msgs });
-          void sendContextUsage();
-        } catch (e) {
-          host.postMessage({
-            type: "error",
-            message: e instanceof Error ? e.message : String(e),
-          });
-        }
+      case "reload":
+        void reloadSession();
         break;
-      }
       case "todoClear":
         void rpc.prompt("/todo-clear", streaming ? "steer" : undefined).catch(() => {});
         break;
@@ -815,56 +832,68 @@ export async function createChatSession(
     void rpc.dispose();
   }
 
-  rpc = await createRpcClient({
-    piPath,
-    args: createRpcShellArgs({
-      extensionUri: opts.extensionUri,
-      sessionFile: opts.sessionFile,
-    }),
-    env: createRpcEnvironment(opts.bridgeConfig, opts.extensionUri),
-    cwd,
-    traceTag: opts.traceTag,
-    handlers: {
-      onEvent: (event) => {
-        if (sessionDisposed) return;
-        if (event.type === "agent_start") {
-          updateStreamingState(true);
-        } else if (event.type === "agent_settled") {
-          updateStreamingState(false);
-        }
-        host.postMessage({ type: "event", event });
-        if (event.type === "agent_settled") {
-          if (needsSessionFile) {
-            void rpc
-              .getState()
-              .then((s) => applySessionFile(s.sessionFile, s.sessionName))
-              .catch(() => {});
+  let rpcGeneration = 0;
+
+  async function bootRpc(sessionFileForSpawn: string | undefined): Promise<RpcClient> {
+    if (!piPath) throw new Error("pi is not available");
+    const gen = ++rpcGeneration;
+    return createRpcClient({
+      piPath,
+      args: createRpcShellArgs({
+        extensionUri: opts.extensionUri,
+        sessionFile: sessionFileForSpawn,
+      }),
+      env: createRpcEnvironment(opts.bridgeConfig, opts.extensionUri),
+      cwd,
+      traceTag: opts.traceTag,
+      handlers: {
+        onEvent: (event) => {
+          if (gen !== rpcGeneration || sessionDisposed) return;
+          if (event.type === "agent_start") {
+            updateStreamingState(true);
+          } else if (event.type === "agent_settled") {
+            updateStreamingState(false);
           }
-          refreshCommands();
-          void sendContextUsage();
-        } else if (event.type === "message_end") {
-          void sendContextUsage();
-        } else if (event.type === "compaction_end") {
-          void refreshContextAfterCompaction(event);
-        }
+          host.postMessage({ type: "event", event });
+          if (event.type === "agent_settled") {
+            if (needsSessionFile) {
+              void rpc
+                .getState()
+                .then((s) => applySessionFile(s.sessionFile, s.sessionName))
+                .catch(() => {});
+            }
+            refreshCommands();
+            void sendContextUsage();
+          } else if (event.type === "message_end") {
+            void sendContextUsage();
+          } else if (event.type === "compaction_end") {
+            void refreshContextAfterCompaction(event);
+          }
+        },
+        onExtensionUiRequest: (req) => {
+          if (gen !== rpcGeneration || sessionDisposed) return;
+          handleExtUiRequest(req);
+        },
+        onExit: (code) => {
+          if (gen !== rpcGeneration || sessionDisposed) return;
+          updateStreamingState(false);
+          opts.onExit?.(code);
+          sessionDisposed = true;
+          allSessions.delete(session);
+          host.postMessage({
+            type: "error",
+            message: "Pi process exited" + (code != null ? ` (code ${code})` : ""),
+          });
+        },
+        onError: (err) => {
+          if (gen !== rpcGeneration || sessionDisposed) return;
+          host.postMessage({ type: "error", message: err.message });
+        },
       },
-      onExtensionUiRequest: (req) => handleExtUiRequest(req),
-      onExit: (code) => {
-        if (sessionDisposed) return;
-        updateStreamingState(false);
-        opts.onExit?.(code);
-        sessionDisposed = true;
-        allSessions.delete(session);
-        host.postMessage({
-          type: "error",
-          message: "Pi process exited" + (code != null ? ` (code ${code})` : ""),
-        });
-      },
-      onError: (err) => {
-        if (!sessionDisposed) host.postMessage({ type: "error", message: err.message });
-      },
-    },
-  });
+    });
+  }
+
+  rpc = await bootRpc(opts.sessionFile);
 
   let session: ChatSession = {
     rpc,

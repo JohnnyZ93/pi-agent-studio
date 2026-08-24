@@ -319,8 +319,12 @@ export function setStreaming(b: boolean): void {
   if (!b) finalizeTextBlocks();
   updateSendButton();
   attachBtn.disabled = b;
-  refreshBtn.disabled = b;
+  updateRefreshBtn();
   if (!b && !statusEl.textContent) setStatus("");
+}
+
+export function updateRefreshBtn(): void {
+  refreshBtn.disabled = state.isStreaming || !state.sessionFile;
 }
 
 // ---- text block finalization (cross-module) ----
@@ -694,7 +698,7 @@ refreshBtn.addEventListener("click", function () {
   vscode.postMessage({ type: "reload" });
 });
 refreshBtn.addEventListener("mouseenter", function () {
-  showTooltip(refreshBtn, t("Reload messages"));
+  showTooltip(refreshBtn, t("Reload session"));
 });
 refreshBtn.addEventListener("mouseleave", hideTooltip);
 

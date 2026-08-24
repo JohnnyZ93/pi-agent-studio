@@ -30,6 +30,7 @@ import {
   el,
   updateSendButton,
   setStreaming,
+  updateRefreshBtn,
   applyContextUsage,
   clearMessages,
   applyWidget,
@@ -340,6 +341,7 @@ function applyState(s: any) {
   state.thinkingLevel = s.thinkingLevel;
   state.sessionFile = s.sessionFile || null;
   state.sessionName = s.sessionName || "";
+  updateRefreshBtn();
   renderModels();
   renderThinking();
 }
@@ -1379,6 +1381,10 @@ window.addEventListener("message", function (e: MessageEvent) {
       break;
     case "sessionInfo":
       sessionInfoEl.textContent = d.label || "";
+      if ("sessionFile" in d) {
+        state.sessionFile = d.sessionFile || null;
+        updateRefreshBtn();
+      }
       break;
     case "models":
       models.length = 0;

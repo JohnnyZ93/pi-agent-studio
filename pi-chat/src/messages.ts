@@ -1431,7 +1431,10 @@ export function renderSubagentResult(b: any, details: any) {
 }
 
 // ---- hydration ----
+let hydrationId = 0;
+
 export function hydrateMessages(list: any[]) {
+  const id = ++hydrationId;
   messagesInner.innerHTML = "";
   clearTimeline();
   pendingCompactionBlockRef = null;
@@ -1453,6 +1456,7 @@ export function hydrateMessages(list: any[]) {
   let i = 0;
   const CHUNK = 8;
   function step() {
+    if (id !== hydrationId) return;
     const end = Math.min(i + CHUNK, list.length);
     for (; i < end; i++) hydrateOne(list[i]);
     if (i < list.length) requestAnimationFrame(step);
