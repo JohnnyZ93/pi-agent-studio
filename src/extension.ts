@@ -309,6 +309,14 @@ export async function activate(context: vscode.ExtensionContext) {
       const doc = await vscode.workspace.openTextDocument(path);
       await vscode.window.showTextDocument(doc);
     }),
+    vscode.commands.registerCommand("pi-agent-studio.addSelectionToChat", async () => {
+      const { addSelectionToChat } = await import("./chat/add-to-chat.ts");
+      await addSelectionToChat();
+    }),
+    vscode.commands.registerCommand("pi-agent-studio.addFileToChat", async (uri?: vscode.Uri) => {
+      const { addFileToChat } = await import("./chat/add-to-chat.ts");
+      await addFileToChat(uri);
+    }),
     vscode.commands.registerCommand("pi-agent-studio.generateGitCommitMessage", async (scm) => {
       const { generateCommitMsg } = await import("./gitCommit/commitMessageGenerator.ts");
       generateCommitMsg(scm);

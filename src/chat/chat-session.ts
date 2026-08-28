@@ -942,7 +942,9 @@ export async function createChatSession(
 
   let session: ChatSession = {
     rpc,
-    host,
+    get host() {
+      return host;
+    },
     get sessionFile() {
       return currentSessionFile;
     },

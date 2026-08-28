@@ -38,6 +38,7 @@ export interface OpenChatPanelOptions {
 
 const activePanels = new Map<string, ChatPanelHandle>();
 const sessionToPanel = new Map<string, string>();
+let lastActivePanelId: string | undefined;
 
 const CHAT_VIEW_TYPE = "pi-agent-studio.chat";
 const CHAT_PANEL_TITLE = "Pi Chat";
@@ -184,6 +185,10 @@ export async function openChatPanel(
     sync: session.sync,
   };
   activePanels.set(panelId, handle);
+  lastActivePanelId = panelId;
+  panel.onDidChangeViewState((e) => {
+    if (e.webviewPanel.visible) lastActivePanelId = panelId;
+  });
   if (opts.sessionFile) {
     sessionToPanel.set(opts.sessionFile, panelId);
     sessionStatusRegistry.upsert({
@@ -198,6 +203,7 @@ export async function openChatPanel(
     langSub.dispose();
     disposed = true;
     activePanels.delete(panelId);
+    if (lastActivePanelId === panelId) lastActivePanelId = undefined;
     if (handle.sessionFile) {
       sessionToPanel.delete(handle.sessionFile);
       sessionStatusRegistry.remove(handle.sessionFile);
@@ -209,6 +215,18 @@ export async function openChatPanel(
   return handle;
 }
 
+/** The most recently visible open chat panel, for context-menu targets. */
+export function getActivePanelHandle(): ChatPanelHandle | undefined {
+  if (lastActivePanelId) {
+    const handle = activePanels.get(lastActivePanelId);
+    if (handle) return handle;
+  }
+  for (const h of activePanels.values()) {
+    if (h.panel.visible) return h;
+  }
+  return activePanels.values().next().value;
+}
+
 export function disposeAllChatPanels(): void {
   for (const handle of activePanels.values()) {
     void handle.rpc.dispose();
@@ -216,6 +234,7 @@ export function disposeAllChatPanels(): void {
   }
   activePanels.clear();
   sessionToPanel.clear();
+  lastActivePanelId = undefined;
 }
 
 export function syncOpenChatSession(sessionFile: string, opts: ChatSessionUpdate): boolean {

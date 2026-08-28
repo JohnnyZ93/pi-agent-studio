@@ -103,5 +103,8 @@
   "socket {0} is in use": "socket {0} 已被占用",
   "binding {0} failed ({1})": "绑定 {0} 失败（{1}）",
   "Invalid pi-agent-studio.bridgeSocket value \"{0}\" — expected a number 1-65535 or an absolute socket path. Bridge not restarted.": "pi-agent-studio.bridgeSocket 的值 \"{0}\" 无效 — 应为 1-65535 的数字或绝对 socket 路径。桥接未重启。",
-  "Invalid pi-agent-studio.bridgeSocket path \"{0}\" — expected an absolute path (or \\\\.\\pipe\\ on Windows). Bridge not restarted.": "pi-agent-studio.bridgeSocket 的路径 \"{0}\" 无效 — 应为绝对路径（Windows 上为 \\\\.\\pipe\\）。桥接未重启。"
+  "Invalid pi-agent-studio.bridgeSocket path \"{0}\" — expected an absolute path (or \\\\.\\pipe\\ on Windows). Bridge not restarted.": "pi-agent-studio.bridgeSocket 的路径 \"{0}\" 无效 — 应为绝对路径（Windows 上为 \\\\.\\pipe\\）。桥接未重启。",
+  "Pi: Open a Pi Chat first to use this command.": "Pi：请先打开 Pi 聊天再使用此命令。",
+  "Pi: Make a selection in the editor first.": "Pi：请先在编辑器中选中内容。",
+  "Pi: No active editor to add.": "Pi：没有可添加的活动编辑器。"
 }

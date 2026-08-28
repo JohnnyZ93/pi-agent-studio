@@ -127,6 +127,14 @@
         }
       },
       {
+        "command": "pi-agent-studio.addSelectionToChat",
+        "title": "%pi.cmd.addSelectionToChat%"
+      },
+      {
+        "command": "pi-agent-studio.addFileToChat",
+        "title": "%pi.cmd.addFileToChat%"
+      },
+      {
         "command": "pi-agent-studio.generateGitCommitMessage",
         "title": "%pi.cmd.generateGitCommitMessage%",
         "icon": {
@@ -147,7 +155,22 @@
           "group": "navigation"
         }
       ],
+      "editor/context": [
+        {
+          "command": "pi-agent-studio.addSelectionToChat",
+          "group": "9_cutcopypaste@98",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "pi-agent-studio.addFileToChat",
+          "group": "9_cutcopypaste@99"
+        }
+      ],
       "explorer/context": [
+        {
+          "command": "pi-agent-studio.addFileToChat",
+          "group": "navigation@98"
+        },
         {
           "command": "pi-agent-studio.openInFolder",
           "group": "navigation@99",

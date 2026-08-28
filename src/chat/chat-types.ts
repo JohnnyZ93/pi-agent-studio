@@ -161,7 +161,8 @@ export type ExtToWebview =
   | { type: "infoPanel"; title: string; markdown: string }
   | { type: "btwAbortReady"; id: string }
   | { type: "error"; message: string }
-  | { type: "prefillInput"; text: string };
+  | { type: "prefillInput"; text: string }
+  | { type: "appendInput"; text: string };
 
 // ---- postMessage: webview -> extension ----
 export type WebviewToExt =

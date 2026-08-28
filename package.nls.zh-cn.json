@@ -7,6 +7,8 @@
   "pi.cmd.openInNewWindow": "Pi: 在新窗口中打开",
   "pi.cmd.openInFolder": "Pi: 在此处打开",
   "pi.cmd.openInSidebar": "Pi: 在侧边栏打开",
+  "pi.cmd.addSelectionToChat": "将选中内容添加到 Pi 聊天",
+  "pi.cmd.addFileToChat": "将文件添加到 Pi 聊天",
   "pi.cmd.generateGitCommitMessage": "使用 Pi 生成提交信息",
   "pi.cmd.abortGitCommitMessage": "使用 Pi 生成提交信息 - 停止",
   "pi.activitybar.title": "Pi",

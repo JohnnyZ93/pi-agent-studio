@@ -844,6 +844,18 @@ function insertPickedResources(paths: string[]) {
   updateSendButton();
 }
 
+function appendToInput(text: string) {
+  if (!text) return;
+  const val = serializeRichInput();
+  const pre = val.length && !/[\n\s]$/.test(val) ? "\n" : "";
+  const newText = val + pre + text;
+  const segs = segmentsFromText(newText);
+  inputEl.focus();
+  renderSegments(inputEl, segs, serializeSegments(segs).length);
+  autoGrow();
+  updateSendButton();
+}
+
 // ---- context menu ----
 const ctxMenu = document.getElementById("ctx-menu")!;
 const ctxCopy = document.getElementById("ctx-copy") as HTMLButtonElement;
@@ -1581,6 +1593,9 @@ window.addEventListener("message", function (e: MessageEvent) {
       updateSendButton();
       break;
     }
+    case "appendInput":
+      appendToInput(d.text || "");
+      break;
     case "files":
       applyFileResults(d.query, d.files);
       break;

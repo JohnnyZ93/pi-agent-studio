@@ -17,6 +17,28 @@ import { createChatSession, type ChatHost, type ChatSession } from "./chat-sessi
 
 export const SIDEBAR_VIEW_ID = "pi-agent-studio.chatSidebar";
 
+/** The background sidebar chat session, if one has been started. */
+export function getSidebarSession(): ChatSession | undefined {
+  return sidebarState?.session;
+}
+
+/** A sidebar chat target that can actually receive messages: a started session
+ *  bound to a currently-visible view. Returns undefined if the view was closed
+ *  (even though the session keeps running in the background). */
+export function getSidebarChatTarget():
+  | { session: ChatSession; view: vscode.WebviewView }
+  | undefined {
+  if (sidebarState?.session && sidebarState?.view) {
+    return { session: sidebarState.session, view: sidebarState.view };
+  }
+  return undefined;
+}
+
+/** Focus the sidebar chat view (does not start a session). */
+export function focusSidebarChat(): void {
+  void sidebarState?.view?.show(false);
+}
+
 interface SidebarState {
   view?: vscode.WebviewView;
   session?: ChatSession;
