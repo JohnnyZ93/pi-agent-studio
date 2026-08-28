@@ -59,6 +59,8 @@ export interface ChatSession {
   streaming: boolean;
   attach(host: ChatHost): void;
   sync(opts: ChatSessionUpdate): void;
+  switchTo(sessionFile: string): Promise<void>;
+  newSession(): Promise<void>;
   dispose(): void;
 }
 
@@ -345,12 +347,7 @@ export async function createChatSession(
         case "clear":
         case "new": {
           await rpc.newSession();
-          const st = await rpc.getState();
-          applySessionFile(st.sessionFile, st.sessionName);
-          host.postMessage({ type: "state", state: st });
-          const messages = await rpc.getMessages();
-          host.postMessage({ type: "messages", messages });
-          void sendContextUsage();
+          await refreshAfterSwitch();
           toast("Started new session.", "success");
           break;
         }
@@ -825,6 +822,54 @@ export async function createChatSession(
     void sendSessionInfo();
   }
 
+  async function refreshAfterSwitch(): Promise<void> {
+    const st = await rpc.getState();
+    if (sessionDisposed) return;
+    applySessionFile(st.sessionFile, st.sessionName);
+    host.postMessage({ type: "state", state: st });
+    const messages = await rpc.getMessages();
+    if (sessionDisposed) return;
+    host.postMessage({ type: "messages", messages });
+    void sendContextUsage();
+  }
+
+  async function switchTo(sessionFile: string): Promise<void> {
+    if (streaming) {
+      toast("Stop the agent before switching sessions.", "error");
+      return;
+    }
+    try {
+      await rpc.switchSession(sessionFile);
+      await refreshAfterSwitch();
+    } catch (e) {
+      if (!sessionDisposed) {
+        host.postMessage({
+          type: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
+  async function newSession(): Promise<void> {
+    if (streaming) {
+      toast("Stop the agent before starting a new session.", "error");
+      return;
+    }
+    try {
+      await rpc.newSession();
+      await refreshAfterSwitch();
+      toast("Started new session.", "success");
+    } catch (e) {
+      if (!sessionDisposed) {
+        host.postMessage({
+          type: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
   function dispose(): void {
     if (sessionDisposed) return;
     sessionDisposed = true;
@@ -906,6 +951,8 @@ export async function createChatSession(
     },
     attach: attachHost,
     sync,
+    switchTo,
+    newSession,
     dispose,
   };
   allSessions.add(session);

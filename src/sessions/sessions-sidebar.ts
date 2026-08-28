@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { SessionInfo } from "@earendil-works/pi-coding-agent";
 import { createNewTerminal, lockPiEditorGroup } from "../terminal.ts";
+import { resolveUiMode } from "../ui-mode.ts";
 import type { BridgeConfig } from "../bridge/types.ts";
 import type { SessionTracker } from "../sessions.ts";
 import { openChatPanel, syncOpenChatSession } from "../chat/chat-panel.ts";
@@ -359,7 +360,13 @@ async function openNewSessionInDir(
     void vscode.window.showErrorMessage(t("No workspace folder available"));
     return;
   }
-  if (useWebviewUi()) {
+  const mode = resolveUiMode();
+  if (mode === "sidebar") {
+    const { openSidebarChat } = await import("../chat/chat-sidebar.ts");
+    await openSidebarChat({ extensionUri, bridgeConfig, newSession: true });
+    return;
+  }
+  if (mode === "webview") {
     await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, cwd: effectiveCwd });
     return;
   }
@@ -384,7 +391,13 @@ async function openSession(
   sessionTracker: SessionTracker,
   chatTracker: ChatTracker,
 ): Promise<void> {
-  if (useWebviewUi()) {
+  const mode = resolveUiMode();
+  if (mode === "sidebar") {
+    const { openSidebarChat } = await import("../chat/chat-sidebar.ts");
+    await openSidebarChat({ extensionUri, bridgeConfig, sessionFile });
+    return;
+  }
+  if (mode === "webview") {
     await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, sessionFile });
     return;
   }
@@ -406,10 +419,6 @@ async function openSession(
     terminal.show();
     lockPiEditorGroup();
   }
-}
-
-function useWebviewUi(): boolean {
-  return vscode.workspace.getConfiguration("pi-agent-studio").get<string>("ui") === "webview";
 }
 
 async function renameSession(sessionFile: string, name: string): Promise<void> {

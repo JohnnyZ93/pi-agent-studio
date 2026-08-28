@@ -159,7 +159,7 @@ function renderOnboarding() {
       '<h3>' + t('Environment ready') + '</h3>' +
       '<div class="next-steps">' +
       '<div class="next-row"><span class="step-num">1</span><span class="step-text">' + t('Configure a model provider and API key') + '</span><button class="inline-btn primary" data-action="open-settings-tab" data-tab="models">' + t('Open Models settings') + '</button></div>' +
-      '<div class="next-row"><span class="step-num">2</span><span class="step-text">' + t('Choose the UI mode (terminal or webview)') + '</span><button class="inline-btn primary" data-action="open-vscode-settings" data-query="pi-agent-studio.ui">' + t('Open VS Code settings') + '</button></div>' +
+      '<div class="next-row"><span class="step-num">2</span><span class="step-text">' + t('Choose the UI mode (terminal, webview, or sidebar)') + '</span><button class="inline-btn primary" data-action="open-vscode-settings" data-query="pi-agent-studio.ui">' + t('Open VS Code settings') + '</button></div>' +
       '<div class="next-row"><span class="step-num">3</span><span class="step-text">' + t('Set pi-agent-studio.path if pi is not on your PATH') + '</span><button class="inline-btn primary" data-action="open-vscode-settings" data-query="pi-agent-studio.path">' + t('Open VS Code settings') + '</button></div>' +
       '</div></div>';
   } else {

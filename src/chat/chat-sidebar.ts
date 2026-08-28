@@ -11,7 +11,7 @@ import { homedir } from "node:os";
 import { sep } from "node:path";
 import * as vscode from "vscode";
 import type { BridgeConfig } from "../bridge/types.ts";
-import { getLocale } from "../i18n.ts";
+import { getLocale, t } from "../i18n.ts";
 import { getChatWebviewHtml, resolveChatBackground } from "./chat-webview.ts";
 import { createChatSession, type ChatHost, type ChatSession } from "./chat-session.ts";
 
@@ -26,6 +26,8 @@ interface SidebarState {
 interface SidebarChatOptions {
   extensionUri: vscode.Uri;
   bridgeConfig?: BridgeConfig;
+  sessionFile?: string;
+  newSession?: boolean;
 }
 
 let sidebarState: SidebarState | undefined;
@@ -128,6 +130,7 @@ function ensureSidebarSession(opts: SidebarChatOptions): Promise<ChatSession | u
     const session = await createChatSession({
       extensionUri: opts.extensionUri,
       bridgeConfig: opts.bridgeConfig,
+      sessionFile: opts.sessionFile,
       cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
       traceTag: "sidebar",
       host,
@@ -213,14 +216,43 @@ export async function openSidebarChat(opts: SidebarChatOptions): Promise<void> {
   const view = await waitForView();
   if (!view) return;
 
-  if (sidebarState?.session) {
+  if (!sidebarState?.session) {
+    const host = currentHost;
+    if (!host) return;
+    await startSidebarSession(view, host, opts);
+  }
+
+  const session = sidebarState?.session;
+  if (!session) return;
+
+  if (opts.newSession) {
+    if (session.sessionFile) {
+      if (session.streaming) {
+        void vscode.window.showWarningMessage(t("Stop the agent before starting a new session."));
+        return;
+      }
+      await session.newSession();
+    }
     void view.show(true);
     return;
   }
-  const host = currentHost;
-  if (!host) return;
-  await startSidebarSession(view, host, opts);
-  if (sidebarState?.session) void view.show(true);
+
+  if (opts.sessionFile && session.sessionFile !== opts.sessionFile) {
+    if (session.streaming) {
+      void vscode.window.showWarningMessage(t("Stop the agent before switching sessions."));
+      return;
+    }
+    const choice = await vscode.window.showWarningMessage(
+      t(
+        "Switch the sidebar chat to the selected session? The current conversation stays open in the background.",
+      ),
+      { modal: true },
+      t("Switch"),
+    );
+    if (choice !== t("Switch")) return;
+    await session.switchTo(opts.sessionFile);
+  }
+  void view.show(true);
 }
 
 export function disposeSidebarChat(): void {

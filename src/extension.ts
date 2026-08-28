@@ -12,6 +12,7 @@ import { t } from "./i18n.ts";
 import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
 import { createSessionTracker } from "./sessions.ts";
 import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
+import { resolveUiMode } from "./ui-mode.ts";
 import { createChatTracker } from "./chat/chat-tracker.ts";
 import { disposeRpcTrace } from "./chat/rpc-trace.ts";
 
@@ -238,7 +239,13 @@ export async function activate(context: vscode.ExtensionContext) {
       }, BRIDGE_SETTLE_MS);
     }),
     vscode.commands.registerCommand("pi-agent-studio.open", async () => {
-      if (useWebviewUi()) {
+      const mode = resolveUiMode();
+      if (mode === "sidebar") {
+        const { openSidebarChat } = await import("./chat/chat-sidebar.ts");
+        await openSidebarChat({ extensionUri, bridgeConfig });
+        return;
+      }
+      if (mode === "webview") {
         const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         return;
@@ -248,7 +255,9 @@ export async function activate(context: vscode.ExtensionContext) {
       lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
-      if (useWebviewUi()) {
+      const mode = resolveUiMode();
+      if (mode === "sidebar") return;
+      if (mode === "webview") {
         const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker });
         try {
@@ -271,7 +280,8 @@ export async function activate(context: vscode.ExtensionContext) {
         );
         return;
       }
-      if (useWebviewUi()) {
+      const mode = resolveUiMode();
+      if (mode !== "terminal") {
         const { openChatPanel } = await import("./chat/chat-panel.ts");
         await openChatPanel({ extensionUri, bridgeConfig, tracker: chatTracker, cwd });
         return;
@@ -333,7 +343,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
-  if (useWebviewUi()) {
+  if (resolveUiMode() === "webview") {
     void chatTracker.restore(async (sessionFile, panelId) => {
       const { openChatPanel } = await import("./chat/chat-panel.ts");
       await openChatPanel({
@@ -345,10 +355,6 @@ export async function activate(context: vscode.ExtensionContext) {
       });
     });
   }
-}
-
-function useWebviewUi(): boolean {
-  return vscode.workspace.getConfiguration("pi-agent-studio").get<string>("ui") === "webview";
 }
 
 export async function deactivate() {
