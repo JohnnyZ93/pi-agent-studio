@@ -2,6 +2,13 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.7] - 2026-08-28
+
+- **Sidebar UI mode**: `pi-agent-studio.ui` gains a new `sidebar` value — `Pi: Open`, `Open Here`, and the Sessions view now open the sidebar chat instead of a terminal or panel, with session switching (`openSidebarChat` accepts `sessionFile` / `newSession`) reusing the single RPC subprocess; `Pi: Open in New Window` is hidden in this mode. UI-mode resolution is centralized in `src/ui-mode.ts`.
+- **Rich input with token chips**: the chat composer replaces the plain textarea with a `contenteditable` input that renders `@file` mentions and `/commands` as styled chips, with caret-offset parsing/serialization handled by a new tokenizer module (also shared by the rewind widget).
+- **"Add to Pi Chat" context-menu commands**: new `Add Selection to Pi Chat` / `Add File to Pi Chat` commands (editor/context + explorer/context menus + command palette) append the current selection as a fenced code block (with file path and line range) or a file/folder as an `@` mention to the most recently visible chat panel or the sidebar chat.
+- **Configurable send shortcut**: new `pi-agent-studio.chatSendShortcut` setting (`enter` / `ctrlEnter`) — Ctrl+Enter (Cmd+Enter on macOS) sends while Enter inserts a newline; empty-state hints adapt accordingly.
+
 ## [1.3.6] - 2026-08-24
 
 - **Sidebar chat view**: new `Pi: Open in Sidebar` command and a dedicated **Pi Chat** activity bar container host the same full chat UI as a WebviewView, sharing the existing session controller extracted from `chat-panel.ts` into `chat-session.ts` behind a `ChatHost` abstraction. A lightweight starter screen shows until you start a session; the single background session per window survives view hide / re-resolve and re-hydrates fully on re-attach.

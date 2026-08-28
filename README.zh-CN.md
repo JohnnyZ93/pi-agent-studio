@@ -18,8 +18,8 @@
 ## 特性
 
 - **原生终端 TUI** -- Pi 运行在 VS Code 集成终端（PTY）中。无 shell 层、无引号黑魔法--pi 二进制直接启动（默认模式）
-- **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，支持提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
-- **侧边栏聊天视图** —— 同样的聊天 UI 还可以作为 WebviewView 放在独立的 **Pi Chat** 活动栏容器中（`Pi: Open in Sidebar`）：启动会话前显示轻量起始页，每个窗口一个后台会话，视图隐藏 / 重新解析时完整重水合
+- **Webview 聊天面板** -- 可选的 `webview` 模式，由 `pi --mode rpc` 子进程驱动的流式聊天面板，配备富文本 `contenteditable` 输入框（`@文件` 提及与 `/命令` 渲染为 token 标签）、提示排队（Enter 转向 / Alt+Enter 追加）、输入历史、Fork/Revert、内置命令与重试
+- **侧边栏聊天视图** —— 同样的聊天 UI 还可以作为 WebviewView 放在独立的 **Pi Chat** 活动栏容器中（`Pi: Open in Sidebar`）：启动会话前显示轻量起始页，每个窗口一个后台会话，视图隐藏 / 重新解析时完整重水合；`pi-agent-studio.ui` 新增 `sidebar` 值，可将 `Pi: Open` / `Open Here` 与 Sessions 视图路由到侧边栏聊天
 - **Mermaid 与数学公式渲染** —— webview 聊天面板将 `mermaid` 代码块渲染为交互式图表，并用 KaTeX 渲染数学公式（`$...$`、`$$...$$`）；图表主题可通过 `pi-agent-studio.chatMermaidTheme` 配置（`default` / `neutral` / `dark` / `forest` / `base`）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
 - **MCP 支持** —— 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：通过 `mcp_tool_search` / `mcp_tool_call` 发现并调用其工具 / 资源，提示词以 `/mcp__<服务器>__<提示词>` 形式暴露为 Slash 命令，并可从聊天工具栏抽屉或 `/mcp` 命令实时管理连接（start / stop / reconnect、空闲自动断开）
@@ -159,28 +159,29 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ## 配置项
 
-| 设置项                                         | 类型      | 默认值              | 说明                                                                                                   |
-| ---------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                                  |
-| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`                | 桥接端点：留空 = 随机端口；数字 = 固定端口；其他 = socket 路径（Windows：命名管道），支持 `{windowId}` |
-| `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                                             |
-| `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                                               |
-| `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                                               |
-| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`         | 生成 Git commit message 的语言（支持 14 种语言）                                                       |
-| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`                | commit message 生成的自定义系统提示                                                                    |
-| `pi-agent-studio.commitModel`                  | `string`  | `""`                | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）                                 |
-| `pi-agent-studio.statusBar`                    | `boolean` | `true`              | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                                            |
-| `pi-agent-studio.ui`                           | `string`  | `"terminal"`        | `Pi: Open` 的界面：`terminal`（TUI）或 `webview`（聊天面板）                                           |
-| `pi-agent-studio.disabledTools`                | `array`   | `[]`                | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent`                   |
-| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`             | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                                  |
-| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                                      |
-| `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）                             |
-| `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                                  |
-| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`）              |
-| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`                | 本地图片的绝对路径（校验类型与 ≤ 10 MB），用作聊天面板背景                                             |
-| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                 | 背景图片透明度（0–1）；输入框、widget 与自动完成应用毛玻璃样式以保持可读性                             |
-| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）                        |
-| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开                          |
+| 设置项                                         | 类型      | 默认值              | 说明                                                                                                           |
+| ---------------------------------------------- | --------- | ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `pi-agent-studio.path`                         | `string`  | `""`                | pi 二进制的绝对路径（留空则自动检测）                                                                          |
+| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`                | 桥接端点：留空 = 随机端口；数字 = 固定端口；其他 = socket 路径（Windows：命名管道），支持 `{windowId}`         |
+| `pi-agent-studio.language`                     | `string`  | `"auto"`            | 界面语言：`auto`（跟随 VS Code 显示语言）、`en` 或 `zh-cn`                                                     |
+| `pi-agent-studio.env`                          | `object`  | `{}`                | 合并到 pi 终端的环境变量（与桥接变量冲突时桥接变量优先）                                                       |
+| `pi-agent-studio.args`                         | `array`   | `[]`                | 追加到 `--extension` 之后、调用方额外参数之前的 CLI 参数                                                       |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`         | 生成 Git commit message 的语言（支持 14 种语言）                                                               |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`                | commit message 生成的自定义系统提示                                                                            |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`                | commit message 生成所用模型，格式 `provider/model`（如 `Zai/glm-5.2`）                                         |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`              | 在 pi TUI 底栏显示实时 VS Code 上下文（编辑器、选区、诊断）                                                    |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`        | `Pi: Open` 的界面：`terminal`（TUI）、`webview`（聊天面板）或 `sidebar`（侧边栏聊天视图）                      |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`                | 可禁用的内置 LLM 工具：`vscode_get_diagnostics`、`todo`、`questionnaire`、`subagent`                           |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`             | 将 RPC 流量与 pi stderr 输出到 "Pi Chat RPC" 输出通道                                                          |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                                              |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）                                     |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                                          |
+| `pi-agent-studio.chatSendShortcut`             | `string`  | `"enter"`           | 聊天输入框发送快捷键：`enter`（Enter 发送，Shift+Enter 换行）或 `ctrlEnter`（Ctrl/Cmd+Enter 发送，Enter 换行） |
+| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`）                      |
+| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`                | 本地图片的绝对路径（校验类型与 ≤ 10 MB），用作聊天面板背景                                                     |
+| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                 | 背景图片透明度（0–1）；输入框、widget 与自动完成应用毛玻璃样式以保持可读性                                     |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）                                |
+| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开                                  |
 
 ## 从源码构建
 

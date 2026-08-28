@@ -18,8 +18,8 @@ English | [简体中文](README.zh-CN.md)
 ## Features
 
 - **Native terminal TUI** - Pi runs in a real VS Code integrated terminal (PTY). No shell layer, no quoting hacks - pi is spawned directly (default mode)
-- **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
-- **Sidebar chat view** — The same chat UI is also available as a **WebviewView** in its own **Pi Chat** activity bar container (`Pi: Open in Sidebar`): a lightweight starter screen shows until you start a session, and one background session per window survives view hide / re-resolve with full state re-hydration
+- **Webview chat panel** - Optional `webview` UI mode opens a streaming chat panel backed by a per-panel `pi --mode rpc` subprocess, with a rich `contenteditable` composer (`@file` mentions and `/commands` rendered as token chips), prompt queuing (Enter steer / Alt+Enter follow-up), input history, fork/revert, built-in commands, and retry
+- **Sidebar chat view** — The same chat UI is also available as a **WebviewView** in its own **Pi Chat** activity bar container (`Pi: Open in Sidebar`): a lightweight starter screen shows until you start a session, and one background session per window survives view hide / re-resolve with full state re-hydration. A new `sidebar` value for `pi-agent-studio.ui` routes `Pi: Open` / `Open Here` and the Sessions view to it
 - **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
 - **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope: discover and call their tools/resources via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` slash commands, and manage connections live from the chat toolbar drawer or the `/mcp` command (start / stop / reconnect, idle disconnect)
@@ -159,28 +159,29 @@ Example:
 
 ## Configuration
 
-| Setting                                        | Type      | Default            | Description                                                                                                   |
-| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                                       |
-| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`               | Bridge endpoint: empty = random port; number = fixed port; else socket path (Windows: named pipe), {windowId} |
-| `pi-agent-studio.language`                     | `string`  | `"auto"`           | UI language: `auto` (follows the VS Code display language), `en`, or `zh-cn`                                  |
-| `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)                          |
-| `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args                         |
-| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                                           |
-| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                                            |
-| `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)                     |
-| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer                               |
-| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI) or `webview` (chat panel)                                                 |
-| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent`                   |
-| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                                             |
-| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                      |
-| `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely) |
-| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                              |
-| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)         |
-| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`               | Absolute path to a local image file (validated for type and ≤ 10 MB) used as the chat panel background        |
-| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                | Background image opacity (0–1); frosted-glass styling is applied to composer, widgets, and autocomplete       |
-| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)         |
-| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables    |
+| Setting                                        | Type      | Default            | Description                                                                                                                          |
+| ---------------------------------------------- | --------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `pi-agent-studio.path`                         | `string`  | `""`               | Absolute path to the pi binary (auto-detected if empty)                                                                              |
+| `pi-agent-studio.bridgeSocket`                 | `string`  | `""`               | Bridge endpoint: empty = random port; number = fixed port; else socket path (Windows: named pipe), {windowId}                        |
+| `pi-agent-studio.language`                     | `string`  | `"auto"`           | UI language: `auto` (follows the VS Code display language), `en`, or `zh-cn`                                                         |
+| `pi-agent-studio.env`                          | `object`  | `{}`               | Environment variables merged into the pi terminal (bridge vars win on key collision)                                                 |
+| `pi-agent-studio.args`                         | `array`   | `[]`               | Extra CLI args appended after `--extension` and before any caller-supplied extra args                                                |
+| `pi-agent-studio.commitLanguage`               | `string`  | `"English"`        | Language for generated Git commit messages (14 languages supported)                                                                  |
+| `pi-agent-studio.commitMessagePrompt`          | `string`  | `""`               | Custom system prompt for commit message generation                                                                                   |
+| `pi-agent-studio.commitModel`                  | `string`  | `""`               | Model used for commit message generation, in `provider/model` format (e.g. `Zai/glm-5.2`)                                            |
+| `pi-agent-studio.statusBar`                    | `boolean` | `true`             | Show live VS Code context (editor, selection, diagnostics) in the pi TUI footer                                                      |
+| `pi-agent-studio.ui`                           | `string`  | `"terminal"`       | UI for `Pi: Open`: `terminal` (TUI), `webview` (chat panel), or `sidebar` (sidebar chat view)                                        |
+| `pi-agent-studio.disabledTools`                | `array`   | `[]`               | Bundled LLM tools to disable: `vscode_get_diagnostics`, `todo`, `questionnaire`, `subagent`                                          |
+| `pi-agent-studio.rpcTrace`                     | `boolean` | `false`            | Log RPC traffic and pi stderr to the "Pi Chat RPC" output channel                                                                    |
+| `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                                             |
+| `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely)                        |
+| `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                                                     |
+| `pi-agent-studio.chatSendShortcut`             | `string`  | `"enter"`          | Send shortcut for the chat composer: `enter` (Enter sends, Shift+Enter newline) or `ctrlEnter` (Ctrl/Cmd+Enter sends, Enter newline) |
+| `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)                                |
+| `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`               | Absolute path to a local image file (validated for type and ≤ 10 MB) used as the chat panel background                               |
+| `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                | Background image opacity (0–1); frosted-glass styling is applied to composer, widgets, and autocomplete                              |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)                                |
+| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables                           |
 
 ## Building from source
 
