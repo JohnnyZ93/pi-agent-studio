@@ -15,6 +15,7 @@ import {
   type ChatSessionUpdate,
 } from "./chat-session.ts";
 import { sessionStatusRegistry } from "../session-status-registry.ts";
+import { findPiColumn, findUnusedColumn } from "../webview-columns.ts";
 
 export { type ChatSessionUpdate } from "./chat-session.ts";
 
@@ -63,7 +64,7 @@ export async function openChatPanel(
   const panel = vscode.window.createWebviewPanel(
     CHAT_VIEW_TYPE,
     CHAT_PANEL_TITLE,
-    findChatColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside,
+    findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside,
     {
       enableScripts: true,
       retainContextWhenHidden: true,
@@ -222,26 +223,4 @@ export function syncOpenChatSession(sessionFile: string, opts: ChatSessionUpdate
   if (!handle?.sync) return false;
   handle.sync(opts);
   return true;
-}
-
-function isChatTab(tab: vscode.Tab): boolean {
-  return tab.input instanceof vscode.TabInputWebview && tab.input.viewType.includes(CHAT_VIEW_TYPE);
-}
-
-function findChatColumn(): vscode.ViewColumn | undefined {
-  for (const group of vscode.window.tabGroups.all) {
-    if (group.tabs.some(isChatTab)) return group.viewColumn;
-  }
-  return undefined;
-}
-
-function findUnusedColumn(): vscode.ViewColumn | undefined {
-  const used = new Set<vscode.ViewColumn>();
-  for (const group of vscode.window.tabGroups.all) {
-    if (group.viewColumn !== undefined && group.tabs.length > 0) used.add(group.viewColumn);
-  }
-  for (let column = vscode.ViewColumn.One; column <= vscode.ViewColumn.Nine; column++) {
-    if (!used.has(column)) return column;
-  }
-  return undefined;
 }

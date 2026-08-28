@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { findPiColumn, findUnusedColumn } from "../webview-columns.ts";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { DefaultResourceLoader, getAgentDir } from "@earendil-works/pi-coding-agent";
@@ -112,7 +113,7 @@ export async function openSettingsPanel(
   const panel = vscode.window.createWebviewPanel(
     SETTINGS_VIEW_TYPE,
     SETTINGS_PANEL_TITLE,
-    vscode.ViewColumn.Beside,
+    findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside,
     {
       enableScripts: true,
       retainContextWhenHidden: true,
