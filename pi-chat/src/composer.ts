@@ -369,6 +369,7 @@ function currentSlashToken(): { token: string; lineStart: number; after: string 
   if (pos < 0) return null;
   const before = val.slice(0, pos);
   const lineStart = before.lastIndexOf("\n") + 1;
+  if (lineStart !== 0) return null;
   const lineTail = before.slice(lineStart);
   if (lineTail.charAt(0) !== "/") return null;
   const token = lineTail.slice(1);

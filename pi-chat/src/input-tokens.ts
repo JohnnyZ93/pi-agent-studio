@@ -34,7 +34,7 @@ function parseSegments(text: string, live: boolean, caret: number): Segment[] {
   while (i < text.length) {
     const ch = text.charAt(i);
     const isTokenStart = i === 0 || isWhitespace(text.charAt(i - 1));
-    const isCmdStart = i === 0 || text.charAt(i - 1) === "\n";
+    const isCmdStart = i === 0;
     if (ch === "/" && isCmdStart) {
       let j = i + 1;
       while (j < text.length && !isWhitespace(text.charAt(j))) j++;
