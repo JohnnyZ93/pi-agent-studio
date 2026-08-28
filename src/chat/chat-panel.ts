@@ -51,7 +51,6 @@ export async function openChatPanel(
       const handle = activePanels.get(existingId);
       if (handle) {
         handle.panel.reveal(handle.panel.viewColumn ?? vscode.ViewColumn.Active, false);
-        lockChatEditorGroup();
         return handle;
       }
     }
@@ -85,7 +84,6 @@ export async function openChatPanel(
     resolveChatBackground(panel.webview, chatCfg.get<string>("chatBackgroundImage")),
     chatCfg.get<number>("chatBackgroundOpacity"),
   );
-  lockChatEditorGroup();
 
   let disposed = false;
 
@@ -237,21 +235,4 @@ function findUnusedColumn(): vscode.ViewColumn | undefined {
     if (!used.has(column)) return column;
   }
   return undefined;
-}
-
-function lockChatEditorGroup(): void {
-  const isChatGroup = (group: vscode.TabGroup): boolean => group.tabs.some(isChatTab);
-
-  const lock = (): boolean => {
-    void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
-    return true;
-  };
-
-  if (vscode.window.tabGroups.activeTabGroup.tabs.length === 0 && lock()) return;
-
-  const sub = vscode.window.tabGroups.onDidChangeTabGroups((e) => {
-    const relevant = [...e.opened, ...e.changed];
-    if (relevant.some(isChatGroup) && lock()) sub.dispose();
-  });
-  setTimeout(() => sub.dispose(), 5000);
 }

@@ -11,7 +11,7 @@ import { TERMINAL_TITLE } from "./constants.ts";
 import { t } from "./i18n.ts";
 import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
 import { createSessionTracker } from "./sessions.ts";
-import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
+import { createNewTerminal } from "./terminal.ts";
 import { resolveUiMode } from "./ui-mode.ts";
 import { createChatTracker } from "./chat/chat-tracker.ts";
 import { disposeRpcTrace } from "./chat/rpc-trace.ts";
@@ -252,7 +252,6 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       const terminal = await openTerminal();
       terminal?.show();
-      lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInNewWindow", async () => {
       const mode = resolveUiMode();
@@ -288,7 +287,6 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       const terminal = await openTerminalInCwd(cwd);
       terminal?.show();
-      lockPiEditorGroup();
     }),
     vscode.commands.registerCommand("pi-agent-studio.openInSidebar", async () => {
       const { openSidebarChat } = await import("./chat/chat-sidebar.ts");

@@ -2,7 +2,7 @@ import { access } from "node:fs/promises";
 import * as vscode from "vscode";
 import type { BridgeConfig } from "./bridge/types.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
-import { createNewTerminal, lockPiEditorGroup } from "./terminal.ts";
+import { createNewTerminal } from "./terminal.ts";
 import { sessionStatusRegistry } from "./session-status-registry.ts";
 
 const SESSIONS_KEY = "pi-agent-studio.terminalSessions";
@@ -96,7 +96,6 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
           }
         }),
       );
-      lockPiEditorGroup();
     },
     async restartAll(extensionUri: vscode.Uri, bridgeConfig: BridgeConfig): Promise<void> {
       // Shutdown exit reason → onClose keeps the session map entries, so
