@@ -51,6 +51,8 @@ import {
   setSendShortcut,
   getModelIcon,
   modelIconHtml,
+  serializeRichInput,
+  shortenWorkspacePath,
 } from "./globals";
 
 import {
@@ -63,8 +65,19 @@ import {
 } from "./messages";
 import { t } from "./i18n";
 
+import {
+  segmentsFromText,
+  segmentsFromLiveText,
+  serializeSegments,
+  renderSegments,
+  getCaretOffset,
+  setCaretOffset,
+} from "./input-tokens";
+
 import { applyRewindWidget, renderRewindDialog } from "./rewind";
 import { openMcpDrawer, setMcpStatus } from "./mcp-panel";
+
+let isComposing = false;
 
 // ---- model select rendering (custom dropdown) ----
 function modelLabel(m: any): string {
@@ -351,22 +364,22 @@ function applyState(s: any) {
 // ---- autocomplete ----
 
 function currentSlashToken(): { token: string; lineStart: number; after: string } | null {
-  const val = inputEl.value;
-  const pos = inputEl.selectionStart;
-  if (pos == null) return null;
+  const val = serializeRichInput();
+  const pos = getCaretOffset(inputEl);
+  if (pos < 0) return null;
   const before = val.slice(0, pos);
   const lineStart = before.lastIndexOf("\n") + 1;
   const lineTail = before.slice(lineStart);
   if (lineTail.charAt(0) !== "/") return null;
   const token = lineTail.slice(1);
   if (token.indexOf(" ") !== -1) return null;
-  return { token, lineStart, after: inputEl.value.slice(pos) };
+  return { token, lineStart, after: val.slice(pos) };
 }
 
 function currentAtToken(): { query: string; lineStart: number; after: string } | null {
-  const val = inputEl.value;
-  const pos = inputEl.selectionStart;
-  if (pos == null) return null;
+  const val = serializeRichInput();
+  const pos = getCaretOffset(inputEl);
+  if (pos < 0) return null;
   const before = val.slice(0, pos);
   let wordStart = 0;
   for (let i = before.length - 1; i >= 0; i--) {
@@ -563,23 +576,21 @@ function completeAutocomplete(item: any) {
       hideAutocomplete();
       return;
     }
-    const val = inputEl.value;
-    const replacement = "@" + item + " ";
-    inputEl.value = val.slice(0, info.lineStart) + replacement + info.after;
+    const val = serializeRichInput();
+    const replacement = "@" + shortenWorkspacePath(item) + " ";
+    const newText = val.slice(0, info.lineStart) + replacement + info.after;
     const newPos = info.lineStart + replacement.length;
     inputEl.focus();
-    try {
-      inputEl.setSelectionRange(newPos, newPos);
-    } catch {
-      /* ignore */
-    }
+    renderSegments(inputEl, segmentsFromText(newText), newPos);
     hideAutocomplete();
+    autoGrow();
+    updateSendButton();
     return;
   }
   const c = item;
-  const val = inputEl.value;
-  const pos = inputEl.selectionStart;
-  if (pos == null) {
+  const val = serializeRichInput();
+  const pos = getCaretOffset(inputEl);
+  if (pos < 0) {
     hideAutocomplete();
     return;
   }
@@ -587,15 +598,13 @@ function completeAutocomplete(item: any) {
   const lineStart = before.lastIndexOf("\n") + 1;
   const after = val.slice(pos);
   const replacement = "/" + c.name + " ";
-  inputEl.value = val.slice(0, lineStart) + replacement + after;
+  const newText = val.slice(0, lineStart) + replacement + after;
   const newPos = lineStart + replacement.length;
   inputEl.focus();
-  try {
-    inputEl.setSelectionRange(newPos, newPos);
-  } catch {
-    /* ignore */
-  }
+  renderSegments(inputEl, segmentsFromText(newText), newPos);
   hideAutocomplete();
+  autoGrow();
+  updateSendButton();
 }
 
 // ---- send ----
@@ -615,7 +624,7 @@ function isLocalCommand(msg: string): boolean {
 }
 
 function sendPrompt(behavior?: string) {
-  const msg = inputEl.value;
+  const msg = serializeRichInput();
   const imgs = pendingImages.slice();
   const hasText = !!msg.trim();
   const hasImgs = imgs.length > 0;
@@ -629,7 +638,8 @@ function sendPrompt(behavior?: string) {
         })
       : null;
   pushHistory(msg);
-  inputEl.value = "";
+  renderSegments(inputEl, [], 0);
+  inputEl.focus();
   autoGrow();
   hideAutocomplete();
   historyIndex = -1;
@@ -660,7 +670,62 @@ function sendPrompt(behavior?: string) {
 
 function autoGrow() {
   inputEl.style.height = "auto";
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
+  const h = Math.max(28, Math.min(inputEl.scrollHeight, 200));
+  inputEl.style.height = h + "px";
+  inputEl.style.overflowY = h >= 200 ? "auto" : "hidden";
+}
+
+function normalizeInputTokens() {
+  const val = serializeRichInput();
+  const caret = getCaretOffset(inputEl);
+  if (!val.trim()) {
+    renderSegments(inputEl, [], 0);
+    return;
+  }
+  if (val.indexOf("/") === -1 && val.indexOf("@") === -1) return;
+  renderSegments(inputEl, segmentsFromLiveText(val, caret), caret);
+}
+
+function fileChipBeforeCaret(): HTMLElement | null {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || !sel.isCollapsed) return null;
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  const offset = range.startOffset;
+  if (node === inputEl && offset > 0) {
+    const child = inputEl.childNodes[offset - 1] as HTMLElement | undefined;
+    if (
+      child &&
+      child.nodeType === Node.ELEMENT_NODE &&
+      child.classList &&
+      child.classList.contains("token-file")
+    )
+      return child;
+  }
+  if (node.nodeType === Node.TEXT_NODE && offset === 0) {
+    const prev = node.previousSibling as HTMLElement | null;
+    if (
+      prev &&
+      prev.nodeType === Node.ELEMENT_NODE &&
+      prev.classList &&
+      prev.classList.contains("token-file")
+    )
+      return prev;
+  }
+  return null;
+}
+
+function revertFileChip(chip: HTMLElement): void {
+  const raw = "@" + (chip.getAttribute("data-path") || "");
+  const textNode = document.createTextNode(raw);
+  chip.replaceWith(textNode);
+  const sel = window.getSelection();
+  if (!sel) return;
+  const range = document.createRange();
+  range.setStart(textNode, raw.length);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 let historyIndex = -1;
@@ -670,27 +735,24 @@ function navigateHistory(delta: number) {
   if (!inputHistory.length) return;
   if (historyIndex === -1) {
     if (delta > 0) return;
-    historyDraft = inputEl.value;
+    historyDraft = serializeRichInput();
     historyIndex = inputHistory.length - 1;
   } else {
     historyIndex += delta;
     if (historyIndex >= inputHistory.length) {
       historyIndex = -1;
-      inputEl.value = historyDraft;
-      historyDraft = "";
+      const draftSegs = segmentsFromText(historyDraft);
+      inputEl.focus();
+      renderSegments(inputEl, draftSegs, serializeSegments(draftSegs).length);
       autoGrow();
       updateSendButton();
       return;
     }
     if (historyIndex < 0) historyIndex = 0;
   }
-  inputEl.value = inputHistory[historyIndex];
-  const len = inputEl.value.length;
-  try {
-    inputEl.setSelectionRange(len, len);
-  } catch {
-    /* ignore */
-  }
+  const segs = segmentsFromText(inputHistory[historyIndex]);
+  inputEl.focus();
+  renderSegments(inputEl, segs, serializeSegments(segs).length);
   autoGrow();
   updateSendButton();
 }
@@ -769,20 +831,15 @@ function insertPickedResources(paths: string[]) {
       return "@" + p + " ";
     })
     .join("\n");
-  let val = inputEl.value;
-  const pos = inputEl.selectionStart || val.length;
+  const val = serializeRichInput();
+  const pos = getCaretOffset(inputEl);
   const before = val.slice(0, pos);
   const after = val.slice(pos);
   const pre = before.length && !/[\n\s]$/.test(before) ? "\n" : "";
   const post = after.length && !/^[\n\s]/.test(after) ? "\n" : "";
-  inputEl.value = before + pre + text + post + after;
-  const newPos = (before + pre + text).length;
+  const newText = before + pre + text + post + after;
   inputEl.focus();
-  try {
-    inputEl.setSelectionRange(newPos, newPos);
-  } catch {
-    /* ignore */
-  }
+  renderSegments(inputEl, segmentsFromText(newText), (before + pre + text).length);
   autoGrow();
   updateSendButton();
 }
@@ -1121,12 +1178,32 @@ sendBtn.addEventListener("click", function () {
   sendPrompt();
 });
 
+inputEl.addEventListener("compositionstart", function () {
+  isComposing = true;
+});
+
+inputEl.addEventListener("compositionend", function () {
+  isComposing = false;
+  normalizeInputTokens();
+  autoGrow();
+  updateAutocomplete();
+  updateSendButton();
+});
+
 inputEl.addEventListener("input", function () {
   autoGrow();
+  if (!isComposing) normalizeInputTokens();
   updateAutocomplete();
   updateSendButton();
   historyIndex = -1;
   historyDraft = "";
+});
+
+inputEl.addEventListener("focus", function () {
+  if (!serializeRichInput().trim()) {
+    inputEl.innerHTML = "";
+    setCaretOffset(inputEl, 0);
+  }
 });
 
 inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
@@ -1154,27 +1231,44 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
   }
   if (ev.ctrlKey && !ev.shiftKey && !ev.altKey && !ev.metaKey && ev.key === "u") {
     ev.preventDefault();
-    inputEl.value = "";
+    inputEl.innerHTML = "";
+    setCaretOffset(inputEl, 0);
     inputEl.dispatchEvent(new Event("input", { bubbles: true }));
     return;
   }
+  if (
+    !ev.isComposing &&
+    !ev.ctrlKey &&
+    !ev.metaKey &&
+    !ev.altKey &&
+    !ev.shiftKey &&
+    ev.key === "Backspace"
+  ) {
+    const chip = fileChipBeforeCaret();
+    if (chip) {
+      ev.preventDefault();
+      revertFileChip(chip);
+      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+  }
   if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === "ArrowUp") {
-    const pos = inputEl.selectionStart;
-    if (inputEl.value.slice(0, pos).indexOf("\n") === -1) {
+    const pos = getCaretOffset(inputEl);
+    if (serializeRichInput().slice(0, pos).indexOf("\n") === -1) {
       ev.preventDefault();
       navigateHistory(-1);
       return;
     }
   }
   if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === "ArrowDown") {
-    const dpos = inputEl.selectionStart;
-    if (inputEl.value.slice(dpos).indexOf("\n") === -1) {
+    const dpos = getCaretOffset(inputEl);
+    if (serializeRichInput().slice(dpos).indexOf("\n") === -1) {
       ev.preventDefault();
       navigateHistory(1);
       return;
     }
   }
-  if (ev.key === "Enter" && !ev.isComposing) {
+  if (ev.key === "Enter" && !ev.isComposing && !isComposing) {
     const isMac = /Mac/i.test(navigator.platform || "");
     const isMod = isMac ? ev.metaKey : ev.ctrlKey;
     const isFollowUp = ev.altKey && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey;
@@ -1188,6 +1282,15 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
     } else if (isSend) {
       ev.preventDefault();
       sendPrompt("steer");
+    } else {
+      ev.preventDefault();
+      const val = serializeRichInput();
+      const pos = getCaretOffset(inputEl);
+      const newText = val.slice(0, pos) + "\n" + val.slice(pos);
+      inputEl.focus();
+      renderSegments(inputEl, segmentsFromText(newText), pos + 1);
+      autoGrow();
+      updateSendButton();
     }
   }
 });
@@ -1219,12 +1322,24 @@ inputEl.addEventListener("paste", function (ev: ClipboardEvent) {
     const it = cd.items[i];
     if (it.kind === "file" && isImageType(it.type)) imgItems.push(it);
   }
-  if (!imgItems.length) return;
-  ev.preventDefault();
-  for (let k = 0; k < imgItems.length; k++) {
-    const file = imgItems[k].getAsFile();
-    if (file) addImageFromFile(file);
+  if (imgItems.length) {
+    ev.preventDefault();
+    for (let k = 0; k < imgItems.length; k++) {
+      const file = imgItems[k].getAsFile();
+      if (file) addImageFromFile(file);
+    }
+    return;
   }
+  ev.preventDefault();
+  const text = cd.getData("text/plain");
+  if (!text) return;
+  const val = serializeRichInput();
+  const pos = getCaretOffset(inputEl);
+  const newText = val.slice(0, pos) + text + val.slice(pos);
+  inputEl.focus();
+  renderSegments(inputEl, segmentsFromText(newText), pos + text.length);
+  autoGrow();
+  updateSendButton();
 });
 
 inputEl.addEventListener("dragover", function (ev: DragEvent) {
@@ -1233,12 +1348,20 @@ inputEl.addEventListener("dragover", function (ev: DragEvent) {
 
 inputEl.addEventListener("drop", function (ev: DragEvent) {
   if (!ev.dataTransfer || !ev.dataTransfer.files || !ev.dataTransfer.files.length) return;
-  const files = ev.dataTransfer.files;
-  let hasImg = false;
-  for (let i = 0; i < files.length; i++) if (isImageType(files[i].type)) hasImg = true;
-  if (!hasImg) return;
   ev.preventDefault();
+  const files = ev.dataTransfer.files;
   for (let j = 0; j < files.length; j++) if (isImageType(files[j].type)) addImageFromFile(files[j]);
+});
+
+inputEl.addEventListener("mouseover", function (ev: MouseEvent) {
+  const t = ev.target as HTMLElement;
+  const chip = t.closest ? (t.closest(".token-file") as HTMLElement | null) : null;
+  if (chip) showTooltip(chip, chip.getAttribute("data-path") || "");
+});
+
+inputEl.addEventListener("mouseout", function (ev: MouseEvent) {
+  const t = ev.target as HTMLElement;
+  if (t.closest && t.closest(".token-file")) hideTooltip();
 });
 
 // ---- context menu events ----
@@ -1450,12 +1573,14 @@ window.addEventListener("message", function (e: MessageEvent) {
     case "pickedResources":
       insertPickedResources(d.paths);
       break;
-    case "prefillInput":
-      inputEl.value = d.text || "";
+    case "prefillInput": {
+      const segs = segmentsFromText(d.text || "");
+      inputEl.focus();
+      renderSegments(inputEl, segs, serializeSegments(segs).length);
       autoGrow();
       updateSendButton();
-      inputEl.focus();
       break;
+    }
     case "files":
       applyFileResults(d.query, d.files);
       break;

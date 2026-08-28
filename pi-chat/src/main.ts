@@ -40,9 +40,9 @@ if (typeof piBgOpacity === "number") {
   );
 }
 
-const inputEl = document.getElementById("input") as HTMLTextAreaElement | null;
+const inputEl = document.getElementById("input") as HTMLDivElement | null;
 if (inputEl) {
-  inputEl.placeholder = t("Ask anything…  (use / for commands, @ for files)");
+  inputEl.setAttribute("data-placeholder", t("Ask anything…  (use / for commands, @ for files)"));
 }
 const modelSearchEl = document.getElementById("model-search") as HTMLInputElement | null;
 if (modelSearchEl) {

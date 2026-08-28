@@ -34,7 +34,12 @@ export function resolveChatBackground(_webview: vscode.Webview, path?: string): 
 }
 
 function escJsString(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/</g, "\\u003c");
 }
 
 export function getChatWebviewHtml(
@@ -46,6 +51,7 @@ export function getChatWebviewHtml(
   bgImage?: string,
   bgOpacity?: number,
   sendShortcut?: string,
+  workspace?: string,
 ): string {
   const replaceAll = (haystack: string, needle: string, value: string) =>
     haystack.split(needle).join(value);
@@ -66,5 +72,6 @@ export function getChatWebviewHtml(
     bgOpacity != null ? String(Math.min(1, Math.max(0, bgOpacity))) : "1",
   );
   html = replaceAll(html, "PI_SENDSHORTCUT_PLACEHOLDER", escJsString(sendShortcut ?? "enter"));
+  html = replaceAll(html, "PI_WORKSPACE_PLACEHOLDER", escJsString(workspace ?? ""));
   return html;
 }

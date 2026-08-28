@@ -68,6 +68,7 @@ export let sendBtnTip = "";
 
 export const PI_HOME: string = (window as any).__PI_HOME__ || "";
 export const PI_SEP: string = (window as any).__PI_SEP__ || "/";
+export const PI_WORKSPACE: string = (window as any).__PI_WORKSPACE__ || "";
 export const PI_MERMAID_THEME: string = (window as any).__PI_MERMAID_THEME__ || "default";
 
 let sendShortcut: string = (window as any).__PI_SEND_SHORTCUT__ || "enter";
@@ -84,7 +85,7 @@ export const messagesEl = document.getElementById("messages")!;
 export const messagesInner = document.getElementById("messages-inner")!;
 export const widgetEl = document.getElementById("widget")!;
 export const queueEl = document.getElementById("queue")!;
-export const inputEl = document.getElementById("input") as HTMLTextAreaElement;
+export const inputEl = document.getElementById("input") as HTMLDivElement;
 export const sendBtn = document.getElementById("send") as HTMLButtonElement;
 export const attachBtn = document.getElementById("attach-btn") as HTMLButtonElement;
 export const attachPreviewEl = document.getElementById("attach-preview")!;
@@ -317,6 +318,25 @@ export function setStatus(t?: string): void {
   statusEl.textContent = t || "";
 }
 
+export function serializeRichInput(): string {
+  if (!inputEl) return "";
+  return serializeInputNode(inputEl);
+}
+
+function serializeInputNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const eln = node as HTMLElement;
+  if (eln.tagName === "BR") return "\n";
+  if (eln.classList && eln.classList.contains("token-file"))
+    return "@" + (eln.getAttribute("data-path") || "");
+  if (eln.classList && eln.classList.contains("token-cmd"))
+    return eln.getAttribute("data-value") || eln.textContent || "";
+  let out = "";
+  for (const child of Array.from(eln.childNodes)) out += serializeInputNode(child);
+  return out;
+}
+
 export function updateSendButton(): void {
   if (state.isStreaming || state.isBtwLoading) {
     sendBtn.innerHTML = ICON_STOP;
@@ -327,7 +347,7 @@ export function updateSendButton(): void {
     sendBtn.innerHTML = ICON_SEND;
     sendBtn.classList.remove("is-stop");
     sendBtnTip = t("Send message");
-    sendBtn.disabled = !inputEl.value.trim() && !pendingImages.length;
+    sendBtn.disabled = !serializeRichInput().trim() && !pendingImages.length;
   }
 }
 
@@ -657,6 +677,16 @@ export function shortenToolPath(p: string): string {
   if (PI_HOME && (p === PI_HOME || p.indexOf(PI_HOME + PI_SEP) === 0))
     return "~" + p.slice(PI_HOME.length);
   return p;
+}
+
+export function shortenWorkspacePath(p: string): string {
+  if (typeof p !== "string" || !p) return "";
+  if (PI_WORKSPACE && (p === PI_WORKSPACE || p.indexOf(PI_WORKSPACE + PI_SEP) === 0)) {
+    if (p === PI_WORKSPACE) return ".";
+    const rel = p.slice(PI_WORKSPACE.length + PI_SEP.length);
+    return rel || ".";
+  }
+  return shortenToolPath(p);
 }
 
 // ---- model icon imports (set from model-icons.ts) ----

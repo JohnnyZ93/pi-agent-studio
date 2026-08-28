@@ -85,6 +85,7 @@ export async function openChatPanel(
     resolveChatBackground(panel.webview, chatCfg.get<string>("chatBackgroundImage")),
     chatCfg.get<number>("chatBackgroundOpacity"),
     chatCfg.get<string>("chatSendShortcut"),
+    opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
   );
 
   let disposed = false;
@@ -111,6 +112,7 @@ export async function openChatPanel(
         resolveChatBackground(panel.webview, cfg.get<string>("chatBackgroundImage")),
         cfg.get<number>("chatBackgroundOpacity"),
         cfg.get<string>("chatSendShortcut"),
+        opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
       );
     }
   });

@@ -6,8 +6,9 @@ import {
   hideTooltip,
   showToast,
   overlayEl,
-  shortenToolPath,
+  shortenWorkspacePath,
 } from "./globals";
+import { basenameOf } from "./input-tokens";
 import { t } from "./i18n";
 
 const ICON_CHEVRON = '<span class="codicon codicon-chevron-right"></span>';
@@ -125,7 +126,12 @@ export function applyRewindWidget(lines: string[]) {
       const f = files[i];
       const row = el("div", "rewind-row");
       const fileEl = el("span", "rewind-file");
-      fileEl.textContent = shortenToolPath(f.absPath) || f.basename;
+      const displayPath = shortenWorkspacePath(f.absPath);
+      fileEl.textContent = f.basename || basenameOf(displayPath);
+      fileEl.addEventListener("mouseenter", function () {
+        showTooltip(fileEl, displayPath);
+      });
+      fileEl.addEventListener("mouseleave", hideTooltip);
       fileEl.addEventListener(
         "click",
         (function (f: any) {

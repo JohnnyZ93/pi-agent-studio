@@ -64,6 +64,7 @@ function getChatHtml(webview: vscode.Webview): string {
     resolveChatBackground(webview, cfg.get<string>("chatBackgroundImage")),
     cfg.get<number>("chatBackgroundOpacity"),
     cfg.get<string>("chatSendShortcut"),
+    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
   );
 }
 

@@ -7,6 +7,7 @@
     <script>
       window.__PI_HOME__ = "PI_HOME_PLACEHOLDER";
       window.__PI_SEP__ = "PI_SEP_PLACEHOLDER";
+      window.__PI_WORKSPACE__ = "PI_WORKSPACE_PLACEHOLDER";
       window.__PI_FONTSIZE__ = PI_FONTSIZE_PLACEHOLDER;
       window.__PI_LANG__ = "PI_LANG_PLACEHOLDER";
       window.__PI_MERMAID_THEME__ = "PI_MERMAID_THEME_PLACEHOLDER";
@@ -59,11 +60,14 @@
         <div class="autocomplete" id="autocomplete" style="display: none"></div>
         <div class="composer-box">
           <div class="attach-preview" id="attach-preview" style="display: none"></div>
-          <textarea
+          <div
             id="input"
-            rows="1"
-            placeholder="Ask anything…  (use / for commands, @ for files)"
-          ></textarea>
+            class="composer-input"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            data-placeholder="Ask anything…  (use / for commands, @ for files)"
+          ></div>
           <div class="composer-controls-bar">
             <button id="attach-btn" class="icon-btn" type="button">
               <span class="codicon codicon-add"></span>

@@ -1622,7 +1622,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
 #input {
   width: 100%;
   display: block;
-  resize: none;
   min-height: 28px;
   max-height: 200px;
   padding: 8px 10px 2px;
@@ -1634,9 +1633,29 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   font-size: var(--chat-fs);
   line-height: 1.5;
   outline: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+  box-sizing: border-box;
 }
-#input::placeholder {
+#input:empty::before {
+  content: attr(data-placeholder);
   color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+}
+#input .token {
+  border-radius: 4px;
+  padding: 0 2px;
+  user-select: none;
+  white-space: nowrap;
+}
+#input .token-cmd {
+  background: var(--vscode-badge-background, var(--vscode-button-secondaryBackground, transparent));
+  color: var(--vscode-badge-foreground, var(--vscode-button-secondaryForeground, inherit));
+}
+#input .token-file {
+  background: var(--vscode-inputOption-activeBackground, var(--vscode-button-background));
+  color: var(--vscode-inputOption-activeForeground, var(--vscode-button-foreground));
 }
 .send-btn {
   background: var(--vscode-button-background);
