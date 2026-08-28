@@ -47,6 +47,8 @@ import {
   sendBtnTip,
   pendingImages,
   inputHistory,
+  getSendShortcut,
+  setSendShortcut,
   getModelIcon,
   modelIconHtml,
 } from "./globals";
@@ -1134,7 +1136,13 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
     renderAutocomplete();
     return;
   }
-  if (acItems.length && !ev.altKey && (ev.key === "Enter" || ev.key === "Tab")) {
+  if (
+    acItems.length &&
+    !ev.altKey &&
+    !ev.ctrlKey &&
+    !ev.metaKey &&
+    (ev.key === "Enter" || ev.key === "Tab")
+  ) {
     ev.preventDefault();
     completeAutocomplete(acItems[acIndex]);
     return;
@@ -1166,9 +1174,21 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
       return;
     }
   }
-  if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) {
-    ev.preventDefault();
-    sendPrompt(ev.altKey ? "followUp" : "steer");
+  if (ev.key === "Enter" && !ev.isComposing) {
+    const isMac = /Mac/i.test(navigator.platform || "");
+    const isMod = isMac ? ev.metaKey : ev.ctrlKey;
+    const isFollowUp = ev.altKey && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey;
+    const isSend =
+      getSendShortcut() === "enter"
+        ? !ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey
+        : isMod && !ev.shiftKey && !ev.altKey;
+    if (isFollowUp) {
+      ev.preventDefault();
+      sendPrompt("followUp");
+    } else if (isSend) {
+      ev.preventDefault();
+      sendPrompt("steer");
+    }
   }
 });
 
@@ -1408,6 +1428,9 @@ window.addEventListener("message", function (e: MessageEvent) {
       permissionSelect.value = d.mode || "AskForApproval";
       fitPermissionSelect();
       updatePermissionColor(permissionSelect.value);
+      break;
+    case "sendShortcut":
+      setSendShortcut(d.value);
       break;
     case "commands":
       commands.length = 0;

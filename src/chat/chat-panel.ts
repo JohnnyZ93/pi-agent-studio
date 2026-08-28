@@ -83,11 +83,19 @@ export async function openChatPanel(
     chatCfg.get<string>("chatMermaidTheme"),
     resolveChatBackground(panel.webview, chatCfg.get<string>("chatBackgroundImage")),
     chatCfg.get<number>("chatBackgroundOpacity"),
+    chatCfg.get<string>("chatSendShortcut"),
   );
 
   let disposed = false;
 
   const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration("pi-agent-studio.chatSendShortcut")) {
+      const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+      panel.webview.postMessage({
+        type: "sendShortcut",
+        value: cfg.get<string>("chatSendShortcut") ?? "enter",
+      });
+    }
     if (
       e.affectsConfiguration("pi-agent-studio.language") ||
       e.affectsConfiguration("pi-agent-studio.chatMermaidTheme")
@@ -101,6 +109,7 @@ export async function openChatPanel(
         cfg.get<string>("chatMermaidTheme"),
         resolveChatBackground(panel.webview, cfg.get<string>("chatBackgroundImage")),
         cfg.get<number>("chatBackgroundOpacity"),
+        cfg.get<string>("chatSendShortcut"),
       );
     }
   });

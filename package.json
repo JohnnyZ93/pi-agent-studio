@@ -408,6 +408,19 @@
           "maximum": 32,
           "description": "%pi.config.chatFontSize.desc%"
         },
+        "pi-agent-studio.chatSendShortcut": {
+          "type": "string",
+          "default": "enter",
+          "enum": [
+            "enter",
+            "ctrlEnter"
+          ],
+          "enumDescriptions": [
+            "%pi.config.chatSendShortcut.enter%",
+            "%pi.config.chatSendShortcut.ctrlEnter%"
+          ],
+          "description": "%pi.config.chatSendShortcut.desc%"
+        },
         "pi-agent-studio.chatMermaidTheme": {
           "type": "string",
           "default": "default",

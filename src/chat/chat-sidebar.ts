@@ -63,6 +63,7 @@ function getChatHtml(webview: vscode.Webview): string {
     cfg.get<string>("chatMermaidTheme"),
     resolveChatBackground(webview, cfg.get<string>("chatBackgroundImage")),
     cfg.get<number>("chatBackgroundOpacity"),
+    cfg.get<string>("chatSendShortcut"),
   );
 }
 
@@ -177,6 +178,15 @@ export function createChatSidebarViewProvider(
       });
 
       const langSub = vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("pi-agent-studio.chatSendShortcut")) {
+          webviewView.webview.postMessage({
+            type: "sendShortcut",
+            value:
+              vscode.workspace
+                .getConfiguration("pi-agent-studio")
+                .get<string>("chatSendShortcut") ?? "enter",
+          });
+        }
         if (
           e.affectsConfiguration("pi-agent-studio.language") ||
           e.affectsConfiguration("pi-agent-studio.chatMermaidTheme")

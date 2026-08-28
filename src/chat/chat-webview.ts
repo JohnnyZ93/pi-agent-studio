@@ -45,6 +45,7 @@ export function getChatWebviewHtml(
   mermaidTheme?: string,
   bgImage?: string,
   bgOpacity?: number,
+  sendShortcut?: string,
 ): string {
   const replaceAll = (haystack: string, needle: string, value: string) =>
     haystack.split(needle).join(value);
@@ -64,5 +65,6 @@ export function getChatWebviewHtml(
     "PI_BG_OPACITY_PLACEHOLDER",
     bgOpacity != null ? String(Math.min(1, Math.max(0, bgOpacity))) : "1",
   );
+  html = replaceAll(html, "PI_SENDSHORTCUT_PLACEHOLDER", escJsString(sendShortcut ?? "enter"));
   return html;
 }

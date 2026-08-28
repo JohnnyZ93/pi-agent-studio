@@ -70,6 +70,15 @@ export const PI_HOME: string = (window as any).__PI_HOME__ || "";
 export const PI_SEP: string = (window as any).__PI_SEP__ || "/";
 export const PI_MERMAID_THEME: string = (window as any).__PI_MERMAID_THEME__ || "default";
 
+let sendShortcut: string = (window as any).__PI_SEND_SHORTCUT__ || "enter";
+export function getSendShortcut(): string {
+  return sendShortcut;
+}
+export function setSendShortcut(v: string | undefined): void {
+  if (!v) return;
+  sendShortcut = v;
+}
+
 // ---- DOM refs ----
 export const messagesEl = document.getElementById("messages")!;
 export const messagesInner = document.getElementById("messages-inner")!;
@@ -144,10 +153,18 @@ export function getEmptyHtml(): string {
     t("yours") +
     "</span></div>" +
     '<div class="empty-hints">' +
-    '<span class="empty-hint"><kbd>Enter</kbd>' +
+    '<span class="empty-hint"><kbd>' +
+    (sendShortcut === "ctrlEnter"
+      ? /Mac/i.test(navigator.platform || "")
+        ? "\u2318Enter"
+        : "Ctrl+Enter"
+      : "Enter") +
+    "</kbd>" +
     t("send / steer") +
     "</span>" +
-    '<span class="empty-hint"><kbd>Shift+Enter</kbd>' +
+    '<span class="empty-hint"><kbd>' +
+    (sendShortcut === "ctrlEnter" ? "Enter" : "Shift+Enter") +
+    "</kbd>" +
     t("newline") +
     "</span>" +
     '<span class="empty-hint"><kbd>Alt+Enter</kbd>' +
