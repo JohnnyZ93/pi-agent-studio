@@ -16,7 +16,6 @@ import { getChatWebviewHtml, resolveChatBackground } from "./chat-webview.ts";
 import { createChatSession, type ChatHost, type ChatSession } from "./chat-session.ts";
 
 export const SIDEBAR_VIEW_ID = "pi-agent-studio.chatSidebar";
-const CHAT_CONTAINER_COMMAND = "workbench.view.extension.pi-chat";
 
 interface SidebarState {
   view?: vscode.WebviewView;
@@ -222,7 +221,11 @@ export function createChatSidebarViewProvider(
 }
 
 export async function openSidebarChat(opts: SidebarChatOptions): Promise<void> {
-  await vscode.commands.executeCommand(CHAT_CONTAINER_COMMAND);
+  // NOTE: focus the VIEW, not the container. `workbench.view.extension.pi-chat`
+  // is the activity-bar container command and misbehaves when the container is
+  // dragged to the secondary sidebar (focus lands on the primary sidebar,
+  // e.g. Explorer). `<viewId>.focus` resolves the view's actual location and
+  // opens+focuses the hosting part (primary or secondary) itself.
   await vscode.commands.executeCommand(`${SIDEBAR_VIEW_ID}.focus`);
   const view = await waitForView();
   if (!view) return;
