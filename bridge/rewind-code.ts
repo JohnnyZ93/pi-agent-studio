@@ -28,9 +28,9 @@ import * as path from "node:path";
 
 interface FileChange {
   atEntryId: string;
-  beforeHash: string | null;
+  beforeHash: FileSnapshot;
   beforeMode: number | null;
-  afterHash: string | null;
+  afterHash: FileSnapshot;
   afterMode: number | null;
 }
 
@@ -48,7 +48,7 @@ interface Pending {
 }
 
 interface Baseline {
-  hash: string | null;
+  hash: FileSnapshot;
   mode: number | null;
 }
 
@@ -196,7 +196,7 @@ function restoreToEntry(
     if (!affected) continue;
 
     const atTarget = onBranch.find((c) => (order.get(c.atEntryId) ?? -1) === targetIndex);
-    let targetHash: string | null;
+    let targetHash: FileSnapshot;
     let targetMode: number | null;
     if (atTarget) {
       // The target turn itself changed this file -> restore to before that turn was processed.
@@ -222,6 +222,8 @@ function restoreToEntry(
       targetHash = lastBefore ? lastBefore.afterHash : earliest ? earliest.beforeHash : null;
       targetMode = lastBefore ? lastBefore.afterMode : earliest ? earliest.beforeMode : null;
     }
+
+    if (targetHash === undefined) continue; // oversized/non-regular file: no snapshot to restore
 
     try {
       if (targetHash === null) {
@@ -323,7 +325,8 @@ function buildWidgetData(ctx: ExtensionContext): WidgetData | null {
     if (current.hash === undefined) continue;
     if (current.hash === baseline.hash) continue;
 
-    const baselinePath = baseline.hash !== null ? path.join(currentSnapDir, baseline.hash) : null;
+    const baselinePath =
+      baseline.hash !== null && baseline.hash !== undefined ? path.join(currentSnapDir, baseline.hash) : null;
     const diff = computeLineDiff(baselinePath, abs);
 
     files.push({
@@ -332,7 +335,7 @@ function buildWidgetData(ctx: ExtensionContext): WidgetData | null {
       basename: path.basename(abs),
       added: diff !== null ? diff.added : null,
       removed: diff !== null ? diff.removed : null,
-      baselineHash: baseline.hash,
+      baselineHash: baseline.hash ?? null,
       baselineMode: baseline.mode,
       currentExists: current.hash !== null,
     });
@@ -352,6 +355,9 @@ function restoreFileToBaseline(abs: string, baseline: Baseline): boolean {
   try {
     if (baseline.hash === null) {
       fs.rmSync(abs, { force: true });
+    } else if (baseline.hash === undefined) {
+      // No snapshot was ever persisted for this file (oversized / non-regular) -> nothing to restore.
+      return false;
     } else {
       const src = path.join(currentSnapDir ?? "", baseline.hash);
       fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -465,6 +471,7 @@ export default function (pi: ExtensionAPI) {
     const userEntryId = lastUserEntryId(ctx);
     if (!userEntryId) return;
 
+    if (typeof event.input.path !== "string" || event.input.path.length === 0) return;
     const abs = path.resolve(ctx.cwd, event.input.path);
     const before = readSnapshot(abs);
 
