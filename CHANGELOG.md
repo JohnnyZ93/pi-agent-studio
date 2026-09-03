@@ -2,6 +2,13 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.8] - 2026-09-03
+
+- **Clear queue button**: the chat queue now has a one-click clear button (with tooltip and i18n) that empties all queued steer/follow-up messages via a new `clearQueue` RPC method.
+- **`/reload` built-in slash command**: session reload is now a webview built-in command instead of the legacy `reload-webview` bridge command — it restarts the pi chat session in place, reloading all resources and settings, and is listed in the slash-command palette.
+- **Pi SDK 0.84.4**: `@earendil-works/pi-ai` / `@earendil-works/pi-coding-agent` bumped to `^0.84.4`.
+- **Rewind-code crash fixed**: `/tree` rewind no longer crashes on oversized or non-regular files that never got a persisted snapshot — such files are now skipped instead of throwing on a missing hash (thanks [bsedat](https://github.com/bsedat) via PR #10).
+
 ## [1.3.7] - 2026-08-28
 
 - **Sidebar UI mode**: `pi-agent-studio.ui` gains a new `sidebar` value — `Pi: Open`, `Open Here`, and the Sessions view now open the sidebar chat instead of a terminal or panel, with session switching (`openSidebarChat` accepts `sessionFile` / `newSession`) reusing the single RPC subprocess; `Pi: Open in New Window` is hidden in this mode. UI-mode resolution is centralized in `src/ui-mode.ts`.
