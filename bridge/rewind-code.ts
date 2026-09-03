@@ -326,7 +326,9 @@ function buildWidgetData(ctx: ExtensionContext): WidgetData | null {
     if (current.hash === baseline.hash) continue;
 
     const baselinePath =
-      baseline.hash !== null && baseline.hash !== undefined ? path.join(currentSnapDir, baseline.hash) : null;
+      baseline.hash !== null && baseline.hash !== undefined
+        ? path.join(currentSnapDir, baseline.hash)
+        : null;
     const diff = computeLineDiff(baselinePath, abs);
 
     files.push({

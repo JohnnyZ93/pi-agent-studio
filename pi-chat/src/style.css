@@ -2234,6 +2234,27 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   max-height: 60px;
   overflow: hidden;
 }
+.queue-clear {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground, rgba(204, 204, 204, 0.8));
+  cursor: pointer;
+}
+.queue-clear:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.2));
+  color: var(--vscode-foreground, #fff);
+}
+.queue-clear .codicon {
+  font-size: 14px;
+}
 
 .ctx-menu {
   position: fixed;

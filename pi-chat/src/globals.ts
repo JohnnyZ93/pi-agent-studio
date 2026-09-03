@@ -542,6 +542,18 @@ export function renderQueue(): void {
     return;
   }
   queueEl.innerHTML = "";
+  const clearBtn = el("button", "queue-clear");
+  clearBtn.type = "button";
+  clearBtn.setAttribute("aria-label", t("Clear queued messages"));
+  clearBtn.innerHTML = '<span class="codicon codicon-clear-all"></span>';
+  clearBtn.addEventListener("click", () => {
+    vscode.postMessage({ type: "clearQueue" });
+  });
+  clearBtn.addEventListener("mouseenter", () => {
+    showTooltip(clearBtn, t("Clear queued messages"));
+  });
+  clearBtn.addEventListener("mouseleave", hideTooltip);
+  queueEl.appendChild(clearBtn);
   for (let i = 0; i < s.length; i++) queueEl.appendChild(makeQueueItem(s[i], "steer"));
   for (let j = 0; j < f.length; j++) queueEl.appendChild(makeQueueItem(f[j], "followUp"));
   queueEl.style.display = "flex";

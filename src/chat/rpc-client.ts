@@ -203,6 +203,7 @@ export async function createRpcClient(options: CreateRpcClientOptions): Promise<
         ...(images && images.length ? { images } : {}),
       }),
     abort: () => request<void>({ type: "abort" }),
+    clearQueue: () => request<{ steering: string[]; followUp: string[] }>({ type: "clear_queue" }),
     setModel: (provider, modelId) => request<RpcModel>({ type: "set_model", provider, modelId }),
     setThinkingLevel: (level) => request<void>({ type: "set_thinking_level", level }),
     getAvailableModels: () =>

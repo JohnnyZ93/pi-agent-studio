@@ -103,6 +103,7 @@ export interface RpcClient {
     images?: RpcImage[],
   ): Promise<void>;
   abort(): Promise<void>;
+  clearQueue(): Promise<{ steering: string[]; followUp: string[] }>;
   setModel(provider: string, modelId: string): Promise<RpcModel>;
   setThinkingLevel(level: string): Promise<void>;
   getAvailableModels(): Promise<RpcModel[]>;
@@ -169,6 +170,7 @@ export type WebviewToExt =
   | { type: "webviewReady" }
   | { type: "prompt"; message: string; streamingBehavior?: "steer" | "followUp" }
   | { type: "abort" }
+  | { type: "clearQueue" }
   | { type: "pickResource" }
   | { type: "setModel"; provider: string; modelId: string }
   | { type: "setThinking"; level: string }

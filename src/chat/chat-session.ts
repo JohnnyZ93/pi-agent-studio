@@ -515,6 +515,17 @@ export async function createChatSession(
           // ignore
         }
         break;
+      case "clearQueue":
+        try {
+          await rpc.clearQueue();
+          host.postMessage({
+            type: "event",
+            event: { type: "queue_update", steering: [], followUp: [] },
+          });
+        } catch {
+          // ignore
+        }
+        break;
       case "copy":
         try {
           await vscode.env.clipboard.writeText(String(msg.text ?? ""));
