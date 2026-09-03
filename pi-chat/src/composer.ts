@@ -1264,6 +1264,17 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
       inputEl.dispatchEvent(new Event("input", { bubbles: true }));
       return;
     }
+    const val = serializeRichInput();
+    const pos = getCaretOffset(inputEl);
+    if (val.slice(0, pos).endsWith("\n\n")) {
+      ev.preventDefault();
+      const newText = val.slice(0, pos - 2) + val.slice(pos);
+      inputEl.focus();
+      renderSegments(inputEl, segmentsFromText(newText), pos - 2);
+      autoGrow();
+      updateSendButton();
+      return;
+    }
   }
   if (!ev.shiftKey && !ev.altKey && !ev.ctrlKey && !ev.metaKey && ev.key === "ArrowUp") {
     const pos = getCaretOffset(inputEl);
@@ -1299,9 +1310,9 @@ inputEl.addEventListener("keydown", function (ev: KeyboardEvent) {
       ev.preventDefault();
       const val = serializeRichInput();
       const pos = getCaretOffset(inputEl);
-      const newText = val.slice(0, pos) + "\n" + val.slice(pos);
+      const newText = val.slice(0, pos) + "\n\n" + val.slice(pos);
       inputEl.focus();
-      renderSegments(inputEl, segmentsFromText(newText), pos + 1);
+      renderSegments(inputEl, segmentsFromText(newText), pos + 2);
       autoGrow();
       updateSendButton();
     }
