@@ -65,7 +65,6 @@ export interface ChatSession {
 }
 
 const MCP_STATUS_MARKER = "__mcp_status__";
-const RELOAD_MARKER = "__pi_reload__";
 const BTW_ABORT_TITLE = "Pi Btw Abort";
 const DIFF_PANEL_TITLE = "Pi Diff";
 
@@ -351,6 +350,10 @@ export async function createChatSession(
           toast("Started new session.", "success");
           break;
         }
+        case "reload": {
+          void reloadSession();
+          break;
+        }
       }
     } catch (e) {
       if (!sessionDisposed) {
@@ -450,10 +453,6 @@ export async function createChatSession(
           } catch {
             // ignore malformed status payload
           }
-          return;
-        }
-        if (message === RELOAD_MARKER) {
-          void reloadSession();
           return;
         }
         const t = req.notifyType as string | undefined;

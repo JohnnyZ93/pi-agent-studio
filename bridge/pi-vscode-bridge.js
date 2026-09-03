@@ -358,15 +358,4 @@ export default function (pi) {
       await ctx.navigateTree(targetId, { summarize: false });
     },
   });
-
-  pi.registerCommand("reload-webview", {
-    description: "Restart the pi chat session (VS Code webview only)",
-    handler: async (_args, ctx) => {
-      if (ctx.mode !== "rpc") {
-        ctx.ui.notify("/reload-webview is only available in the VS Code webview", "error");
-        return;
-      }
-      ctx.ui.notify("__pi_reload__", "info");
-    },
-  });
 }

@@ -8,6 +8,7 @@ export const BUILTIN_COMMAND_NAMES = [
   "changelog",
   "clear",
   "new",
+  "reload",
 ] as const;
 
 export function builtinCommands(): RpcCommand[] {
@@ -39,6 +40,11 @@ export function builtinCommands(): RpcCommand[] {
     },
     { name: "clear", description: "Start a new session", source: "builtin" },
     { name: "new", description: "Start a new session", source: "builtin" },
+    {
+      name: "reload",
+      description: "Restart the pi chat session, reload all resource and settings",
+      source: "builtin",
+    },
   ];
 }
 
