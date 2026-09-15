@@ -201,6 +201,10 @@
         {
           "command": "pi-agent-studio.openInNewWindow",
           "when": "config.pi-agent-studio.ui != sidebar"
+        },
+        {
+          "command": "pi-agent-studio.openInSidebar",
+          "when": "config.pi-agent-studio.ui == sidebar"
         }
       ]
     },
@@ -235,7 +239,8 @@
         {
           "type": "webview",
           "id": "pi-agent-studio.chatSidebar",
-          "name": "%pi.view.chat%"
+          "name": "%pi.view.chat%",
+          "when": "config.pi-agent-studio.ui == sidebar"
         }
       ]
     },
