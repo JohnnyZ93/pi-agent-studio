@@ -89,6 +89,7 @@ export const inputEl = document.getElementById("input") as HTMLDivElement;
 export const sendBtn = document.getElementById("send") as HTMLButtonElement;
 export const attachBtn = document.getElementById("attach-btn") as HTMLButtonElement;
 export const attachPreviewEl = document.getElementById("attach-preview")!;
+export const newChatBtn = document.getElementById("new-chat-btn") as HTMLButtonElement;
 export const infoBtn = document.getElementById("info-btn") as HTMLButtonElement;
 export const refreshBtn = document.getElementById("refresh-btn") as HTMLButtonElement;
 export const mcpBtn = document.getElementById("mcp-btn") as HTMLButtonElement;
@@ -356,12 +357,13 @@ export function setStreaming(b: boolean): void {
   if (!b) finalizeTextBlocks();
   updateSendButton();
   attachBtn.disabled = b;
-  updateRefreshBtn();
+  updateSessionBtns();
   if (!b && !statusEl.textContent) setStatus("");
 }
 
-export function updateRefreshBtn(): void {
+export function updateSessionBtns(): void {
   refreshBtn.disabled = state.isStreaming || !state.sessionFile;
+  newChatBtn.disabled = state.isStreaming || !state.sessionFile;
 }
 
 // ---- text block finalization (cross-module) ----
@@ -752,6 +754,15 @@ infoBtn.addEventListener("mouseenter", function () {
 });
 infoBtn.addEventListener("mouseleave", hideTooltip);
 
+newChatBtn.addEventListener("click", function () {
+  if (state.isStreaming) return;
+  vscode.postMessage({ type: "prompt", message: "/new" });
+});
+newChatBtn.addEventListener("mouseenter", function () {
+  showTooltip(newChatBtn, t("New chat"));
+});
+newChatBtn.addEventListener("mouseleave", hideTooltip);
+
 refreshBtn.addEventListener("click", function () {
   if (state.isStreaming) return;
   vscode.postMessage({ type: "reload" });
@@ -795,6 +806,7 @@ nameInput.addEventListener("blur", function () {
 // ---- init DOM ----
 infoBtn.innerHTML = ICON_INFO;
 refreshBtn.innerHTML = ICON_REFRESH;
+newChatBtn.innerHTML = ICON_PLUS;
 nameBtn.innerHTML = ICON_EDIT;
 attachBtn.innerHTML = ICON_PLUS;
 updateSendButton();
