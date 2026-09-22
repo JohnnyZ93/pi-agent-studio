@@ -10,7 +10,11 @@
  * switched with the `/permission` slash command (session-only).
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+  isToolCallEventType,
+  type ExtensionAPI,
+  type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 
 type PermissionMode = "AskForApproval" | "FullAccess";
 
@@ -51,10 +55,10 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.on("tool_call", async (event, ctx) => {
-    if (event.toolName !== "bash") return undefined;
+    if (!isToolCallEventType("bash", event)) return undefined;
     if (mode === "FullAccess") return undefined;
 
-    const command = (event.input as { command?: string }).command ?? "";
+    const command = event.input.command;
     if (!command) return undefined;
     if (!regexes.some((r) => r.test(command))) return undefined;
 

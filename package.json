@@ -1,7 +1,7 @@
 {
   "name": "pi-agent-studio",
   "displayName": "Pi Agent Studio",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "description": "Feature-rich Pi coding agent for VS Code - native terminal TUI or webview chat panel, full editor bridge, and bundled pi extensions (todo, subagent...) out of the box, plus a sidebar to manage sessions, models, agents, and settings.",
   "categories": [
     "AI",
@@ -47,8 +47,8 @@
     "test": "pnpm lint && pnpm typecheck"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.85.1",
-    "@earendil-works/pi-coding-agent": "^0.85.1"
+    "@earendil-works/pi-ai": "^0.86.0",
+    "@earendil-works/pi-coding-agent": "^0.86.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
@@ -201,6 +201,10 @@
         {
           "command": "pi-agent-studio.openInNewWindow",
           "when": "config.pi-agent-studio.ui != sidebar"
+        },
+        {
+          "command": "pi-agent-studio.openInSidebar",
+          "when": "config.pi-agent-studio.ui == sidebar"
         }
       ]
     },
@@ -235,7 +239,8 @@
         {
           "type": "webview",
           "id": "pi-agent-studio.chatSidebar",
-          "name": "%pi.view.chat%"
+          "name": "%pi.view.chat%",
+          "when": "config.pi-agent-studio.ui == sidebar"
         }
       ]
     },

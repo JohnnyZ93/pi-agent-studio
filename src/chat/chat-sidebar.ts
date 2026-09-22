@@ -12,6 +12,7 @@ import { sep } from "node:path";
 import * as vscode from "vscode";
 import type { BridgeConfig } from "../bridge/types.ts";
 import { getLocale, t } from "../i18n.ts";
+import { resolveUiMode } from "../ui-mode.ts";
 import { getChatWebviewHtml, resolveChatBackground } from "./chat-webview.ts";
 import { createChatSession, type ChatHost, type ChatSession } from "./chat-session.ts";
 
@@ -243,6 +244,16 @@ export function createChatSidebarViewProvider(
 }
 
 export async function openSidebarChat(opts: SidebarChatOptions): Promise<void> {
+  if (resolveUiMode() !== "sidebar") {
+    const pick = await vscode.window.showWarningMessage(
+      t('The sidebar chat requires "pi-agent-studio.ui": "sidebar".'),
+      t("Open VS Code settings"),
+    );
+    if (pick === t("Open VS Code settings")) {
+      await vscode.commands.executeCommand("workbench.action.openSettings", "pi-agent-studio.ui");
+    }
+    return;
+  }
   // NOTE: focus the VIEW, not the container. `workbench.view.extension.pi-chat`
   // is the activity-bar container command and misbehaves when the container is
   // dragged to the secondary sidebar (focus lands on the primary sidebar,

@@ -2,6 +2,12 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.3.10] - 2026-09-20
+
+- **New chat button**: the chat header gains a `+` button that starts a fresh session in place (built-in `/new`), alongside the existing reload button.
+- **Sidebar chat gated to sidebar mode**: the **Pi Chat** sidebar view and the `Pi: Open in Sidebar` command are now registered only when `"pi-agent-studio.ui": "sidebar"`, so the empty activity bar container no longer lingers in terminal / webview mode.
+- **Pi SDK 0.86.0**: `@earendil-works/pi-ai` / `@earendil-works/pi-coding-agent` (and the `pi-mcp` dev dependencies) bumped to `^0.86.0`; the permission gate uses the SDK's `isToolCallEventType` type guard for tool-call events.
+
 ## [1.3.9] - 2026-09-14
 
 - **Show earlier compacted messages**: after a compaction, the chat now prepends a collapsible "Show earlier compacted messages" block.

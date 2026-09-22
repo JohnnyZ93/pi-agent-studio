@@ -78,6 +78,7 @@
   "No matching models": "没有匹配的模型",
   "No MCP servers configured. Add servers in the MCP sidebar.": "尚未配置 MCP 服务器。请在 MCP 侧边栏中添加。",
   "No models configured": "未配置模型",
+  "New chat": "新对话",
   "(no output)": "（无输出）",
   "(no response)": "（无回应）",
   "limit {0}": "限制 {0}",
