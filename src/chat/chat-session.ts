@@ -65,7 +65,63 @@ export interface ChatSession {
   dispose(): void;
 }
 
-const MCP_STATUS_MARKER = "__mcp_status__";
+interface McpStatusServer {
+  name: string;
+  state: string;
+  disabled: boolean;
+  tools: number;
+  exposure: string;
+  error?: string;
+}
+
+/**
+ * Parse pi's built-in `/mcp` status text (see `formatStatus()`): lines of
+ * `name: state[, N tools] (exposure)`, an indented error continuation, plus
+ * `config error:` / `overridden:` lines and the empty-config message.
+ */
+function parseMcpStatus(text: string): McpStatusServer[] {
+  const servers: McpStatusServer[] = [];
+  let current: McpStatusServer | undefined;
+  for (const raw of text.split("\n")) {
+    if (!raw.trim()) continue;
+    if (/^\s/.test(raw)) {
+      if (current) current.error = current.error ? `${current.error}\n${raw.trim()}` : raw.trim();
+      continue;
+    }
+    const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(raw);
+    if (!match) {
+      if (/^(config error|overridden):/.test(raw)) {
+        servers.push({
+          name: raw.slice(0, raw.indexOf(":")),
+          state: "error",
+          disabled: false,
+          tools: 0,
+          exposure: "",
+          error: raw,
+        });
+      }
+      continue;
+    }
+    const rest = match[2] ?? "";
+    const name = match[1] ?? "";
+    const exposure = /\(([a-z-]+)\)\s*$/.exec(rest)?.[1] ?? "";
+    let state = "starting";
+    let disabled = false;
+    let tools = 0;
+    if (rest.startsWith("needs sign-in")) state = "needs-auth";
+    else if (rest.startsWith("disabled")) {
+      state = "disabled";
+      disabled = true;
+    } else if (rest.startsWith("disconnected")) state = "disconnected";
+    else if (rest.startsWith("connected")) {
+      state = "connected";
+      tools = Number(/,\s*(\d+)\s+tools/.exec(rest)?.[1] ?? 0);
+    }
+    current = { name, state, disabled, tools, exposure };
+    servers.push(current);
+  }
+  return servers;
+}
 const BTW_ABORT_TITLE = "Pi Btw Abort";
 const DIFF_PANEL_TITLE = "Pi Diff";
 
@@ -207,6 +263,7 @@ export async function createChatSession(
   let cachedBranch: string | undefined;
   let branchResolved = false;
   let streaming = false;
+  let expectMcpStatus = false;
   let switchedSession = false;
   let historyLoaded = false;
   let historyLoading: Promise<void> | null = null;
@@ -543,13 +600,9 @@ export async function createChatSession(
     } else if (req.method === "notify") {
       if (!sessionDisposed) {
         const message = String(req.message ?? "");
-        if (message.startsWith(MCP_STATUS_MARKER)) {
-          try {
-            const servers = JSON.parse(message.slice(MCP_STATUS_MARKER.length));
-            host.postMessage({ type: "mcpStatus", servers });
-          } catch {
-            // ignore malformed status payload
-          }
+        if (expectMcpStatus) {
+          expectMcpStatus = false;
+          host.postMessage({ type: "mcpStatus", servers: parseMcpStatus(message) });
           return;
         }
         const t = req.notifyType as string | undefined;
@@ -854,14 +907,17 @@ export async function createChatSession(
           toast('MCP is disabled. Enable it via setting "pi-agent-studio.mcp.enabled".', "warning");
           break;
         }
-        void rpc.prompt("/mcp status", streaming ? "steer" : undefined).catch(() => {});
+        expectMcpStatus = true;
+        void rpc.prompt("/mcp", streaming ? "steer" : undefined).catch(() => {});
         break;
       }
       case "mcpAction": {
-        const action = String(msg.action ?? "status");
+        const action = String(msg.action ?? "");
         const server = String(msg.server ?? "");
-        const arg = server ? ` ${server}` : "";
-        void rpc.prompt(`/mcp ${action}${arg}`, streaming ? "steer" : undefined).catch(() => {});
+        if (action !== "reconnect" || !server) break;
+        void rpc
+          .prompt(`/mcp reconnect ${server}`, streaming ? "steer" : undefined)
+          .catch(() => {});
         break;
       }
       case "setPermission":

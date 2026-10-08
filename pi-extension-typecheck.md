@@ -12,12 +12,12 @@ come from the pi packages this project declares as dependencies:
 - `@earendil-works/pi-ai` (incl. the `pi-ai/compat` subpath used by `btw.ts`)
 - `@earendil-works/pi-tui`, `@earendil-works/pi-agent-core`, `typebox`
 
-The first two resolve from the root `node_modules` normally (they are root
-dependencies). The other three are **not hoisted** to the root `node_modules`,
-so the committed `tsconfig.bridge.json` wires `paths` to the copies in
-`pi-mcp/node_modules` — `pi-mcp/package.json` declares the same pi versions as
-devDependencies, so those copies track the version this project targets (and
-`typebox` stays pinned to whatever pi itself pulls in).
+All five packages resolve from the root `node_modules`; the committed
+`tsconfig.bridge.json` wires `paths` for `@earendil-works/pi-tui`,
+`@earendil-works/pi-agent-core` and `typebox` to their root `node_modules`
+`.d.ts` files (the root package declares them as devDependencies, so those
+copies track the version this project targets and `typebox` stays pinned to
+whatever pi itself pulls in).
 
 ```bash
 # check every extension (also runs as part of `pnpm typecheck`)
@@ -34,7 +34,7 @@ Earlier revisions generated a throwaway tsconfig from `npm root -g` and ran
 _directory_ no longer resolve under `moduleResolution: nodenext` (must point at
 the actual `.d.ts`), `typebox`'s types live at `build/index.d.mts` (not
 `dist/`), and `tsgo` (TypeScript 7 native preview) has removed `baseUrl`.
-Pointing at the local `pi-mcp/node_modules` copy removes the `npm root -g`
+Pointing at the root `node_modules` copies removes the `npm root -g`
 machine-specific path, so the config can simply be committed — and it works in
 CI with no global install.
 

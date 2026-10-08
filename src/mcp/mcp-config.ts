@@ -2,17 +2,27 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
+export type McpExposure = "codemode" | "deferred" | "direct" | "hidden";
+
+/**
+ * Matches pi's built-in `mcpServers` shape. Unknown keys are ignored by pi;
+ * `disabled` / `directTools` / `bearerToken` from the old bridge are not read.
+ */
 export interface ServerEntry {
+  type?: "stdio" | "http";
   command?: string;
   args?: string[];
   env?: Record<string, string>;
   cwd?: string;
   url?: string;
   headers?: Record<string, string>;
-  bearerToken?: string;
-  disabled?: boolean;
-  /** Pin specific tools as direct tools (skipped by mcp_tool_search). true = all. */
-  directTools?: string[] | boolean;
+  oauth?: Record<string, unknown>;
+  auth?: { provider: string };
+  enabled?: boolean;
+  exposure?: McpExposure;
+  toolExposure?: Record<string, McpExposure>;
+  description?: string;
+  timeout?: number;
 }
 
 export interface McpConfig {
@@ -118,20 +128,28 @@ export function deleteServer(path: string, name: string): void {
   writeMcpConfig(path, config);
 }
 
-export function toggleDisabled(path: string, name: string): void {
+export function toggleEnabled(path: string, name: string): void {
   const config = readMcpConfig(path);
   const entry = config.mcpServers?.[name];
   if (!entry) throw new Error(`Server "${name}" not found`);
-  entry.disabled = !entry.disabled;
+  if (entry.enabled === false) delete entry.enabled;
+  else entry.enabled = false;
   writeMcpConfig(path, config);
 }
 
+const EXPOSURES: McpExposure[] = ["codemode", "deferred", "direct", "hidden"];
+
+function isExposure(value: string): value is McpExposure {
+  return (EXPOSURES as string[]).includes(value);
+}
+
 /**
- * Parse webview form fields into a ServerEntry.
+ * Parse webview form fields into a ServerEntry matching pi's built-in schema.
  * - args: one per line
- * - env: KEY=VALUE per line
- * - headers: KEY: VALUE per line
- * Empty arrays/objects are dropped so the JSON stays clean.
+ * - env / headers: KEY=VALUE / KEY: VALUE per line
+ * - toolExposure: `pattern=exposure` per line (order preserved)
+ * - oauth: raw JSON object
+ * Defaults (enabled: true, exposure: codemode, timeout: 60) are omitted.
  */
 export function parseServerEntry(form: {
   command?: string;
@@ -140,10 +158,13 @@ export function parseServerEntry(form: {
   cwd?: string;
   url?: string;
   headers?: string;
-  bearerToken?: string;
-  disabled?: boolean;
-  directTools?: string;
-  directToolsAll?: boolean;
+  enabled?: boolean;
+  exposure?: string;
+  toolExposure?: string;
+  description?: string;
+  timeout?: string;
+  oauth?: string;
+  authProvider?: string;
   _transport?: string;
 }): ServerEntry {
   const entry: ServerEntry = {};
@@ -155,40 +176,68 @@ export function parseServerEntry(form: {
     entry.url = url;
   } else if (transport === "stdio" && command) {
     entry.command = command;
-    const args = (form.args ?? "")
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (args.length > 0) entry.args = args;
   } else if (url) {
     entry.url = url;
   } else if (command) {
     entry.command = command;
+  }
+
+  if (entry.command) {
     const args = (form.args ?? "")
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
     if (args.length > 0) entry.args = args;
+    const env = parseKV(form.env, "=");
+    if (Object.keys(env).length > 0) entry.env = env;
+    const cwd = form.cwd?.trim();
+    if (cwd) entry.cwd = cwd;
   }
-  const cwd = form.cwd?.trim();
-  if (cwd) entry.cwd = cwd;
-  const env = parseKV(form.env, "=");
-  if (Object.keys(env).length > 0) entry.env = env;
-  const headers = parseKV(form.headers, ":");
-  if (Object.keys(headers).length > 0) entry.headers = headers;
-  const bearer = form.bearerToken?.trim();
-  if (bearer) entry.bearerToken = bearer;
-  if (form.disabled) entry.disabled = true;
-  if (form.directToolsAll) {
-    entry.directTools = true;
-  } else {
-    const directTools = (form.directTools ?? "")
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (directTools.length > 0) entry.directTools = directTools;
+  if (entry.url) {
+    const headers = parseKV(form.headers, ":");
+    if (Object.keys(headers).length > 0) entry.headers = headers;
+    const oauth = parseJsonObject(form.oauth);
+    if (oauth) entry.oauth = oauth;
+    const provider = form.authProvider?.trim();
+    if (provider) entry.auth = { provider };
   }
+
+  if (form.enabled === false) entry.enabled = false;
+  const exposure = (form.exposure ?? "").trim();
+  if (exposure && exposure !== "codemode" && isExposure(exposure)) entry.exposure = exposure;
+  const toolExposure = parseToolExposure(form.toolExposure);
+  if (toolExposure) entry.toolExposure = toolExposure;
+  const description = form.description?.trim();
+  if (description) entry.description = description;
+  const timeout = Number(form.timeout);
+  if (form.timeout?.trim() && Number.isFinite(timeout) && timeout > 0) entry.timeout = timeout;
   return entry;
+}
+
+function parseToolExposure(text: string | undefined): Record<string, McpExposure> | undefined {
+  const out: Record<string, McpExposure> = {};
+  for (const line of (text ?? "").split("\n")) {
+    const idx = line.indexOf("=");
+    if (idx <= 0) continue;
+    const tool = line.slice(0, idx).trim();
+    const exposure = line.slice(idx + 1).trim();
+    if (tool && isExposure(exposure)) out[tool] = exposure;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function parseJsonObject(text: string | undefined): Record<string, unknown> | undefined {
+  const raw = text?.trim();
+  if (!raw) return undefined;
+  try {
+    const value = JSON.parse(raw);
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return Object.keys(value).length > 0 ? (value as Record<string, unknown>) : undefined;
+    }
+  } catch {
+    // ignore malformed JSON; the webview validates before sending
+  }
+  return undefined;
 }
 
 function parseKV(text: string | undefined, sep: string): Record<string, string> {

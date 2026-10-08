@@ -22,12 +22,12 @@
 - **侧边栏聊天视图** —— 同样的聊天 UI 还可以作为 WebviewView 放在独立的 **Pi Chat** 活动栏容器中（`Pi: Open in Sidebar`）：启动会话前显示轻量起始页，每个窗口一个后台会话，视图隐藏 / 重新解析时完整重水合；`pi-agent-studio.ui` 新增 `sidebar` 值，可将 `Pi: Open` / `Open Here` 与 Sessions 视图路由到侧边栏聊天
 - **Mermaid 与数学公式渲染** —— webview 聊天面板将 `mermaid` 代码块渲染为交互式图表，并用 KaTeX 渲染数学公式（`$...$`、`$$...$$`）；图表主题可通过 `pi-agent-studio.chatMermaidTheme` 配置（`default` / `neutral` / `dark` / `forest` / `base`）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
-- **MCP 支持** —— 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：通过 `mcp_tool_search` / `mcp_tool_call` 发现并调用其工具 / 资源，提示词以 `/mcp__<服务器>__<提示词>` 形式暴露为 Slash 命令，并可从聊天工具栏抽屉或 `/mcp` 命令实时管理连接（start / stop / reconnect、空闲自动断开）
+- **MCP 支持** —— 通过 **pi 内置 MCP** 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：工具以 `mcp__<服务器>__<工具>` 暴露，支持 OAuth 登录与 `/mcp` 管理；聊天工具栏抽屉展示实时服务器状态并提供一键重连
 - **技能管理** —— 可视化面板，在用户 / 项目作用域内创建、编辑、删除 pi 技能（带 YAML frontmatter 的 SKILL.md）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
 - **诊断工具** —— Agent 可通过 `vscode_get_diagnostics` 按需读取 VS Code 诊断（LSP / lint / 类型错误）
 - **AI 驱动的 Git 提交信息** —— 基于 pi 从暂存区变更生成语义化 commit message，支持 14 种语言与自定义提示模板
-- **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（stdio / http 传输选择器）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`；Models 标签页还提供**高级 Provider / 模型兼容性选项**：按模型覆盖 API 协议与 base URL、支持 env / command 占位符的自定义请求头、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
+- **完整设置面板** —— 统一的 webview 编辑器，一站式管理：Models（Providers / OAuth / API Keys）、Agents、Prompt Templates、Skills、MCP Servers（内置格式：传输、启用、暴露方式、工具暴露、描述、超时、OAuth JSON）、**Commit Message**（模型 / 语言 / 自定义提示词）与 Settings（内联 `settings.json` 编辑器 + 系统提示 Append / Override），全部直接读写 `~/.pi/agent/*.json`；Models 标签页还提供**高级 Provider / 模型兼容性选项**：按模型覆盖 API 协议与 base URL、支持 env / command 占位符的自定义请求头、OpenAI / Anthropic 兼容字段、成本分层与思考级别映射
 - **侧边栏视图** —— `Sessions`（新建 / 恢复 / 切换会话，含实时状态图标）与精简版 `Settings` 侧边栏（环境信息、升级、跳转完整设置面板）
 - **危险命令审批** —— 内置 permission gate，拦截 `rm -rf`、`sudo` 等危险 bash 命令，执行前需人工批准；支持 `AskForApproval` / `FullAccess` 模式与自定义危险模式
 
@@ -96,7 +96,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - **Agents** -- 管理用户 / 项目级 subagent 定义，供内置 `subagent` 工具使用
 - **Prompt Templates** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 / 打开 pi 提示词模板（带 YAML frontmatter 的 markdown）
 - **Skills** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 pi 技能（SKILL.md）；外部技能只读展示，可打开源文件
-- **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；显式**传输方式选择器**（stdio / http）只展示对应字段——stdio 为 command/args/env/cwd，http 为 url/headers/bearerToken，另有每台服务器的 `directTools` 配置
+- **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；显式**传输方式选择器**（stdio / http）只展示对应字段——stdio 为 command/args/env/cwd，http 为 url/headers/oauth（原始 JSON）/auth.provider，另有每台服务器的 `enabled`、`exposure`、`toolExposure`、`description` 与 `timeout`，全部采用 pi 内置 MCP 格式
 - **Commit Message** —— 配置 AI 生成提交信息功能：模型（`provider/model`）、输出语言与自定义提示词模板，直接写入 VS Code 设置
 - **Settings** —— 两个分区：
   - **System Prompt** -- **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）、**Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
@@ -123,7 +123,6 @@ ovsx get johnny-zhao/pi-agent-studio
 - **permission-gate** -- 拦截危险 bash 命令（匹配 `pi-agent-studio.permission.dangerousPatterns`，如 `rm -rf`、`sudo`），执行前需人工批准；可通过 `/permission` 按会话切换模式
 - **rewind-code** -- 基于文件内容快照，在通过 `/tree` 回退历史消息时可选择同时恢复其代码变更（`/fork` 仅回退消息）；webview 面板中驱动实时变更文件 widget，支持 Accept / Revert
 - **btw** -- `/btw` 提问旁路问题，不污染主对话上下文
-- **mcp** -- 会话启动时自动连接配置的 MCP 服务器（stdio 或 StreamableHTTP→SSE），将其工具 / 提示词注册进 pi，并驱动聊天工具栏的 MCP 服务器抽屉（在设置面板的 **MCP Servers** 标签页管理；可通过 `pi-agent-studio.mcp.enabled` 开关）
 
 ### LLM 工具（1 个）
 
@@ -181,8 +180,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`）                      |
 | `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`                | 本地图片的绝对路径（校验类型与 ≤ 10 MB），用作聊天面板背景                                                     |
 | `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                 | 背景图片透明度（0–1）；输入框、widget 与自动完成应用毛玻璃样式以保持可读性                                     |
-| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`              | 是否加载内置 MCP 桥接扩展（将已配置 MCP 服务器的工具 / 资源 / 提示词暴露给 pi）                                |
-| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`                | 空闲 MCP 服务器自动断开前的分钟数（缓存元数据仍可搜索）；`0` 表示禁用自动断开                                  |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `false`             | 启用 pi 内置 MCP（读取 `~/.pi/agent/mcp.json` + `.pi/mcp.json`）；禁用时向 pi 传入 `--no-mcp`                  |
 
 ## 从源码构建
 

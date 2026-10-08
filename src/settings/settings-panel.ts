@@ -74,7 +74,7 @@ import {
   getMcpUserPath,
   listMergedServers,
   parseServerEntry,
-  toggleDisabled,
+  toggleEnabled,
   updateServer,
 } from "../mcp/mcp-config.ts";
 
@@ -385,8 +385,8 @@ export async function openSettingsPanel(
           deleteServer(resolveMcpScopePath(msg.scope, cwd), msg.name);
           await postTabData("mcp");
           break;
-        case "toggleDisabled":
-          toggleDisabled(resolveMcpScopePath(msg.scope, cwd), msg.name);
+        case "toggleEnabled":
+          toggleEnabled(resolveMcpScopePath(msg.scope, cwd), msg.name);
           await postTabData("mcp");
           break;
 
@@ -413,11 +413,6 @@ export async function openSettingsPanel(
         case "saveMcpConfig": {
           const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
           await cfg.update("mcp.enabled", !!msg.enabled, vscode.ConfigurationTarget.Global);
-          await cfg.update(
-            "mcp.idleTimeout",
-            typeof msg.idleTimeout === "number" ? msg.idleTimeout : 10,
-            vscode.ConfigurationTarget.Global,
-          );
           panel.webview.postMessage({ type: "saved", what: "mcp" });
           break;
         }
@@ -570,7 +565,6 @@ async function buildTabData(
         userPath,
         projectPath,
         mcpEnabled: cfg.get<boolean>("mcp.enabled", false),
-        mcpIdleTimeout: cfg.get<number>("mcp.idleTimeout", 10),
       };
     }
     case "sysprompt": {

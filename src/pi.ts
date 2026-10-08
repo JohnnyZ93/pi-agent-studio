@@ -5,7 +5,6 @@ import {
   BRIDGE_EXTENSION_PATH,
   BTW_EXTENSION_PATH,
   BUILTIN_AGENTS_DIR,
-  MCP_EXTENSION_PATH,
   PERMISSION_GATE_EXTENSION_PATH,
   QUESTIONNAIRE_EXTENSION_PATH,
   REWIND_CODE_EXTENSION_PATH,
@@ -131,12 +130,11 @@ export async function upgradePiBinary(): Promise<void> {
   }
 }
 
-/** Build the `-e <path>` pair for the MCP bridge, or [] when disabled. */
-function mcpExtensionArgs(extensionUri: vscode.Uri): string[] {
+/** Pass `--no-mcp` when MCP is disabled, so pi does not load built-in MCP. */
+function mcpArgs(): string[] {
   const enabled =
-    vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("mcp.enabled") ?? true;
-  if (!enabled) return [];
-  return ["-e", join(extensionUri.fsPath, MCP_EXTENSION_PATH)];
+    vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("mcp.enabled") ?? false;
+  return enabled ? [] : ["--no-mcp"];
 }
 
 /**
@@ -163,7 +161,7 @@ export function createPiShellArgs(options: {
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
-    ...mcpExtensionArgs(options.extensionUri),
+    ...mcpArgs(),
   ];
   const args = options.sessionFile
     ? [
@@ -187,12 +185,12 @@ export function createPiEnvironment(
   const disabledTools = config.get<string[]>("disabledTools") ?? [];
   const permissionMode = config.get<string>("permission.mode") ?? "AskForApproval";
   const dangerousPatterns = config.get<string[]>("permission.dangerousPatterns") ?? [];
-  const mcpIdleTimeout = config.get<number>("mcp.idleTimeout") ?? 10;
+  const mcpEnabled = config.get<boolean>("mcp.enabled") ?? false;
   const env: Record<string, string> = {
     PI_VSCODE_STATUS_BAR: statusBar ? "1" : "0",
     PI_VSCODE_DISABLED_TOOLS: JSON.stringify(disabledTools),
     PI_VSCODE_PERMISSION: JSON.stringify({ mode: permissionMode, patterns: dangerousPatterns }),
-    PI_VSCODE_MCP_IDLE_TIMEOUT: String(mcpIdleTimeout),
+    PI_VSCODE_MCP_ENABLED: mcpEnabled ? "1" : "0",
   };
   if (bridgeConfig) {
     env.PI_VSCODE_BRIDGE_TOKEN = bridgeConfig.token;
@@ -227,7 +225,7 @@ export function createRpcShellArgs(options: {
     join(options.extensionUri.fsPath, PERMISSION_GATE_EXTENSION_PATH),
     "-e",
     join(options.extensionUri.fsPath, REWIND_CODE_EXTENSION_PATH),
-    ...mcpExtensionArgs(options.extensionUri),
+    ...mcpArgs(),
   ];
   const base = ["--mode", "rpc"];
   return options.sessionFile

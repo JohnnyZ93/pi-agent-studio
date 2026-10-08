@@ -258,7 +258,7 @@ body {
 }
 .ctx-tooltip {
   position: fixed;
-  z-index: 50;
+  z-index: 1000;
   padding: 3px 8px;
   background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
   color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
@@ -2581,22 +2581,6 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.mcp-tag {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid var(--vscode-widget-border, transparent);
-  color: var(--vscode-foreground);
-  background: rgba(0, 120, 212, 0.25);
-  opacity: 0.85;
-}
-.mcp-tag-project {
-  background: rgba(0, 150, 80, 0.18);
-}
 .mcp-state {
   flex-shrink: 0;
   font-size: 10px;
@@ -2608,12 +2592,13 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   color: #3fb950;
   opacity: 1;
 }
-.mcp-state-connecting {
+.mcp-state-starting {
   color: #1f6feb;
   opacity: 1;
 }
 .mcp-state-error,
-.mcp-state-stopped {
+.mcp-state-disconnected,
+.mcp-state-needs-auth {
   color: #f85149;
   opacity: 1;
 }
@@ -2667,32 +2652,4 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
 }
 .mcp-icon-btn:hover {
   background: var(--vscode-toolbar-hoverBackground, rgba(127, 127, 127, 0.15));
-}
-.mcp-switch {
-  position: relative;
-  width: 32px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 9px;
-  background: var(--vscode-input-background, rgba(127, 127, 127, 0.3));
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease;
-}
-.mcp-switch.mcp-switch-on {
-  background: var(--vscode-button-background, #0e639c);
-}
-.mcp-switch-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--vscode-button-foreground, #fff);
-  transition: transform 0.15s ease;
-}
-.mcp-switch.mcp-switch-on .mcp-switch-knob {
-  transform: translateX(14px);
 }

@@ -302,6 +302,7 @@ async function runSingleAgent(
   }
 
   const args: string[] = ["--mode", "json", "-p", "--no-session"];
+  if (process.env.PI_VSCODE_MCP_ENABLED === "0") args.push("--no-mcp");
   if (agent.model) args.push("--model", agent.model);
   if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
 

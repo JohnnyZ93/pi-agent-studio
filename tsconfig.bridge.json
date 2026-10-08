@@ -10,11 +10,11 @@
     "lib": ["es2022"],
     "types": ["node"],
     "paths": {
-      "@earendil-works/pi-tui": ["./pi-mcp/node_modules/@earendil-works/pi-tui/dist/index.d.ts"],
+      "@earendil-works/pi-tui": ["./node_modules/@earendil-works/pi-tui/dist/index.d.ts"],
       "@earendil-works/pi-agent-core": [
-        "./pi-mcp/node_modules/@earendil-works/pi-agent-core/dist/index.d.ts"
+        "./node_modules/@earendil-works/pi-agent-core/dist/index.d.ts"
       ],
-      "typebox": ["./pi-mcp/node_modules/typebox/build/index.d.mts"]
+      "typebox": ["./node_modules/typebox/build/index.d.mts"]
     }
   },
   "include": ["bridge/**/*.ts"]

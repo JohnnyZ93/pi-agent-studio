@@ -22,12 +22,12 @@ English | [简体中文](README.zh-CN.md)
 - **Sidebar chat view** — The same chat UI is also available as a **WebviewView** in its own **Pi Chat** activity bar container (`Pi: Open in Sidebar`): a lightweight starter screen shows until you start a session, and one background session per window survives view hide / re-resolve with full state re-hydration. A new `sidebar` value for `pi-agent-studio.ui` routes `Pi: Open` / `Open Here` and the Sessions view to it
 - **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
-- **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope: discover and call their tools/resources via `mcp_tool_search` / `mcp_tool_call`, expose prompts as `/mcp__<server>__<prompt>` slash commands, and manage connections live from the chat toolbar drawer or the `/mcp` command (start / stop / reconnect, idle disconnect)
+- **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope via **pi's built-in MCP** (tools exposed as `mcp__<server>__<tool>`, OAuth sign-in, `/mcp` management); the chat toolbar drawer shows live server status and offers one-click reconnect
 - **Skills management** - Visual panel to create, edit, and delete pi skills (SKILL.md with YAML frontmatter) in user and project scopes
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
 - **Diagnostics tool** — The agent can read VS Code diagnostics (LSP / lint / type errors) on demand via `vscode_get_diagnostics`
 - **AI-powered Git commit messages** — Generate semantic commit messages from staged changes using pi, with support for 14 languages and custom prompt templates
-- **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (stdio/http with a transport selector), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O. The Models tab exposes **advanced provider/model compatibility options**: per-model API protocol and base URL overrides, custom headers with env/command placeholders, OpenAI/Anthropic compatibility fields, cost tiers, and thinking levels
+- **Full Settings panel** — One unified webview editor for everything: Models (Providers / OAuth / API Keys), Agents, Prompt Templates, Skills, MCP Servers (built-in format: transport, enabled, exposure, tool exposure, description, timeout, OAuth JSON), **Commit Message** (model / language / custom prompt), and Settings (inline `settings.json` editor + System Prompt Append/Override) — all backed by direct `~/.pi/agent/*.json` I/O. The Models tab exposes **advanced provider/model compatibility options**: per-model API protocol and base URL overrides, custom headers with env/command placeholders, OpenAI/Anthropic compatibility fields, cost tiers, and thinking levels
 - **Sidebar views** — `Sessions` (new/restore/switch) and a compact `Settings` sidebar (env info, upgrade, jump to the full panel)
 - **Dangerous Command Approval** — Built-in permission gate that blocks dangerous bash commands like `rm -rf` and `sudo`, requiring manual approval before execution; supports `AskForApproval` / `FullAccess` modes and custom danger modes
 
@@ -96,7 +96,7 @@ The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) open
 - **Agents** - Manage user/project-level subagent definitions used by the bundled `subagent` tool
 - **Prompt Templates** - Create / edit / delete / open pi prompt templates (markdown with YAML frontmatter) in user and project scopes
 - **Skills** - Create / edit / delete pi skills (SKILL.md) in user and project scopes; external skills are shown read-only with an option to open the file
-- **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; an explicit **transport selector** (stdio / http) shows only the relevant fields — command/args/env/cwd for stdio, url/headers/bearerToken for http — plus per-server `directTools` configuration
+- **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; an explicit **transport selector** (stdio / http) shows only the relevant fields — command/args/env/cwd for stdio, url/headers/oauth (raw JSON)/auth.provider for http — plus per-server `enabled`, `exposure`, `toolExposure`, `description`, and `timeout`. Written in pi's built-in MCP format
 - **Commit Message** — Configure the AI-generated commit message feature: model (`provider/model`), output language, and a custom prompt template, written straight to VS Code settings
 - **Settings** — Two sections:
   - **System Prompt** — **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt), **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
@@ -123,7 +123,6 @@ Beyond the editor bridge, the extension bundles a few pi extensions that add age
 - **permission-gate** - intercepts dangerous bash commands (matching `pi-agent-studio.permission.dangerousPatterns`, e.g. `rm -rf`, `sudo`) and requires approval before execution; switch per session via `/permission`
 - **rewind-code** - file-level content snapshots that let you rewind a historical message via `/tree` and optionally restore its code changes (message-only on `/fork`); in the webview panel it drives a live changed-files widget with Accept / Revert
 - **btw** - `/btw` asks a question without altering the main conversation context
-- **mcp** - connects configured MCP servers (stdio or StreamableHTTP→SSE) at session start, registers their tools/prompts into pi, and powers the MCP server drawer in the chat toolbar (managed from the **MCP Servers** tab of the Settings panel; enable/disable via `pi-agent-studio.mcp.enabled`)
 
 ### LLM tool (1)
 
@@ -181,8 +180,7 @@ Example:
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)                                |
 | `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`               | Absolute path to a local image file (validated for type and ≤ 10 MB) used as the chat panel background                               |
 | `pi-agent-studio.chatBackgroundOpacity`        | `number`  | `1`                | Background image opacity (0–1); frosted-glass styling is applied to composer, widgets, and autocomplete                              |
-| `pi-agent-studio.mcp.enabled`                  | `boolean` | `true`             | Load the bundled MCP bridge extension (exposes configured MCP servers' tools/resources/prompts to pi)                                |
-| `pi-agent-studio.mcp.idleTimeout`              | `number`  | `10`               | Minutes before idle MCP servers disconnect (cached metadata keeps `mcp_tool_search` working); `0` disables                           |
+| `pi-agent-studio.mcp.enabled`                  | `boolean` | `false`            | Enable pi's built-in MCP support (reads `~/.pi/agent/mcp.json` + `.pi/mcp.json`); when disabled, `--no-mcp` is passed to pi          |
 
 ## Building from source
 

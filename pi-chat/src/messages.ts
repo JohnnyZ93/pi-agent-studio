@@ -708,7 +708,7 @@ export function formatReadRange(args: any): string {
 }
 
 export function isMcpTool(name: string): boolean {
-  return name.startsWith("mcp__") || name.startsWith("mcp_tool_");
+  return name.startsWith("mcp__");
 }
 
 export function toolDisplayName(name: string): string {
@@ -718,12 +718,6 @@ export function toolDisplayName(name: string): string {
     if (idx > 0) return `${rest.slice(0, idx)}/${rest.slice(idx + 2)}`;
   }
   return name;
-}
-
-function mcpHandleParts(handle: string): { server: string; tool: string } {
-  const idx = handle.indexOf("_");
-  if (idx <= 0) return { server: "", tool: handle };
-  return { server: handle.slice(0, idx), tool: handle.slice(idx + 1) };
 }
 
 function mcpArgsPreview(args: any): string {
@@ -790,21 +784,6 @@ export function formatToolSummary(name: string, args: any): string {
     else s = t("questionnaire");
   } else if (name.startsWith("mcp__")) {
     s = mcpArgsPreview(args);
-  } else if (name === "mcp_tool_call") {
-    const h = toolStr(args && args.tool);
-    if (h) {
-      const parts = mcpHandleParts(h);
-      s = parts.server ? `${parts.server}/${parts.tool}` : h;
-    } else {
-      s = "...";
-    }
-  } else if (name === "mcp_tool_search") {
-    const q = toolStr(args && args.query);
-    s = q ? `"${q}"` : "...";
-    const opts: string[] = [];
-    if (args && args.limit != null) opts.push(t("limit {0}", args.limit));
-    if (args && args.offset != null) opts.push(t("offset {0}", args.offset));
-    if (opts.length) s += ` (${opts.join(", ")})`;
   }
   return s;
 }

@@ -5,21 +5,25 @@ interface ServerData {
   servers: Array<{
     name: string;
     entry: {
+      type?: string;
       command?: string;
       args?: string[];
       env?: Record<string, string>;
       cwd?: string;
       url?: string;
       headers?: Record<string, string>;
-      bearerToken?: string;
-      disabled?: boolean;
-      directTools?: string[] | boolean;
+      oauth?: Record<string, unknown>;
+      auth?: { provider: string };
+      enabled?: boolean;
+      exposure?: string;
+      toolExposure?: Record<string, string>;
+      description?: string;
+      timeout?: number;
     };
     source: "user" | "project";
   }>;
   hasWorkspace: boolean;
   mcpEnabled: boolean;
-  mcpIdleTimeout: number;
 }
 
 interface McpForm {
@@ -31,11 +35,16 @@ interface McpForm {
   env?: string;
   cwd?: string;
   headers?: string;
-  bearerToken?: string;
-  disabled?: boolean;
-  directTools?: string;
-  directToolsAll?: boolean;
+  oauth?: string;
+  authProvider?: string;
+  enabled?: boolean;
+  exposure?: string;
+  toolExposure?: string;
+  description?: string;
+  timeout?: string;
 }
+
+const EXPOSURES = ["codemode", "deferred", "direct", "hidden"];
 
 export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   const servers = data.servers || [];
@@ -52,13 +61,13 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
           <span class="item-name">${escHtml(s.name)}</span>
           <span class="badge ${s.source === "project" ? "badge-project" : "badge-user"}">${t(s.source)}</span>
           <span class="badge ${s.entry.url ? "badge-http" : s.entry.command ? "badge-stdio" : "badge-other"}">${s.entry.url ? t("http") : s.entry.command ? t("stdio") : "?"}</span>
-          ${s.entry.disabled ? `<span class="badge badge-disabled">${t("Disabled")}</span>` : ""}
+          ${s.entry.enabled === false ? `<span class="badge badge-disabled">${t("Disabled")}</span>` : ""}
         </div>
         <div class="item-desc">${escHtml(formatTransport(s.entry))}</div>
       </div>
       <div class="item-actions">
         <button class="btn-icon" data-action="edit-server" data-name="${escHtml(s.name)}" title="${t("Edit")}"><span class="codicon codicon-edit"></span></button>
-        <button class="btn-icon" data-action="toggle-disabled" data-name="${escHtml(s.name)}" title="${s.entry.disabled ? t("Enable") : t("Disable")}"><span class="codicon ${s.entry.disabled ? "codicon-circle-filled" : "codicon-circle-slash"}"></span></button>
+        <button class="btn-icon" data-action="toggle-enabled" data-name="${escHtml(s.name)}" title="${s.entry.enabled === false ? t("Enable") : t("Disable")}"><span class="codicon ${s.entry.enabled === false ? "codicon-circle-filled" : "codicon-circle-slash"}"></span></button>
         <button class="btn-icon btn-danger" data-action="delete-server" data-name="${escHtml(s.name)}" title="${t("Delete")}"><span class="codicon codicon-trash"></span></button>
       </div>
     </div>`,
@@ -77,11 +86,7 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   </div>
   <div class="editor-card mcp-cfg">
     <div class="mcp-cfg-row">
-      <label class="check-label"><input type="checkbox" id="mcp-enabled" ${data.mcpEnabled ? "checked" : ""} /> ${t("Enable MCP tools")}</label>
-      <div class="mcp-cfg-field">
-        <label class="field-label">${t("Idle timeout (minutes)")}</label>
-        <input id="mcp-idle" type="number" min="0" value="${data.mcpIdleTimeout ?? 10}" title="${t("Minutes before idle MCP servers disconnect. 0 disables idle disconnect.")}" />
-      </div>
+      <label class="check-label"><input type="checkbox" id="mcp-enabled" ${data.mcpEnabled ? "checked" : ""} /> ${t("Enable built-in MCP")}</label>
       <button class="btn-primary" data-action="save-mcp-config"><span class="codicon codicon-save"></span> ${t("Save")}</button>
     </div>
   </div>
@@ -92,9 +97,13 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
   function showEditor(server?: (typeof servers)[number]) {
     editing = server;
     const e = server?.entry ?? {};
-    const directTools = typeof e.directTools === "boolean" ? "" : (e.directTools ?? []).join("\n");
-    const directToolsAll = e.directTools === true;
     const transport = e.url ? "http" : "stdio";
+    const toolExposure = Object.entries(e.toolExposure ?? {})
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+    const oauthJson =
+      e.oauth && Object.keys(e.oauth).length > 0 ? JSON.stringify(e.oauth, null, 2) : "";
+    const exposure = e.exposure ?? "codemode";
 
     parent.innerHTML = /* html */ `
 <div class="editor-card">
@@ -129,14 +138,23 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
     <label class="field-label">${t("URL")}</label>
     <input id="mcp-url" value="${escHtml(e.url ?? "")}" placeholder="https://example.com/mcp" />
     <label class="field-label">${t("Headers (KEY: VALUE, one per line)")}</label>
-    <textarea id="mcp-headers" class="ta" style="height:60px" placeholder="Authorization: Bearer xxx">${escHtml(kvToLines(e.headers, ": "))}</textarea>
-    <label class="field-label">${t("Bearer token")}</label>
-    <input id="mcp-bearer" value="${escHtml(e.bearerToken ?? "")}" />
+    <textarea id="mcp-headers" class="ta" style="height:60px" placeholder="Authorization: Bearer \${TOKEN}">${escHtml(kvToLines(e.headers, ": "))}</textarea>
+    <label class="field-label">${t("OAuth (JSON)")}</label>
+    <textarea id="mcp-oauth" class="ta" style="height:80px" placeholder='{ "clientId": "my-client" }'>${escHtml(oauthJson)}</textarea>
+    <label class="field-label">${t("Auth provider")}</label>
+    <input id="mcp-auth-provider" value="${escHtml(e.auth?.provider ?? "")}" placeholder="openai" title="${t("Send the token of a pi provider instead of using OAuth.")}" />
   </div>
-  <label class="field-label">${t('Direct tools (one per line, or "all")')}</label>
-  <textarea id="mcp-dt" class="ta" style="height:60px" placeholder="tool_a&#10;tool_b">${escHtml(directTools)}</textarea>
-  <label class="check-label"><input type="checkbox" id="mcp-dt-all" ${directToolsAll ? "checked" : ""} /> ${t("All tools direct")}</label>
-  <label class="check-label"><input type="checkbox" id="mcp-disabled" ${e.disabled ? "checked" : ""} /> ${t("Disabled")}</label>
+  <label class="field-label">${t("Exposure")}</label>
+  <select id="mcp-exposure">
+    ${EXPOSURES.map((x) => `<option value="${x}" ${exposure === x ? "selected" : ""}>${x}</option>`).join("")}
+  </select>
+  <label class="field-label">${t("Tool exposure (pattern=exposure, one per line)")}</label>
+  <textarea id="mcp-tool-exposure" class="ta" style="height:60px" placeholder="search_code=direct&#10;delete_*=hidden">${escHtml(toolExposure)}</textarea>
+  <label class="field-label">${t("Description")}</label>
+  <input id="mcp-description" value="${escHtml(e.description ?? "")}" />
+  <label class="field-label">${t("Timeout (seconds)")}</label>
+  <input id="mcp-timeout" type="number" min="1" value="${e.timeout ?? ""}" placeholder="60" />
+  <label class="check-label"><input type="checkbox" id="mcp-enabled-server" ${e.enabled === false ? "" : "checked"} /> ${t("Enabled")}</label>
   <div class="btn-row">
     <button class="btn-primary" data-action="save-mcp"><span class="codicon codicon-save"></span> ${t("Save")}</button>
     <button class="btn-secondary" data-action="cancel-mcp" title="${t("Cancel")}"><span class="codicon codicon-close"></span></button>
@@ -167,10 +185,14 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
       env: (document.getElementById("mcp-env") as HTMLTextAreaElement)?.value ?? "",
       cwd: v("mcp-cwd"),
       headers: (document.getElementById("mcp-headers") as HTMLTextAreaElement)?.value ?? "",
-      bearerToken: v("mcp-bearer"),
-      directTools: (document.getElementById("mcp-dt") as HTMLTextAreaElement)?.value ?? "",
-      directToolsAll: (document.getElementById("mcp-dt-all") as HTMLInputElement)?.checked ?? false,
-      disabled: (document.getElementById("mcp-disabled") as HTMLInputElement)?.checked ?? false,
+      oauth: (document.getElementById("mcp-oauth") as HTMLTextAreaElement)?.value ?? "",
+      authProvider: v("mcp-auth-provider"),
+      exposure: (document.getElementById("mcp-exposure") as HTMLSelectElement)?.value,
+      toolExposure:
+        (document.getElementById("mcp-tool-exposure") as HTMLTextAreaElement)?.value ?? "",
+      description: v("mcp-description"),
+      timeout: v("mcp-timeout"),
+      enabled: (document.getElementById("mcp-enabled-server") as HTMLInputElement)?.checked ?? true,
     };
   }
 
@@ -195,10 +217,10 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
           vscode.postMessage({ type: "deleteServer", name, scope: server?.source ?? "user" });
         }
         break;
-      case "toggle-disabled":
+      case "toggle-enabled":
         if (name) {
           const server = servers.find((s) => s.name === name);
-          vscode.postMessage({ type: "toggleDisabled", name, scope: server?.source ?? "user" });
+          vscode.postMessage({ type: "toggleEnabled", name, scope: server?.source ?? "user" });
         }
         break;
       case "open-mcp-json":
@@ -210,23 +232,29 @@ export function renderMcpTab(parent: HTMLElement, data: ServerData) {
       case "save-mcp-config": {
         const enabled =
           (document.getElementById("mcp-enabled") as HTMLInputElement)?.checked ?? false;
-        const idleEl = document.getElementById("mcp-idle") as HTMLInputElement | null;
-        const idle = idleEl ? Number(idleEl.value) : 10;
-        if (idleEl && idleEl.value.trim() === "") {
-          showError(parent, t("Idle timeout must be a number"));
-          return;
-        }
-        vscode.postMessage({
-          type: "saveMcpConfig",
-          enabled,
-          idleTimeout: Number.isNaN(idle) ? 10 : idle,
-        });
+        vscode.postMessage({ type: "saveMcpConfig", enabled });
         break;
       }
       case "save-mcp": {
         const form = readForm();
         if (!form.name.trim()) {
           showError(parent, t("Server name is required"));
+          return;
+        }
+        if (form.oauth && form.oauth.trim()) {
+          try {
+            const parsed = JSON.parse(form.oauth);
+            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+              showError(parent, t("Invalid OAuth JSON"));
+              return;
+            }
+          } catch {
+            showError(parent, t("Invalid OAuth JSON"));
+            return;
+          }
+        }
+        if (form.timeout && form.timeout.trim() && !(Number(form.timeout) > 0)) {
+          showError(parent, t("Timeout must be a positive number"));
           return;
         }
         vscode.postMessage({

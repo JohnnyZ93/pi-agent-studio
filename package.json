@@ -36,7 +36,7 @@
   "type": "module",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "build": "pnpm --filter pi-chat build && pnpm --filter pi-mcp build && pnpm --filter pi-settings build && rolldown -c rolldown.config.ts",
+    "build": "pnpm --filter pi-chat build && pnpm --filter pi-settings build && rolldown -c rolldown.config.ts",
     "dev": "rolldown -c rolldown.config.ts -w",
     "package": "pnpm build && pnpx @vscode/vsce package --no-dependencies",
     "install-local": "pnpm package && code --install-extension *.vsix",
@@ -47,10 +47,12 @@
     "test": "pnpm lint && pnpm typecheck"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "^0.86.0",
-    "@earendil-works/pi-coding-agent": "^0.86.0"
+    "@earendil-works/pi-ai": "^1.1.0",
+    "@earendil-works/pi-coding-agent": "^1.1.0"
   },
   "devDependencies": {
+    "@earendil-works/pi-agent-core": "^1.1.0",
+    "@earendil-works/pi-tui": "^1.1.0",
     "@types/node": "^25.5.0",
     "@types/vscode": "1.100.0",
     "@typescript/native-preview": "^7.0.0-dev.20260320.1",
@@ -60,6 +62,7 @@
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "rolldown": "^1.0.0-rc.10",
+    "typebox": "1.3.7",
     "vitest": "^4.1.0"
   },
   "l10n": "./l10n",
@@ -356,12 +359,6 @@
           "type": "boolean",
           "default": false,
           "description": "%pi.config.mcp.enabled.desc%"
-        },
-        "pi-agent-studio.mcp.idleTimeout": {
-          "type": "number",
-          "default": 10,
-          "minimum": 0,
-          "description": "%pi.config.mcp.idleTimeout.desc%"
         },
         "pi-agent-studio.permission.mode": {
           "type": "string",

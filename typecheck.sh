@@ -6,8 +6,8 @@
 # `pi-agent-core`, `typebox`). There is no local package.json for bridge/, so
 # the committed `tsconfig.bridge.json` resolves the sub-packages that are not
 # hoisted to the root `node_modules` (pi-tui, pi-agent-core, typebox) via
-# `paths` to `pi-mcp/node_modules` — pi-mcp declares the same pi versions as
-# devDependencies. `pi-coding-agent` / `pi-ai` resolve from the root
+# `paths` to the root `node_modules` (the root package declares them as
+# devDependencies). `pi-coding-agent` / `pi-ai` resolve from the root
 # `node_modules` normally (including the `pi-ai/compat` subpath).
 #
 # Uses tsgo (the same TypeScript native preview compiler as `pnpm typecheck`):
