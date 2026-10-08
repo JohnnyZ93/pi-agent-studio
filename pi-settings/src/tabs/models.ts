@@ -18,6 +18,9 @@ interface ModelEntry {
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string | null>;
   samplingParams?: Record<string, unknown>;
+  samplingParamsByThinkingLevel?: Record<string, unknown>;
+  promptCache?: { short?: number; long?: number };
+  inputLimits?: Record<string, unknown>;
   input?: string[];
   headers?: Record<string, string>;
   compat?: Record<string, unknown>;
@@ -85,7 +88,7 @@ const APIS = [
 
 interface CompatFieldDef {
   name: string;
-  type: "bool" | "select" | "json";
+  type: "bool" | "select" | "json" | "number";
   options?: readonly string[];
   group: "openai" | "anthropic";
 }
@@ -104,6 +107,7 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
   { name: "sendSessionAffinityHeaders", type: "bool", group: "openai" },
   { name: "supportsLongCacheRetention", type: "bool", group: "openai" },
   { name: "supportsFinishReason", type: "bool", group: "openai" },
+  { name: "vllmPriority", type: "number", group: "openai" },
   {
     name: "maxTokensField",
     type: "select",
@@ -136,7 +140,6 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
     group: "openai",
     options: ["", "openai", "openai-nosession", "openrouter"],
   },
-  { name: "deferredToolsMode", type: "select", group: "openai", options: ["", "kimi"] },
   { name: "chatTemplateKwargs", type: "json", group: "openai" },
   { name: "chatTemplateArgs", type: "json", group: "openai" },
   { name: "openRouterRouting", type: "json", group: "openai" },
@@ -146,6 +149,9 @@ const COMPAT_FIELDS: readonly CompatFieldDef[] = [
   { name: "forceAdaptiveThinking", type: "bool", group: "anthropic" },
   { name: "allowEmptySignature", type: "bool", group: "anthropic" },
   { name: "supportsStrictTools", type: "bool", group: "anthropic" },
+  { name: "supportsTemperature", type: "bool", group: "anthropic" },
+  { name: "supportsMidConvoEffort", type: "bool", group: "anthropic" },
+  { name: "allowedFallbackModels", type: "json", group: "anthropic" },
 ];
 
 function renderHeadersField(id: string, headers?: Record<string, string>): string {
@@ -227,6 +233,10 @@ function renderCompatGroup(
     const text = val != null ? safeJsonStringify(val) : "";
     h += `<label class="field-label">${f.name} (JSON)</label><textarea id="${prefix}-${f.name}" class="ta" style="height:70px" placeholder="{}">${escHtml(text)}</textarea>`;
   }
+  for (const f of fields.filter((x) => x.type === "number")) {
+    const cur = compat?.[f.name];
+    h += `<label class="field-label">${f.name}</label><input id="${prefix}-${f.name}" type="number" step="any" value="${cur != null ? escAttr(String(cur)) : ""}" />`;
+  }
   h += "</div></div>";
   return h;
 }
@@ -291,6 +301,11 @@ function readCompatSection(prefix: string, existing?: Record<string, unknown>): 
       const el = document.getElementById(id) as HTMLSelectElement | null;
       const v = el?.value ?? "";
       if (v) result[f.name] = v;
+      else delete result[f.name];
+    } else if (f.type === "number") {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      const raw = el?.value.trim() ?? "";
+      if (raw !== "" && Number.isFinite(Number(raw))) result[f.name] = Number(raw);
       else delete result[f.name];
     } else {
       const el = document.getElementById(id) as HTMLTextAreaElement | null;
@@ -502,6 +517,12 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
   const hasImage = !!e?.input?.includes("image");
   const tlm = e?.thinkingLevelMap != null ? safeJsonStringify(e.thinkingLevelMap) : "";
   const sp = e?.samplingParams != null ? safeJsonStringify(e.samplingParams) : "";
+  const spbtl =
+    e?.samplingParamsByThinkingLevel != null
+      ? safeJsonStringify(e.samplingParamsByThinkingLevel)
+      : "";
+  const pc = e?.promptCache != null ? safeJsonStringify(e.promptCache) : "";
+  const il = e?.inputLimits != null ? safeJsonStringify(e.inputLimits) : "";
   return `<div class="editor-card" style="border:1px solid var(--vscode-focusBorder);border-radius:4px;margin:4px 0"><h3>${isNew ? t("Add Model") : t("Edit Model")}</h3>
     <div class="form-row"><div class="form-group"><label class="field-label">${t("Model ID")}</label><input id="mf-id" value="${escAttr(e?.id ?? "")}" placeholder="model-id" ${isNew ? "" : "readonly"} /></div>
     <div class="form-group"><label class="field-label">${t("Display Name")}</label><input id="mf-name" value="${escAttr(e?.name ?? "")}" placeholder="${t("Optional")}" /></div></div>
@@ -521,6 +542,9 @@ function renderModelFields(provId: string, existing: ModelEntry | null, isNew: b
     </div>
     <label class="field-label">${t("Thinking Level Map (JSON)")}</label><textarea id="mf-thinkingLevelMap" class="ta" style="height:90px" placeholder='{ "high": "high", "max": "max", "low": null }'>${escHtml(tlm)}</textarea>
     <label class="field-label">${t("Sampling Parameters (JSON)")}</label><textarea id="mf-samplingParams" class="ta" style="height:90px" placeholder='{ "temperature": 1.0, "top_p": 0.95 }'>${escHtml(sp)}</textarea>
+    <label class="field-label">${t("Sampling Params by Thinking Level (JSON)")}</label><textarea id="mf-samplingParamsByThinkingLevel" class="ta" style="height:90px" placeholder='{ "high": { "temperature": 1.0 } }'>${escHtml(spbtl)}</textarea>
+    <label class="field-label">${t("Prompt Cache (JSON)")}</label><textarea id="mf-promptCache" class="ta" style="height:60px" placeholder='{ "short": 300, "long": 3600 }'>${escHtml(pc)}</textarea>
+    <label class="field-label">${t("Input Limits (JSON)")}</label><textarea id="mf-inputLimits" class="ta" style="height:60px" placeholder='{ "maxRequestBytes": 20000000 }'>${escHtml(il)}</textarea>
     ${renderHeadersField("mf-headers", e?.headers)}
     <label class="field-label">${t("Compatibility")}</label>
     ${renderCompatSection("mf-cx", e?.compat)}
@@ -916,6 +940,43 @@ function saveModelForm(parent: HTMLElement, _data: ModelsData, provId: string, i
     }
   } else {
     m.samplingParams = null;
+  }
+  const spbtlTxt = (
+    (document.getElementById("mf-samplingParamsByThinkingLevel") as HTMLTextAreaElement)?.value ??
+    ""
+  ).trim();
+  if (spbtlTxt) {
+    try {
+      m.samplingParamsByThinkingLevel = JSON.parse(spbtlTxt);
+    } catch {
+      errors.push(t("Invalid JSON in Sampling Params by Thinking Level"));
+    }
+  } else {
+    m.samplingParamsByThinkingLevel = null;
+  }
+  const pcTxt = (
+    (document.getElementById("mf-promptCache") as HTMLTextAreaElement)?.value ?? ""
+  ).trim();
+  if (pcTxt) {
+    try {
+      m.promptCache = JSON.parse(pcTxt);
+    } catch {
+      errors.push(t("Invalid JSON in Prompt Cache"));
+    }
+  } else {
+    m.promptCache = null;
+  }
+  const ilTxt = (
+    (document.getElementById("mf-inputLimits") as HTMLTextAreaElement)?.value ?? ""
+  ).trim();
+  if (ilTxt) {
+    try {
+      m.inputLimits = JSON.parse(ilTxt);
+    } catch {
+      errors.push(t("Invalid JSON in Input Limits"));
+    }
+  } else {
+    m.inputLimits = null;
   }
   m.headers = readHeadersField("mf-headers");
   const compat = readCompatSection("mf-cx");

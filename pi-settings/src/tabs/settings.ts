@@ -8,9 +8,10 @@ interface SettingsData {
 interface SettingField {
   key: string;
   label: string;
-  type: "bool" | "enum" | "number" | "string" | "string[]" | "json";
+  type: "bool" | "enum" | "number" | "string" | "string[]" | "json" | "numberOrText";
   desc?: string;
   options?: string[];
+  optionValues?: unknown[];
   def?: unknown;
   placeholder?: string;
   min?: number;
@@ -62,6 +63,46 @@ const GROUPS: SettingGroup[] = [
         type: "json",
         desc: t('Custom token budgets per thinking level, e.g. {"low": 4096}'),
       },
+      {
+        key: "modelThinkingLevels",
+        label: t("Per-model thinking levels"),
+        type: "json",
+        desc: t('Startup thinking level per model, e.g. {"anthropic/claude-opus-4-1": "high"}'),
+      },
+      {
+        key: "cacheWarming",
+        label: t("Cache warming"),
+        type: "enum",
+        options: ["off", "streaming", "idle"],
+        def: "streaming",
+        desc: t('Keep prompt caches warm: "off", "streaming", or "idle" (global only)'),
+      },
+    ],
+  },
+  {
+    title: t("Tools"),
+    fields: [
+      {
+        key: "defaultTools",
+        label: t("Default tools"),
+        type: "string[]",
+        desc: t("Tools enabled at startup (one per line); use +name to add or -name to remove"),
+      },
+      {
+        key: "codemode.mode",
+        label: t("Codemode mode"),
+        type: "enum",
+        options: ["on", "only"],
+        def: "on",
+        desc: t('"on" keeps declared tools; "only" routes every tool through codemode scripts'),
+      },
+      {
+        key: "codemode.inlineBudget",
+        label: t("Codemode inline budget"),
+        type: "number",
+        def: 3000,
+        desc: t("Estimated tokens codemode may spend listing tools; 0 lists namespaces only"),
+      },
     ],
   },
   {
@@ -77,8 +118,11 @@ const GROUPS: SettingGroup[] = [
       {
         key: "quietStartup",
         label: t("Quiet startup"),
-        type: "bool",
-        desc: t("Hide startup header"),
+        type: "enum",
+        options: [t("Show all"), t("Hide all"), t("Header only")],
+        optionValues: [false, true, "header"],
+        def: false,
+        desc: t('"Header only" keeps the version and key hints'),
       },
       {
         key: "defaultProjectTrust",
@@ -100,7 +144,6 @@ const GROUPS: SettingGroup[] = [
         type: "bool",
         desc: t("Opt-in analytics data sharing"),
       },
-      { key: "trackingId", label: t("Tracking ID"), type: "string" },
       {
         key: "doubleEscapeAction",
         label: t("Double-escape action"),
@@ -143,8 +186,8 @@ const GROUPS: SettingGroup[] = [
         label: t("TUI mode"),
         type: "enum",
         options: ["regular", "fullscreen"],
-        def: "regular",
-        desc: t('Interactive TUI mode: "regular" or experimental "fullscreen"'),
+        def: "fullscreen",
+        desc: t('Interactive TUI mode: "regular" keeps scrollback, "fullscreen" is the default'),
       },
       {
         key: "fullscreenScrollbar",
@@ -155,6 +198,28 @@ const GROUPS: SettingGroup[] = [
         desc: t(
           'Fullscreen transcript scrollbar: "auto" shows it while scrolling, "always" keeps it visible, "hidden" hides it',
         ),
+      },
+      {
+        key: "fullscreenExitOutput",
+        label: t("Fullscreen exit output"),
+        type: "enum",
+        options: ["transcript", "resume-hint"],
+        def: "transcript",
+        desc: t("What is printed when fullscreen mode exits"),
+      },
+      {
+        key: "fullscreenCopyOnSelect",
+        label: t("Copy on select"),
+        type: "bool",
+        def: true,
+        desc: t("Copy selected text automatically in fullscreen mode"),
+      },
+      {
+        key: "fullscreenWheelScrollLines",
+        label: t("Wheel scroll lines"),
+        type: "numberOrText",
+        placeholder: "auto",
+        desc: t('Lines per mouse-wheel event (1-100) or "auto"'),
       },
     ],
   },
@@ -206,6 +271,14 @@ const GROUPS: SettingGroup[] = [
         def: 20000,
         desc: t("Recent tokens to keep (not summarized)"),
       },
+      {
+        key: "compaction.modelOverrides",
+        label: t("Model overrides"),
+        type: "json",
+        desc: t(
+          'Per-model token overrides, e.g. {"anthropic/claude-opus-4-1": {"reserveTokens": 8192}}',
+        ),
+      },
     ],
   },
   {
@@ -243,6 +316,12 @@ const GROUPS: SettingGroup[] = [
         type: "number",
         def: 2000,
         desc: t("Exponential backoff base (2s, 4s, 8s)"),
+      },
+      {
+        key: "retry.maxAgentDelayMs",
+        label: t("Max agent delay (ms)"),
+        type: "number",
+        def: 60000,
       },
       { key: "retry.provider.timeoutMs", label: t("Provider timeout (ms)"), type: "number" },
       {
@@ -302,6 +381,39 @@ const GROUPS: SettingGroup[] = [
         label: t("Clear on shrink"),
         type: "bool",
         desc: t("Clear empty rows when content shrinks"),
+      },
+      {
+        key: "terminal.showTerminalProgress",
+        label: t("Terminal progress"),
+        type: "bool",
+        desc: t("Show OSC 9;4 progress in the terminal tab"),
+      },
+      {
+        key: "terminal.hyperlinks",
+        label: t("Hyperlinks"),
+        type: "enum",
+        options: [t("Auto"), t("On"), t("Off")],
+        optionValues: ["auto", true, false],
+        def: "auto",
+        desc: t("Override OSC 8 hyperlink detection"),
+      },
+      {
+        key: "terminal.images",
+        label: t("Image protocol"),
+        type: "enum",
+        options: [t("Auto"), "kitty", "iterm2", t("Off")],
+        optionValues: ["auto", "kitty", "iterm2", false],
+        def: "auto",
+        desc: t("Override inline-image protocol detection"),
+      },
+      {
+        key: "terminal.trueColor",
+        label: t("True color"),
+        type: "enum",
+        options: [t("Auto"), t("On"), t("Off")],
+        optionValues: ["auto", true, false],
+        def: "auto",
+        desc: t("Override true-color detection"),
       },
       {
         key: "images.autoResize",
@@ -433,15 +545,21 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
     switch (f.type) {
       case "bool":
         return `<div class="cfg-field"><label class="check-label"><input type="checkbox" id="${id}" data-key="${escHtml(f.key)}" ${init ? "checked" : ""} /> ${escHtml(f.label)}</label>${desc}</div>`;
-      case "enum":
+      case "enum": {
+        const vals = f.optionValues ?? f.options ?? [];
+        const idx = vals.findIndex((v) => sameJson(v, init));
         return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><select id="${id}" data-key="${escHtml(f.key)}">${(
           f.options ?? []
         )
           .map(
-            (o) =>
-              `<option value="${escHtml(o)}" ${o === init ? "selected" : ""}>${escHtml(o)}</option>`,
+            (o, i) => `<option value="${i}" ${i === idx ? "selected" : ""}>${escHtml(o)}</option>`,
           )
           .join("")}</select>${desc}</div>`;
+      }
+      case "numberOrText": {
+        const v = init === undefined || init === null ? "" : String(init);
+        return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><input id="${id}" data-key="${escHtml(f.key)}" value="${escHtml(v)}"${f.placeholder ? ` placeholder="${escHtml(f.placeholder)}"` : ""} />${desc}</div>`;
+      }
       case "number":
         return `<div class="cfg-field"><label class="field-label" for="${id}">${escHtml(f.label)}</label><input type="number" id="${id}" data-key="${escHtml(f.key)}" value="${init === undefined ? "" : String(init)}"${f.min !== undefined ? ` min="${f.min}"` : ""}${f.max !== undefined ? ` max="${f.max}"` : ""} />${desc}</div>`;
       case "string":
@@ -495,10 +613,22 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
         const v = (el as HTMLInputElement).checked;
         return { dirty: v !== !!init, value: v };
       }
-      case "enum":
       case "string": {
         const v = el.value;
         return { dirty: v !== String(init ?? ""), value: v };
+      }
+      case "enum": {
+        const vals = f.optionValues ?? f.options ?? [];
+        const idx = Number(el.value);
+        const v = Number.isNaN(idx) ? undefined : vals[idx];
+        return { dirty: !sameJson(v, init), value: v };
+      }
+      case "numberOrText": {
+        const raw = el.value.trim();
+        if (raw === "") return { dirty: init !== undefined && init !== null, value: undefined };
+        const num = Number(raw);
+        const v: unknown = Number.isFinite(num) ? num : raw;
+        return { dirty: !sameJson(v, init), value: v };
       }
       case "number": {
         const raw = el.value;
@@ -592,8 +722,14 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
         case "bool":
           (el as HTMLInputElement).checked = !!f.def;
           break;
-        case "enum":
-          el.value = String(f.def ?? "");
+        case "enum": {
+          const vals = f.optionValues ?? f.options ?? [];
+          const idx = vals.findIndex((v) => sameJson(v, f.def));
+          el.value = idx >= 0 ? String(idx) : "";
+          break;
+        }
+        case "numberOrText":
+          (el as HTMLInputElement).value = f.def === undefined ? "" : String(f.def);
           break;
         case "number":
           (el as HTMLInputElement).value = f.def === undefined ? "" : String(f.def);
@@ -657,6 +793,10 @@ export function renderSettingsTab(parent: HTMLElement, data: SettingsData) {
   parent.addEventListener("change", (e) => {
     if ((e.target as HTMLElement).hasAttribute("data-key")) updateDirtyDots();
   });
+}
+
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function getAt(obj: Record<string, any>, path: string): unknown {

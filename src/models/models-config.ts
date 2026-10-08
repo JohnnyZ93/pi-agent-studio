@@ -13,6 +13,10 @@ export interface ModelEntry {
   baseUrl?: string;
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string | null>;
+  samplingParams?: Record<string, unknown>;
+  samplingParamsByThinkingLevel?: Record<string, unknown>;
+  promptCache?: { short?: number; long?: number };
+  inputLimits?: Record<string, unknown>;
   input?: string[];
   contextWindow?: number;
   maxTokens?: number;
@@ -38,6 +42,7 @@ export interface ProviderEntry {
   baseUrl?: string;
   apiKey?: string;
   api?: string;
+  oauth?: string;
   headers?: Record<string, string>;
   authHeader?: boolean;
   compat?: Record<string, unknown>;
