@@ -22,7 +22,7 @@
 - **侧边栏聊天视图** —— 同样的聊天 UI 还可以作为 WebviewView 放在独立的 **Pi Chat** 活动栏容器中（`Pi: Open in Sidebar`）：启动会话前显示轻量起始页，每个窗口一个后台会话，视图隐藏 / 重新解析时完整重水合；`pi-agent-studio.ui` 新增 `sidebar` 值，可将 `Pi: Open` / `Open Here` 与 Sessions 视图路由到侧边栏聊天
 - **Mermaid 与数学公式渲染** —— webview 聊天面板将 `mermaid` 代码块渲染为交互式图表，并用 KaTeX 渲染数学公式（`$...$`、`$$...$$`）；图表主题可通过 `pi-agent-studio.chatMermaidTheme` 配置（`default` / `neutral` / `dark` / `forest` / `base`）
 - **回退代码** —— 在 `/tree` 回退到历史消息时，可选择**同时恢复文件变更**（`/fork` 仅回退消息）；由内置 `rewind-code` 扩展实现（基于文件快照，支持 Accept / Revert）
-- **MCP 支持** —— 通过 **pi 内置 MCP** 接入 Model Context Protocol 服务器（stdio 或 HTTP，用户 / 项目作用域配置）：工具以 `mcp__<服务器>__<工具>` 暴露，支持 OAuth 登录与 `/mcp` 管理；聊天工具栏抽屉展示实时服务器状态并提供一键重连
+- **MCP 支持** —— 通过 **pi 内置 MCP** 接入 Model Context Protocol 服务器（需 pi ≥ 0.99，stdio 或 HTTP，用户 / 项目作用域配置）：工具以 `mcp__<服务器>__<工具>` 暴露，支持 OAuth 登录与 `/mcp` 管理；聊天工具栏抽屉展示实时服务器状态并提供一键重连
 - **技能管理** —— 可视化面板，在用户 / 项目作用域内创建、编辑、删除 pi 技能（带 YAML frontmatter 的 SKILL.md）
 - **VS Code 桥接** —— 内置 pi 扩展与本地 HTTP 桥接服务，为状态栏与 Slash 命令提供实时编辑器数据
 - **诊断工具** —— Agent 可通过 `vscode_get_diagnostics` 按需读取 VS Code 诊断（LSP / lint / 类型错误）
@@ -47,6 +47,7 @@
   ```
 
 - 至少为一个 Provider 配置 API Key 或 OAuth 凭据 —— 在设置面板的 **Models** 标签页管理
+- 使用 MCP 需要 pi ≥ 0.99（内置 MCP）—— `Pi: Upgrade Pi` 会执行 `pi update`
 
 ## 安装
 
@@ -87,7 +88,7 @@ ovsx get johnny-zhao/pi-agent-studio
 
 ### 完整设置面板
 
-**Settings** 侧边栏的跳转按钮（或 `Pi: Open Settings` 命令）会打开一个单实例编辑器面板，共七个标签页，数据按标签页惰性加载：
+**Settings** 侧边栏的跳转按钮（或 `Pi: Open Settings` 命令）会打开一个单实例编辑器面板，共八个标签页，数据按标签页惰性加载：
 
 - **Models** —— 三个子标签页：
   - **Providers** —— 在 `~/.pi/agent/models.json` 中新增 / 重命名 / 编辑 / 删除自定义 Provider；支持按 Provider 配置 `authHeader` 开关与自定义请求头（env / command 占位符）、按模型覆盖 API 协议与 base URL、OpenAI / Anthropic 兼容字段、**采样参数**、成本分层与思考级别映射
@@ -98,10 +99,8 @@ ovsx get johnny-zhao/pi-agent-studio
 - **Skills** -- 在用户 / 项目作用域内创建 / 编辑 / 删除 pi 技能（SKILL.md）；外部技能只读展示，可打开源文件
 - **MCP Servers** -- 在用户（`~/.pi/agent/mcp.json`）与项目（`.pi/mcp.json`）作用域内新增 / 编辑 / 删除 MCP 服务器配置，合并为带来源徽标的去重列表；显式**传输方式选择器**（stdio / http）只展示对应字段——stdio 为 command/args/env/cwd，http 为 url/headers/oauth（原始 JSON）/auth.provider，另有每台服务器的 `enabled`、`exposure`、`toolExposure`、`description` 与 `timeout`，全部采用 pi 内置 MCP 格式
 - **Commit Message** —— 配置 AI 生成提交信息功能：模型（`provider/model`）、输出语言与自定义提示词模板，直接写入 VS Code 设置
-- **Settings** —— 两个分区：
-  - **System Prompt** -- **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）、**Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
-  - **settings.json** -- `pi-agent-studio.*` 配置的内联编辑器，直接保存到 VS Code 设置
-  - **pi 设置** —— 包括 TUI 模式（`regular` / 实验性 `fullscreen`）、全屏滚动条，以及 Mermaid 渲染模式（`off` / `final` / `streaming`）
+- **System Prompt** -- **Append** → `~/.pi/agent/APPEND_SYSTEM.md`（追加到 pi 系统提示）、**Override** → `~/.pi/agent/SYSTEM.md`（完全替换 pi 系统提示）
+- **Settings** —— 直接编辑 `~/.pi/agent/settings.json` 的表单，分组为：模型与思考（思考级别、按级别 token 预算、按模型思考级别、缓存保温）、**工具**（`defaultTools`、codemode 模式与 inline 预算）、UI 与显示（TUI 模式 `regular` / `fullscreen`、全屏滚动条、静默启动、项目信任、通知）、**终端**（OSC 9;4 进度、OSC 8 超链接、内联图片协议、真彩色，各自 `auto` / 开 / 关）、网络、重试、压缩、分支摘要、消息投递、会话、模型切换、Markdown、资源与警告；下拉选项可携带非字符串值，部分字段支持数字或文本（如 `"auto"`）
 
 ## 桥接：LLM 工具、Slash 命令与状态栏
 

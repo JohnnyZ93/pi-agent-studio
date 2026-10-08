@@ -22,7 +22,7 @@ English | [简体中文](README.zh-CN.md)
 - **Sidebar chat view** — The same chat UI is also available as a **WebviewView** in its own **Pi Chat** activity bar container (`Pi: Open in Sidebar`): a lightweight starter screen shows until you start a session, and one background session per window survives view hide / re-resolve with full state re-hydration. A new `sidebar` value for `pi-agent-studio.ui` routes `Pi: Open` / `Open Here` and the Sessions view to it
 - **Mermaid & math rendering** — The webview chat panel renders `mermaid` code fences as interactive diagrams and math expressions (`$...$`, `$$...$$`) with KaTeX; diagram theme is configurable via `pi-agent-studio.chatMermaidTheme` (`default` / `neutral` / `dark` / `forest` / `base`)
 - **Rewind code** - Rewind a historical message in `/tree` and optionally restore the file changes too, via the bundled `rewind-code` extension (file-level snapshots, Accept / Revert controls; `/fork` rewind is message-only)
-- **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope via **pi's built-in MCP** (tools exposed as `mcp__<server>__<tool>`, OAuth sign-in, `/mcp` management); the chat toolbar drawer shows live server status and offers one-click reconnect
+- **MCP support** - Talk to Model Context Protocol servers (stdio or HTTP) configured in user/project scope via **pi's built-in MCP** (requires pi ≥ 0.99; tools exposed as `mcp__<server>__<tool>`, OAuth sign-in, `/mcp` management); the chat toolbar drawer shows live server status and offers one-click reconnect
 - **Skills management** - Visual panel to create, edit, and delete pi skills (SKILL.md with YAML frontmatter) in user and project scopes
 - **VS Code bridge** — Bundles a pi extension and local HTTP bridge for live editor data
 - **Diagnostics tool** — The agent can read VS Code diagnostics (LSP / lint / type errors) on demand via `vscode_get_diagnostics`
@@ -47,6 +47,7 @@ English | [简体中文](README.zh-CN.md)
   ```
 
 - An API key (or OAuth credential) configured for at least one provider — manage them from the **Models** tab of the Settings panel
+- For MCP support, use pi ≥ 0.99 (built-in MCP) — `Pi: Upgrade Pi` runs `pi update`
 
 ## Install
 
@@ -87,7 +88,7 @@ The **Pi** activity bar icon opens a sidebar with two webviews:
 
 ### Full Settings panel
 
-The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) opens a single-instance editor panel with seven tabs, each loading its data lazily:
+The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) opens a single-instance editor panel with eight tabs, each loading its data lazily:
 
 - **Models** — three subtabs:
   - **Providers** — Add / rename / edit / delete custom providers in `~/.pi/agent/models.json`; per-provider `authHeader` toggle and custom headers (env/command placeholders), per-model API protocol / base URL overrides, OpenAI / Anthropic compatibility fields, **sampling parameters**, cost tiers and thinking-level maps
@@ -98,10 +99,8 @@ The **Settings** sidebar's jump button (or the `Pi: Open Settings` command) open
 - **Skills** - Create / edit / delete pi skills (SKILL.md) in user and project scopes; external skills are shown read-only with an option to open the file
 - **MCP Servers** - Add / edit / delete MCP server configs in user (`~/.pi/agent/mcp.json`) and project (`.pi/mcp.json`) scopes, merged into a single deduplicated list with source badges; an explicit **transport selector** (stdio / http) shows only the relevant fields — command/args/env/cwd for stdio, url/headers/oauth (raw JSON)/auth.provider for http — plus per-server `enabled`, `exposure`, `toolExposure`, `description`, and `timeout`. Written in pi's built-in MCP format
 - **Commit Message** — Configure the AI-generated commit message feature: model (`provider/model`), output language, and a custom prompt template, written straight to VS Code settings
-- **Settings** — Two sections:
-  - **System Prompt** — **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt), **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
-  - **settings.json** — Inline editor for `pi-agent-studio.*` configuration, saved directly to VS Code settings
-  - **pi settings** — including TUI mode (`regular` / experimental `fullscreen`), fullscreen scrollbar, and Mermaid rendering mode (`off` / `final` / `streaming`)
+- **System Prompt** — **Append** → `~/.pi/agent/APPEND_SYSTEM.md` (appended to pi's system prompt), **Override** → `~/.pi/agent/SYSTEM.md` (replaces pi's system prompt entirely)
+- **Settings** — Form editor over `~/.pi/agent/settings.json`, grouped into Model & Thinking (thinking level, per-level token budgets, per-model thinking levels, cache warming), **Tools** (`defaultTools`, codemode mode and inline budget), UI & Display (TUI mode `regular` / `fullscreen`, fullscreen scrollbar, quiet startup, project trust, notifications), **Terminal** (OSC 9;4 progress, OSC 8 hyperlinks, inline-image protocol, true color — each `auto` / on / off), Network, Retry, Compaction, Branch Summary, Message Delivery, Sessions, Model Cycling, Markdown, Resources and Warnings; enum selects can carry non-string values and some fields accept either a number or text (e.g. `"auto"`)
 
 ## Bridge: tools, slash commands, and footer status
 

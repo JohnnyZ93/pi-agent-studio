@@ -2,6 +2,13 @@
 
 All notable changes to **Pi Agent Studio** are documented in this file.
 
+## [1.4.0] - 2026-10-08
+
+- **MCP now runs on pi's built-in MCP (breaking)**: the bundled `pi-mcp` extension and its `mcp_tool_search` / `mcp_tool_call` proxy tools are gone — servers connect through pi's built-in MCP.
+- **Terminal tabs now follow pi's live title**: pi terminals are created without a static name, so the tab can render pi's own OSC 0 title (`π - <session> - <cwd>`) and OSC 9;4 working/idle progress instead of a frozen label — set `"terminal.integrated.tabs.title": "${sequence}"` to see it (thanks [joshwolf](https://github.com/joshwolf) via PR #18).
+- **Questionnaire docked above the composer**: in the webview chat, the agent's structured-question form now renders in a dedicated docked panel above the composer instead of a full-screen modal overlay, so the conversation stays visible while you answer.
+- **Pi SDK 1.1.0**: `@earendil-works/pi-ai` / `@earendil-works/pi-coding-agent` bumped to `^1.1.0` (built-in MCP).
+
 ## [1.3.10] - 2026-09-20
 
 - **New chat button**: the chat header gains a `+` button that starts a fresh session in place (built-in `/new`), alongside the existing reload button.
