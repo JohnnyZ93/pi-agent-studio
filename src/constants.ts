@@ -1,5 +1,3 @@
-export const TERMINAL_TITLE = "PI Code";
-
 export const BRIDGE_EXTENSION_PATH = "bridge/pi-vscode-bridge.js";
 export const BTW_EXTENSION_PATH = "bridge/btw.ts";
 export const TODO_EXTENSION_PATH = "bridge/todo.ts";

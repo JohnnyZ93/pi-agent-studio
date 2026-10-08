@@ -7,11 +7,10 @@ import { resolveEndpoint } from "./bridge/endpoint.ts";
 import { createBridge } from "./bridge/server.ts";
 import type { BridgeConfig } from "./bridge/types.ts";
 import { isAbsolutePath } from "./bridge/utils.ts";
-import { TERMINAL_TITLE } from "./constants.ts";
 import { t } from "./i18n.ts";
 import { upgradePiBinary, invalidatePiBinaryCache } from "./pi.ts";
 import { createSessionTracker } from "./sessions.ts";
-import { createNewTerminal } from "./terminal.ts";
+import { createNewTerminal, isPiTerminal } from "./terminal.ts";
 import { resolveUiMode } from "./ui-mode.ts";
 import { createChatTracker } from "./chat/chat-tracker.ts";
 import { disposeRpcTrace } from "./chat/rpc-trace.ts";
@@ -378,7 +377,7 @@ export async function deactivate() {
   }
   disposeRpcTrace();
   for (const terminal of vscode.window.terminals) {
-    if (terminal.name === TERMINAL_TITLE) terminal.dispose();
+    if (isPiTerminal(terminal)) terminal.dispose();
   }
   clearTimeout(bridgeRestartTimer);
   const dispose = bridgeDispose;

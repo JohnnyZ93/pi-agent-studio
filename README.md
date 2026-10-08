@@ -156,6 +156,7 @@ Example:
 - File paths can be absolute or workspace-relative.
 - The bridge RPC layer (`src/bridge/handlers.ts`) still implements the full set of editor operations (selection, symbols, definitions, references, hover, code actions, formatting, workspace edits, save, notifications, …). They are reachable from the bundled bridge but **not** registered as LLM tools or slash commands today — reserved for future explicit commands.
 - Oversized bridge results are capped; when a response exceeds the limit, the tool returns a valid JSON wrapper with `truncated: true`, original size metadata, and a `resultJsonPrefix` preview.
+- Terminal-mode (`pi-agent-studio.ui: "terminal"`) tab titles follow pi's own live title (session name, cwd, working/idle state). To see it, set `"terminal.integrated.tabs.title": "${sequence}"` in your VS Code settings — otherwise VS Code's default title template is used and pi's title updates won't show in the tab.
 
 ## Configuration
 

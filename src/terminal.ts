@@ -1,7 +1,18 @@
 import * as vscode from "vscode";
 import type { BridgeConfig } from "./bridge/types.ts";
-import { TERMINAL_TITLE } from "./constants.ts";
 import { createPiEnvironment, createPiShellArgs, ensurePiBinary } from "./pi.ts";
+
+/**
+ * Terminals created by createNewTerminal(), tracked by identity so pi
+ * terminals can be recognized without a static `name` (see below — a
+ * static name would freeze the tab title and prevent it from tracking
+ * pi's own live OSC-0 title updates).
+ */
+const piTerminals = new WeakSet<vscode.Terminal>();
+
+export function isPiTerminal(terminal: vscode.Terminal): boolean {
+  return piTerminals.has(terminal);
+}
 
 export async function createNewTerminal(options: {
   extensionUri: vscode.Uri;
@@ -32,8 +43,13 @@ export async function createNewTerminal(options: {
     ...(options.terminalId ? { PI_VSCODE_TERMINAL_ID: options.terminalId } : {}),
   };
 
+  // No `name`: an extension-supplied name is stored by VS Code as a static
+  // title (`TitleEventSource.Api`), which makes `TerminalLabelComputer`
+  // return it verbatim from `computeLabel()` and never expand the
+  // `terminal.integrated.tabs.title` template — so the tab would never pick
+  // up pi's own live OSC-0 title. Leaving `name` unset lets the tab title
+  // track pi's title normally, same as a plain shell terminal.
   const terminal = vscode.window.createTerminal({
-    name: TERMINAL_TITLE,
     shellPath: piPath,
     shellArgs: piArgs,
     location: { viewColumn },
@@ -45,14 +61,25 @@ export async function createNewTerminal(options: {
       dark: vscode.Uri.joinPath(options.extensionUri, "assets", "logo.svg"),
     },
   });
+  piTerminals.add(terminal);
 
   return terminal;
 }
 
+/**
+ * Tabs don't expose the underlying `vscode.Terminal` object, so the only way
+ * to correlate a tab with one of our terminals is by matching the tab's
+ * current label against the current `name` of a tracked pi terminal (kept in
+ * sync by VS Code as pi's live title changes).
+ */
 function findPiColumn(): vscode.ViewColumn | undefined {
+  const ourNames = new Set(
+    vscode.window.terminals.filter(isPiTerminal).map((terminal) => terminal.name),
+  );
+  if (ourNames.size === 0) return undefined;
   for (const group of vscode.window.tabGroups.all) {
     for (const tab of group.tabs) {
-      if (tab.input instanceof vscode.TabInputTerminal && tab.label === TERMINAL_TITLE) {
+      if (tab.input instanceof vscode.TabInputTerminal && ourNames.has(tab.label)) {
         return group.viewColumn;
       }
     }
