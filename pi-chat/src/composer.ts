@@ -27,6 +27,7 @@ import {
   sessionInfoEl,
   acEl,
   overlayEl,
+  questionnaireEl,
   el,
   updateSendButton,
   setStreaming,
@@ -1005,7 +1006,7 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
   const cancel = el("button", "btn btn-secondary") as HTMLButtonElement;
   cancel.textContent = t("Cancel");
   cancel.addEventListener("click", function () {
-    respond(request.id, { cancelled: true });
+    respond(request.id, { cancelled: true }, questionnaireEl);
   });
   submitBtn = el("button", "btn btn-primary") as HTMLButtonElement;
   submitBtn.textContent = t("Submit");
@@ -1015,7 +1016,7 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
       const a = answers[qs[qi2].id];
       if (a) arr.push(a);
     }
-    respond(request.id, { value: JSON.stringify({ answers: arr }) });
+    respond(request.id, { value: JSON.stringify({ answers: arr }) }, questionnaireEl);
   });
   actions.appendChild(cancel);
   actions.appendChild(submitBtn);
@@ -1024,9 +1025,17 @@ function renderQuestionnaireForm(box: HTMLElement, request: any) {
 }
 
 function showDialog(request: any) {
+  const method = request.method;
+  if (method === "editor" && request.title === "Pi Questionnaire Form") {
+    questionnaireEl.innerHTML = "";
+    const qbox = el("div", "dialog docked-dialog");
+    renderQuestionnaireForm(qbox, request);
+    questionnaireEl.appendChild(qbox);
+    questionnaireEl.style.display = "block";
+    return;
+  }
   overlayEl.innerHTML = "";
   const box = el("div", "dialog");
-  const method = request.method;
   const title = request.title || (method === "confirm" ? t("Confirm") : t("Input required"));
   const h = document.createElement("h3");
   h.textContent = title;
@@ -1040,12 +1049,6 @@ function showDialog(request: any) {
   }
 
   let inputField: HTMLTextAreaElement | null = null;
-  if (method === "editor" && request.title === "Pi Questionnaire Form") {
-    renderQuestionnaireForm(box, request);
-    overlayEl.appendChild(box);
-    overlayEl.style.display = "flex";
-    return;
-  }
   if (method === "editor" && request.title === "Pi Rewind Confirm") {
     renderRewindDialog(box, request);
     overlayEl.appendChild(box);
@@ -1111,10 +1114,10 @@ function showDialog(request: any) {
   }
 }
 
-function respond(id: string, payload: any) {
+function respond(id: string, payload: any, host: HTMLElement = overlayEl) {
   vscode.postMessage(Object.assign({ type: "dialogResponse", id: id }, payload));
-  overlayEl.style.display = "none";
-  overlayEl.innerHTML = "";
+  host.style.display = "none";
+  host.innerHTML = "";
 }
 
 // ---- wire-up events ----

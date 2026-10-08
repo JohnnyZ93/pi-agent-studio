@@ -1999,6 +1999,16 @@ body.ctrl-key .tool-block[data-has-file] > .tool-head:hover {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.questionnaire {
+  flex-shrink: 0;
+  padding: 6px 8px 0;
+}
+.docked-dialog {
+  width: 100%;
+  max-width: 100%;
+  max-height: 42vh;
+  box-shadow: none;
+}
 .empty {
   flex: 1;
   display: flex;

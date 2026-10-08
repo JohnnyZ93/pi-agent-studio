@@ -130,6 +130,7 @@ export const nameInput = document.getElementById("name-input") as HTMLInputEleme
 export let nameEditing = false;
 export const acEl = document.getElementById("autocomplete")!;
 export const overlayEl = document.getElementById("overlay")!;
+export const questionnaireEl = document.getElementById("questionnaire")!;
 export const toastEl = document.getElementById("toast")!;
 export const scrollBottomBtn = document.getElementById("scroll-bottom-btn")!;
 
