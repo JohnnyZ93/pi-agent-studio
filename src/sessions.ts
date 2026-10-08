@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import * as vscode from "vscode";
 import type { BridgeConfig } from "./bridge/types.ts";
-import { createNewTerminal, isPiTerminal } from "./terminal.ts";
+import { createNewTerminal } from "./terminal.ts";
 import { sessionStatusRegistry } from "./session-status-registry.ts";
 
 const SESSIONS_KEY = "pi-agent-studio.terminalSessions";
@@ -37,7 +37,6 @@ export function createSessionTracker(context: vscode.ExtensionContext): SessionT
       terminalsById.set(terminalId, terminal);
     },
     onClose(terminal) {
-      if (!isPiTerminal(terminal)) return;
       const id = terminalIds.get(terminal);
       if (id) terminalsById.delete(id);
       if (terminal.exitStatus?.reason === vscode.TerminalExitReason.Shutdown) return;

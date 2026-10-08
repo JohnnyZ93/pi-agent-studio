@@ -74,7 +74,10 @@ export async function createNewTerminal(options: {
  */
 function findPiColumn(): vscode.ViewColumn | undefined {
   const ourNames = new Set(
-    vscode.window.terminals.filter(isPiTerminal).map((terminal) => terminal.name),
+    vscode.window.terminals
+      .filter(isPiTerminal)
+      .map((terminal) => terminal.name)
+      .filter((name) => name !== ""),
   );
   if (ourNames.size === 0) return undefined;
   for (const group of vscode.window.tabGroups.all) {

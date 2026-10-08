@@ -156,6 +156,7 @@ ovsx get johnny-zhao/pi-agent-studio
 - 文件路径可为绝对路径或工作区相对路径
 - 桥接 RPC 层（`src/bridge/handlers.ts`）仍实现了完整的编辑器能力（选区、符号、定义、引用、悬浮、code action、格式化、工作区编辑、保存、通知 ……）。它们在内置桥接中可调用，但目前**不**作为 LLM 工具或 Slash 命令注册，留作未来明示命令的备用
 - 大响应的 JSON 会被截断，结果为包含 `truncated: true`、原始大小元数据与 `resultJsonPrefix` 预览的有效 JSON 包装
+- 终端模式（`pi-agent-studio.ui: "terminal"`）创建终端时**不再**设置固定名称，标签页才能跟随 pi 自己的信号而不是僵在静态标题上：pi 通过 OSC 0 写实时标题（`π - <会话名> - <cwd>`），通过 OSC 9;4 上报 working/idle 状态。VS Code 只有在使用标题模板时才会渲染这两者 —— 请设置 `"terminal.integrated.tabs.title": "${sequence}"`（pi 实时标题）。保持 VS Code 默认模板（`${process}`）时，标签页显示进程名，仍带 pi logo 图标
 
 ## 配置项
 
