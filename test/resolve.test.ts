@@ -127,6 +127,19 @@ describe("resolvePiBinary", () => {
     expect(result).toBe(bunPath);
   });
 
+  it("finds pi in ~/.pi/agent/bin on unix (managed install)", () => {
+    const home = "/home/user";
+    const managedPath = `${home}/.pi/agent/bin/pi`;
+    const result = resolvePiBinary({
+      platform: "linux",
+      home,
+      workspaceDirs: [],
+      access: mockAccess(new Set([managedPath])),
+      pathEnv: "/usr/bin:/usr/local/bin",
+    });
+    expect(result).toBe(managedPath);
+  });
+
   it("finds pi.cmd in APPDATA\\npm on windows", () => {
     const appData = "C:\\Users\\dev\\AppData\\Roaming";
     const piCmd = join(appData, "npm", "pi.cmd");

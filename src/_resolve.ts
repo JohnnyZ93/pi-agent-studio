@@ -57,7 +57,12 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
   // Then well-known global paths
   const globalCandidates = isWin
     ? windowsGlobalDirs(opts).flatMap((d) => names.map((n) => join(d, n)))
-    : [`${home}/.bun/bin/pi`, `${home}/.local/bin/pi`, `${home}/.npm-global/bin/pi`];
+    : [
+        `${home}/.bun/bin/pi`,
+        `${home}/.local/bin/pi`,
+        `${home}/.npm-global/bin/pi`,
+        `${home}/.pi/agent/bin/pi`,
+      ];
 
   const candidates = [...workspaceCandidates, ...globalCandidates];
   for (const c of candidates) {
