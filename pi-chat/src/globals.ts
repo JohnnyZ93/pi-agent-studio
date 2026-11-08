@@ -280,17 +280,11 @@ export function scrollToBottom(): void {
 
 export function forceStickBottom(): void {
   messagesEl.scrollTop = messagesEl.scrollHeight;
-  for (let i = 0; i < pendingTexts.length; i++) {
-    const tb = pendingTexts[i];
-    if (tb && tb.textEl) tb.textEl.scrollTop = tb.textEl.scrollHeight;
-  }
   if (currentAssistant) {
     const blks = currentAssistant.blocks;
     for (let k = 0; k < blks.length; k++) {
       const tk = blks[k];
-      if (tk && tk.type === "thinking" && tk._tnode && tk.textEl)
-        tk.textEl.scrollTop = tk.textEl.scrollHeight;
-      else if (tk && tk.type === "toolcall" && tk.name === "subagent" && tk.resultEl)
+      if (tk && tk.type === "toolcall" && tk.name === "subagent" && tk.resultEl)
         tk.resultEl.scrollTop = tk.resultEl.scrollHeight;
     }
   }
@@ -376,7 +370,6 @@ export function finalizeTextBlocks(): void {
     if (b._tnode) b._tnode = null;
     if (b.textEl) b.textEl.classList.remove("is-streaming");
     renderMarkdown(b.textEl, b.text);
-    applyTextCollapsible(b);
   }
   pendingTexts = [];
   if (autoScroll) scheduleScroll();
@@ -384,7 +377,6 @@ export function finalizeTextBlocks(): void {
 
 // These are imported from messages.ts and set after module init
 export let renderMarkdown: (target: HTMLElement, text: string) => void = () => {};
-export let applyTextCollapsible: (b: any) => void = () => {};
 
 // ---- context usage ----
 export function applyContextUsage(usage: any, cost?: number): void {
@@ -680,10 +672,6 @@ export function closeInfoPanel(): void {
 
 export function setRenderMarkdown(fn: typeof renderMarkdown): void {
   renderMarkdown = fn;
-}
-
-export function setApplyTextCollapsible(fn: typeof applyTextCollapsible): void {
-  applyTextCollapsible = fn;
 }
 
 // ---- shorten path (used by messages.ts and rewind.ts) ----

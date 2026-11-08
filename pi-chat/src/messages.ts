@@ -90,18 +90,6 @@ export function addUserMessage(text: string, images?: any[]) {
   renderTarget.appendChild(row);
   if (!suppressUi) setLastUserBubble(bubble);
 
-  if (bubble.scrollHeight > 240) {
-    bubble.classList.add("is-collapsible");
-    const btn = el("button", "expand-btn");
-    btn.type = "button";
-    btn.textContent = t("Show more");
-    btn.addEventListener("click", function () {
-      const expanded = bubble.classList.toggle("is-expanded");
-      btn.textContent = expanded ? t("Show less") : t("Show more");
-    });
-    row.appendChild(btn);
-  }
-
   const timeEl = el("span", "msg-time");
   (bubble as any)._piTimeEl = timeEl;
   const metaEl = el("div", "bubble-meta");
@@ -484,30 +472,6 @@ export function renderMarkdown(target: HTMLElement, text: string): void {
   void enhance(target);
 }
 
-export function applyTextCollapsible(b: any): void {
-  const textEl = b.textEl;
-  if (!textEl || !textEl.parentNode) return;
-  if (textEl._expandBtn) {
-    textEl._expandBtn.remove();
-    textEl._expandBtn = null;
-  }
-  textEl.classList.remove("is-collapsible");
-  textEl.classList.remove("is-expanded");
-  if (textEl.scrollHeight <= 360) return;
-  textEl.classList.add("is-collapsible");
-  const btn = el("button", "expand-btn");
-  btn.type = "button";
-  btn.textContent = t("Show more");
-  btn.addEventListener("click", function () {
-    const expanded = textEl.classList.toggle("is-expanded");
-    btn.textContent = expanded ? t("Show less") : t("Show more");
-  });
-  const host = b.el ? b.el.parentNode : textEl.parentNode;
-  const ref = b.el ? b.el.nextSibling : textEl.nextSibling;
-  host!.insertBefore(btn, ref);
-  textEl._expandBtn = btn;
-}
-
 const MAX_INLINE = 12000;
 
 export function setClamped(preEl: HTMLElement, text: string): void {
@@ -648,7 +612,6 @@ export function appendTextDelta(ci: number, delta: string) {
   b.text += delta;
   if (b.finalized) {
     renderMarkdown(b.textEl, b.text);
-    applyTextCollapsible(b);
     scheduleScroll();
     return;
   }
@@ -1325,7 +1288,6 @@ function renderAgentBody(parent: HTMLElement, r: any): string {
     const mdDiv = el("div", "sub-final sub-md text-block");
     renderMarkdown(mdDiv, final.trim());
     parent.appendChild(mdDiv);
-    applyTextCollapsible({ textEl: mdDiv, el: null });
   } else if (!failed && !hasCalls && !(r && r.task)) {
     const empty = el("div", "sub-empty");
     empty.textContent = r && r.exitCode === -1 ? t("(running…)") : t("(no output)");
@@ -1567,7 +1529,6 @@ function hydrateOne(m: any) {
           tb.text = blk.text || "";
           renderMarkdown(tb.textEl, tb.text);
           tb.finalized = true;
-          applyTextCollapsible(tb);
         } else if (blk.type === "thinking") {
           const hb = ensureBlock(k, "thinking");
           hb.text = blk.thinking || "";
@@ -1692,11 +1653,7 @@ export function wrapWorkSegment(userRow: HTMLElement) {
   const keep: HTMLElement[] = [];
   if (finalText) {
     keep.push(finalText);
-    let n1 = finalText.nextElementSibling as HTMLElement;
-    if (n1 && n1.classList.contains("expand-btn")) {
-      keep.push(n1);
-      n1 = n1.nextElementSibling as HTMLElement;
-    }
+    const n1 = finalText.nextElementSibling as HTMLElement;
     if (n1 && n1.classList.contains("msg-time")) keep.push(n1);
   }
   let hasWork = false;
