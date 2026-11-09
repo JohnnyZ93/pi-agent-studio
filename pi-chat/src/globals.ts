@@ -322,7 +322,13 @@ export function setStatus(t?: string): void {
 
 export function serializeRichInput(): string {
   if (!inputEl) return "";
-  return serializeInputNode(inputEl);
+  const text = serializeInputNode(inputEl);
+  return hasPlaceholderBreak(inputEl) ? text.slice(0, -1) : text;
+}
+
+// A final <br> in the editor only gives the last line a box; it is not a newline.
+export function hasPlaceholderBreak(root: HTMLElement): boolean {
+  return !!root.lastChild && root.lastChild.nodeName === "BR";
 }
 
 function serializeInputNode(node: Node): string {

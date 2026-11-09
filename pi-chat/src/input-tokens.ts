@@ -1,4 +1,4 @@
-import { shortenWorkspacePath } from "./globals";
+import { hasPlaceholderBreak, shortenWorkspacePath } from "./globals";
 
 export type Segment =
   | { type: "text"; text: string }
@@ -123,7 +123,11 @@ export function getCaretOffset(root: HTMLElement): number {
   } catch {
     return 0;
   }
-  return serializeNode(pre.cloneContents()).length;
+  return Math.min(serializeNode(pre.cloneContents()).length, contentLength(root));
+}
+
+function contentLength(root: HTMLElement): number {
+  return serializeNode(root).length - (hasPlaceholderBreak(root) ? 1 : 0);
 }
 
 export function setCaretOffset(root: HTMLElement, offset: number): void {
@@ -223,5 +227,6 @@ export function renderSegments(root: HTMLElement, segments: Segment[], caretOffs
       root.appendChild(span);
     }
   }
+  if (hasPlaceholderBreak(root)) root.appendChild(document.createElement("br"));
   if (caretOffset != null) setCaretOffset(root, caretOffset);
 }
