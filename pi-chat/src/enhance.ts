@@ -28,6 +28,25 @@ function resolveTheme(configured: string): MermaidTheme {
 }
 
 let mermaidTheme: MermaidTheme | null = null;
+let layoutReady: Promise<void> | null = null;
+
+// mermaid.render measures text in a temporary node under <body>; it fails while the
+// webview document is display:none, so wait until <body> has a layout box.
+function whenLaidOut(): Promise<void> {
+  if (document.body.getClientRects().length) return Promise.resolve();
+  if (!layoutReady) {
+    layoutReady = new Promise((resolve) => {
+      const ro = new ResizeObserver(() => {
+        if (!document.body.getClientRects().length) return;
+        ro.disconnect();
+        layoutReady = null;
+        resolve();
+      });
+      ro.observe(document.body);
+    });
+  }
+  return layoutReady;
+}
 
 function currentMermaidTheme(): MermaidTheme {
   if (!mermaidTheme) mermaidTheme = resolveTheme(PI_MERMAID_THEME);
@@ -84,6 +103,7 @@ export async function enhance(target: HTMLElement): Promise<void> {
         node.setAttribute("data-r", "1");
         const codeEl = node.querySelector("code");
         const src = codeEl ? (codeEl.textContent ?? "") : "";
+        await whenLaidOut();
         try {
           const { svg } = await mermaid.render(`pi-mermaid-${seq++}`, src);
           node.innerHTML = svg;
