@@ -52,6 +52,7 @@ export function getChatWebviewHtml(
   bgOpacity?: number,
   sendShortcut?: string,
   workspace?: string,
+  wideMode?: boolean,
 ): string {
   const replaceAll = (haystack: string, needle: string, value: string) =>
     haystack.split(needle).join(value);
@@ -73,5 +74,6 @@ export function getChatWebviewHtml(
   );
   html = replaceAll(html, "PI_SENDSHORTCUT_PLACEHOLDER", escJsString(sendShortcut ?? "enter"));
   html = replaceAll(html, "PI_WORKSPACE_PLACEHOLDER", escJsString(workspace ?? ""));
+  html = replaceAll(html, "PI_WIDEMODE_PLACEHOLDER", wideMode ? "true" : "false");
   return html;
 }

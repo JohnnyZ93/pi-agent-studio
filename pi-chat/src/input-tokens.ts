@@ -197,6 +197,24 @@ export function setCaretOffset(root: HTMLElement, offset: number): void {
   placeSelection(container, pos);
 }
 
+// A programmatic selection change does not scroll the caret into view, so do it here.
+export function scrollCaretIntoView(root: HTMLElement): void {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (!root.contains(range.endContainer)) return;
+  let rect = range.getBoundingClientRect();
+  if (!rect.height) {
+    const kids = range.endContainer.childNodes;
+    const near = kids[range.endOffset] ?? kids[range.endOffset - 1];
+    if (near instanceof Element) rect = near.getBoundingClientRect();
+  }
+  if (!rect.height) return;
+  const box = root.getBoundingClientRect();
+  if (rect.bottom > box.bottom) root.scrollTop += rect.bottom - box.bottom;
+  else if (rect.top < box.top) root.scrollTop -= box.top - rect.top;
+}
+
 export function renderSegments(root: HTMLElement, segments: Segment[], caretOffset?: number): void {
   root.innerHTML = "";
   for (const seg of segments) {

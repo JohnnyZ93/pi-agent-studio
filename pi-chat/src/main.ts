@@ -1,7 +1,7 @@
 // pi-chat webview entry point
 import codiconTtf from "@vscode/codicons/dist/codicon.ttf?inline";
 import "./style.css";
-import { setModelIconFns, vscode } from "./globals";
+import { setModelIconFns, setWideMode, vscode } from "./globals";
 import { getModelIcon, modelIconHtml, escHtml } from "./model-icons";
 import { t } from "./i18n";
 import "./messages";
@@ -18,6 +18,7 @@ codiconStyle.textContent =
 document.head.prepend(codiconStyle);
 
 setModelIconFns(getModelIcon, modelIconHtml, escHtml);
+setWideMode((window as any).__PI_WIDE_MODE__);
 
 if (typeof (window as any).__PI_FONTSIZE__ === "number" && (window as any).__PI_FONTSIZE__ > 0) {
   document.documentElement.style.setProperty("--chat-fs", (window as any).__PI_FONTSIZE__ + "px");

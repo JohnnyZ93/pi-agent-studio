@@ -175,6 +175,7 @@ Example:
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"` | Gate dangerous bash commands: `AskForApproval` (prompt before execution) or `FullAccess`                                             |
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | see "package.json" | Regexes matching dangerous bash commands that require approval (case-insensitive; replaces defaults entirely)                        |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`               | Font size of the webview chat panel (range 8–32)                                                                                     |
+| `pi-agent-studio.chatWideMode`                 | `boolean` | `false`            | Let the webview chat use the full view width (otherwise limited to 920 px)                                                           |
 | `pi-agent-studio.chatSendShortcut`             | `string`  | `"enter"`          | Send shortcut for the chat composer: `enter` (Enter sends, Shift+Enter newline) or `ctrlEnter` (Ctrl/Cmd+Enter sends, Enter newline) |
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`        | Mermaid diagram theme for the webview chat panel (`default` / `neutral` / `dark` / `forest` / `base`)                                |
 | `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`               | Absolute path to a local image file (validated for type and ≤ 10 MB) used as the chat panel background                               |

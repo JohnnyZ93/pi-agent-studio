@@ -87,6 +87,7 @@ export async function openChatPanel(
     chatCfg.get<number>("chatBackgroundOpacity"),
     chatCfg.get<string>("chatSendShortcut"),
     opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+    chatCfg.get<boolean>("chatWideMode"),
   );
 
   let disposed = false;
@@ -97,6 +98,13 @@ export async function openChatPanel(
       panel.webview.postMessage({
         type: "sendShortcut",
         value: cfg.get<string>("chatSendShortcut") ?? "enter",
+      });
+    }
+    if (e.affectsConfiguration("pi-agent-studio.chatWideMode")) {
+      const cfg = vscode.workspace.getConfiguration("pi-agent-studio");
+      panel.webview.postMessage({
+        type: "wideMode",
+        value: cfg.get<boolean>("chatWideMode") ?? false,
       });
     }
     if (
@@ -114,6 +122,7 @@ export async function openChatPanel(
         cfg.get<number>("chatBackgroundOpacity"),
         cfg.get<string>("chatSendShortcut"),
         opts.cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+        cfg.get<boolean>("chatWideMode"),
       );
     }
   });

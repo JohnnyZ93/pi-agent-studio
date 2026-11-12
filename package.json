@@ -433,6 +433,11 @@
           "maximum": 32,
           "description": "%pi.config.chatFontSize.desc%"
         },
+        "pi-agent-studio.chatWideMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "%pi.config.chatWideMode.desc%"
+        },
         "pi-agent-studio.chatSendShortcut": {
           "type": "string",
           "default": "enter",
