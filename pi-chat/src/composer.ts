@@ -74,6 +74,7 @@ import {
   segmentsFromLiveText,
   serializeSegments,
   renderSegments,
+  scrollCaretIntoView,
   getCaretOffset,
   setCaretOffset,
 } from "./input-tokens";
@@ -674,10 +675,13 @@ function sendPrompt(behavior?: string) {
 }
 
 function autoGrow() {
+  const scrollTop = inputEl.scrollTop;
   inputEl.style.height = "auto";
   const h = Math.max(28, Math.min(inputEl.scrollHeight, 200));
   inputEl.style.height = h + "px";
   inputEl.style.overflowY = h >= 200 ? "auto" : "hidden";
+  inputEl.scrollTop = scrollTop;
+  scrollCaretIntoView(inputEl);
 }
 
 function normalizeInputTokens() {
