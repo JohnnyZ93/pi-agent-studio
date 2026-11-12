@@ -50,6 +50,7 @@ import {
   inputHistory,
   getSendShortcut,
   setSendShortcut,
+  setWideMode,
   getModelIcon,
   modelIconHtml,
   serializeRichInput,
@@ -1572,6 +1573,9 @@ window.addEventListener("message", function (e: MessageEvent) {
       break;
     case "sendShortcut":
       setSendShortcut(d.value);
+      break;
+    case "wideMode":
+      setWideMode(d.value);
       break;
     case "commands":
       commands.length = 0;

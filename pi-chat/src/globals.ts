@@ -80,6 +80,10 @@ export function setSendShortcut(v: string | undefined): void {
   sendShortcut = v;
 }
 
+export function setWideMode(v: unknown): void {
+  document.documentElement.classList.toggle("wide", v === true);
+}
+
 // ---- DOM refs ----
 export const messagesEl = document.getElementById("messages")!;
 export const messagesInner = document.getElementById("messages-inner")!;

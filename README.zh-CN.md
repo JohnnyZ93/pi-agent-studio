@@ -175,6 +175,7 @@ ovsx get johnny-zhao/pi-agent-studio
 | `pi-agent-studio.permission.mode`              | `string`  | `"AskForApproval"`  | 危险 bash 命令门禁：`AskForApproval`（执行前询问）或 `FullAccess`                                              |
 | `pi-agent-studio.permission.dangerousPatterns` | `array`   | 请看 "package.json" | 匹配危险 bash 命令、需审批的正则（大小写不敏感；用户配置会整体替换默认值）                                     |
 | `pi-agent-studio.chatFontSize`                 | `number`  | `13`                | webview 聊天面板字体大小（范围 8–32）                                                                          |
+| `pi-agent-studio.chatWideMode`                 | `boolean` | `false`             | webview 聊天占满视图全部宽度（否则限制为 920 像素）                                                            |
 | `pi-agent-studio.chatSendShortcut`             | `string`  | `"enter"`           | 聊天输入框发送快捷键：`enter`（Enter 发送，Shift+Enter 换行）或 `ctrlEnter`（Ctrl/Cmd+Enter 发送，Enter 换行） |
 | `pi-agent-studio.chatMermaidTheme`             | `string`  | `"default"`         | webview 聊天面板的 Mermaid 图表主题（`default` / `neutral` / `dark` / `forest` / `base`）                      |
 | `pi-agent-studio.chatBackgroundImage`          | `string`  | `""`                | 本地图片的绝对路径（校验类型与 ≤ 10 MB），用作聊天面板背景                                                     |

@@ -87,6 +87,7 @@ function getChatHtml(webview: vscode.Webview): string {
     cfg.get<number>("chatBackgroundOpacity"),
     cfg.get<string>("chatSendShortcut"),
     vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+    cfg.get<boolean>("chatWideMode"),
   );
 }
 
@@ -208,6 +209,14 @@ export function createChatSidebarViewProvider(
               vscode.workspace
                 .getConfiguration("pi-agent-studio")
                 .get<string>("chatSendShortcut") ?? "enter",
+          });
+        }
+        if (e.affectsConfiguration("pi-agent-studio.chatWideMode")) {
+          webviewView.webview.postMessage({
+            type: "wideMode",
+            value:
+              vscode.workspace.getConfiguration("pi-agent-studio").get<boolean>("chatWideMode") ??
+              false,
           });
         }
         if (
