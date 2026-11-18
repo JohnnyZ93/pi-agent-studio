@@ -48,20 +48,21 @@ export function normalizePiSpawnTarget(
   if (process.platform !== "win32") {
     return { command: piPath, args: [...args] };
   }
-  const lower = piPath.toLowerCase();
+  const normalizedPath = piPath.replaceAll("\\", "/");
+  const lower = normalizedPath.toLowerCase();
   if (lower.endsWith(".cmd") || lower.endsWith(".bat")) {
-    return { command: "cmd.exe", args: ["/d", "/s", "/c", piPath, ...args] };
+    return { command: "cmd.exe", args: ["/d", "/s", "/c", normalizedPath, ...args] };
   }
   if (lower.endsWith(".ps1")) {
     const quoteSingle = (s: string) => `'${s.replace(/'/g, "''")}'`;
     const ps =
-      `& ${quoteSingle(piPath)}` + (args.length ? " " + args.map(quoteSingle).join(" ") : "");
+      `& ${quoteSingle(normalizedPath)}` + (args.length ? " " + args.map(quoteSingle).join(" ") : "");
     return {
       command: "powershell.exe",
       args: ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", ps],
     };
   }
-  return { command: piPath, args: [...args] };
+  return { command: normalizedPath, args: [...args] };
 }
 
 export async function ensurePiBinary(): Promise<string | undefined> {

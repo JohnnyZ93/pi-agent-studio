@@ -56,7 +56,7 @@ export async function readPiChangelog(piPath: string | undefined): Promise<strin
 
   try {
     const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
-    const { stdout } = await execFileAsync(npmBin, ["root", "-g"]);
+    const { stdout } = await execFileAsync(npmBin, ["root", "-g"], process.platform === "win32" ? { shell: true } : {});
     const globalRoot = stdout.trim();
     if (globalRoot) {
       const content = await readChangelogAt(join(globalRoot, PI_PACKAGE_NAME));
