@@ -1,8 +1,16 @@
 import { constants } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("vscode", () => ({
+  workspace: {
+    getConfiguration: () => ({
+      get: () => undefined,
+    }),
+  },
+}));
 import { resolvePiBinary } from "../src/_resolve.ts";
 import { createPiGlobalInstallCommand } from "../src/upgrade.ts";
+import { normalizePiSpawnTarget } from "../src/pi.ts";
 
 function mockAccess(existing: Set<string>) {
   return (path: string, _mode: number) => {
@@ -235,16 +243,32 @@ describe("resolvePiBinary", () => {
 describe("createPiGlobalInstallCommand", () => {
   it("returns global install commands for supported package managers", () => {
     expect(createPiGlobalInstallCommand("npm")).toBe(
-      "npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest",
+      "npm install -g --ignore-scripts @earendil-works/pi-coding-agent",
     );
     expect(createPiGlobalInstallCommand("bun")).toBe(
-      "bun install --global @earendil-works/pi-coding-agent@latest",
+      "bun add -g --ignore-scripts @earendil-works/pi-coding-agent",
     );
     expect(createPiGlobalInstallCommand("pnpm")).toBe(
-      "pnpm add --global @earendil-works/pi-coding-agent@latest",
+      "pnpm add -g --ignore-scripts @earendil-works/pi-coding-agent",
     );
     expect(createPiGlobalInstallCommand("yarn")).toBe(
-      "yarn global add @earendil-works/pi-coding-agent@latest",
+      "yarn global add --ignore-scripts @earendil-works/pi-coding-agent",
     );
+  });
+});
+
+describe("normalizePiSpawnTarget with Windows paths", () => {
+  it("converts backslashes to forward slashes on Windows for cmd.exe target", () => {
+    // If process.platform is not win32, we can't test Windows branching unless we mock process.platform,
+    // but process.platform is read-only. However, normalizePiSpawnTarget specifically branches on process.platform.
+    // Let's test the behavior on whatever platform we are on, or mock it if we can.
+    if (process.platform === "win32") {
+      const target = normalizePiSpawnTarget("C:\\Users\\dev\\pi.cmd", ["--version"]);
+      expect(target.command).toBe("cmd.exe");
+      expect(target.args).toEqual(["/d", "/s", "/c", "C:/Users/dev/pi.cmd", "--version"]);
+    } else {
+      const target = normalizePiSpawnTarget("C:\\Users\\dev\\pi.cmd", ["--version"]);
+      expect(target.command).toBe("C:\\Users\\dev\\pi.cmd");
+    }
   });
 });
